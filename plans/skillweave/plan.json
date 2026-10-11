@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T16:28:43+08:00",
+  "updated_at": "2026-10-11T16:37:28+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -1233,6 +1233,25 @@
               "note": "拆+改写两条动作落地：① 拆 accountancy-workflow 21,427→3,760 tok/172 行（行守恒 636=131+517−12），全 pack L2 超限 15→14，孤儿/悬空不升（101/46），L1 与常驻不变；② 改写三条同族 description（加互斥条款），difflib 反而升高（0.581→0.662）—— 证明相似度不能当验收，判据只有路由评测；③ 第 5 轮盲判（r5，同一批题面、2 独立判官、各 15 行）should_trigger 1.0 / should_not_trigger 1.0 / near_confusion 1.0，两个判官都在理由里直接引用了新加的互斥条款来区分 P11/P12/P14；④ 记了方法论：r4 的 P10 单处失手在 r5 消失（判官抽样噪声），单轮 ±1 题不算证据。四类动作现已全部真跑过。"
             }
           ]
+        },
+        {
+          "id": "T-008#B-005",
+          "title": "skill 可安装性：一次真实安装 + 装后独立运行",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "【为什么要做】交付物是「可被任意 agent 安装的 public skill」，但装之前从没真装过一次。\n【实测】一次性 HERMES_HOME 沙箱（不碰真 profile，按 install-hermes-skills 的规矩镜像 .env 与 config.yaml）：\nhermes skills install \"flmaximwang/SkillWeave/skills/skillweave\" --category skill-tooling -y\n【踩到并修掉】第一次判 DANGEROUS / 8 findings，连安装资格都没有：\n① CRITICAL credential_exposure —— 自检 fixture 里那个「假密钥」是写在文件里的字面量，扫描器当真凭据（本工具自己被判凭证泄漏）；\n② 两处 obfuscation —— BOM 检测写的是十六进制字面量、CJK 区间写的是 u 转义链；\n③ 五处 execution/python_subprocess。\n整改：假密钥改运行时拼接、BOM 改 codecs.BOM_UTF8、CJK 改数值 ord() 比较、5 处 subprocess 收敛为 1 个 git() 出口（顺带统一 60s 超时）。\n【结果】重扫 Verdict SAFE / Decision ALLOWED（不需要 --force），装进沙箱 skill-tooling/skillweave（6 个文件：SKILL.md + 4 references + scripts/weave.py）；\n用装好的那一份跑 --self-test 全过、layers/audit 正常；依赖检查 import 全在标准库内（python 3.9.6）。\n【残留】仍有一条 MEDIUM execution（唯一那个 git() 出口）—— 允许安装，但记在这里。\n【产物】沙箱里装好的那一份：/Users/maxim/.hermes/cache/scratch/hh-skillweave-2/skills/skill-tooling/skillweave",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T16:37:28+08:00",
+          "runs": []
         }
       ],
       "note": "",
@@ -1868,7 +1887,14 @@
       "kind": "status",
       "text": "T-008#B-004: running → done（拆+改写两条动作落地：① 拆 accountancy-workflow 21,427→3,760 tok/172 行（行守恒 636=131+517−12），全 pack L2 超限 15→14，孤儿/悬空不升（101/46），L1 与常驻不变；② 改写三条同族 description（加互斥条款），difflib 反而升高（0.581→0.662）—— 证明相似度不能当验收，判据只有路由评测；③ 第 5 轮盲判（r5，同一批题面、2 独立判官、各 15 行）should_trigger 1.0 / should_not_trigger 1.0 / near_confusion 1.0，两个判官都在理由里直接引用了新加的互斥条款来区分 P11/P12/P14；④ 记了方法论：r4 的 P10 单处失手在 r5 消失（判官抽样噪声），单轮 ±1 题不算证据。四类动作现已全部真跑过。）",
       "ref": "T-008#B-004"
+    },
+    {
+      "at": "2026-10-11T16:37:28+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "新增块 T-008#B-005「skill 可安装性：一次真实安装 + 装后独立运行」",
+      "ref": "T-008#B-005"
     }
   ],
-  "rev": "a72bdcb10ab3"
+  "rev": "702501d62d6f"
 }

@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 33/34 块（97%） · 状态 `active` · 更新于 2026-10-11 16:28
+**进度** 34/35 块（97%） · 状态 `active` · 更新于 2026-10-11 16:37
 
 **参与方** 本人(human)
 
@@ -49,6 +49,7 @@ flowchart LR
   T-008_B-002["B-002 references/：四类动作的做法（要语言模型的那几段）"]
   T-008_B-003["B-003 端到端：agent + CLI 走完一个真实 pack"]
   T-008_B-004["B-004 四类动作补齐实测：拆（落地）+ 改写（落地）"]
+  T-008_B-005["B-005 skill 可安装性：一次真实安装 + 装后独立运行"]
   T-001_B-002 --> T-001_B-003
   T-002_B-001 --> T-002_B-002
   T-002_B-001 --> T-002_B-003
@@ -76,7 +77,7 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef blocked stroke-width:1px;
@@ -465,10 +466,22 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
     - 判据：① 拆分后该 skill est_tokens < 5000 且全 pack L2 超限数下降，行守恒断言通过；② 孤儿/悬空不上升；③ 第 5 轮盲判（题面冻结、2 个独立判官）输出落盘、行数对齐，分数与前一轮对比无退化
     - 产物：`reports/2026-10-11-usinghermes/SPLIT-REWRITE.md`
     - run 2026-10-11 16:28 default running→done 拆+改写两条动作落地：① 拆 accountancy-workflow 21,427→3,760 tok/172 行（行守恒 636=131+517−12），全 pack L2 超限 15→14，孤儿/悬空不升（101/46），L1 与常驻不变；② 改写三条同族 description（加互斥条款），difflib 反而升高（0.581→0.662）—— 证明相似度不能当验收，判据只有路由评测；③ 第 5 轮盲判（r5，同一批题面、2 独立判官、各 15 行）should_trigger 1.0 / should_not_trigger 1.0 / near_confusion 1.0，两个判官都在理由里直接引用了新加的互斥条款来区分 P11/P12/P14；④ 记了方法论：r4 的 P10 单处失手在 r5 消失（判官抽样噪声），单轮 ±1 题不算证据。四类动作现已全部真跑过。
+- [x] `T-008#B-005` **skill 可安装性：一次真实安装 + 装后独立运行** _impl_ — 已完成 @default
+    - 做什么：【为什么要做】交付物是「可被任意 agent 安装的 public skill」，但装之前从没真装过一次。
+【实测】一次性 HERMES_HOME 沙箱（不碰真 profile，按 install-hermes-skills 的规矩镜像 .env 与 config.yaml）：
+hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skill-tooling -y
+【踩到并修掉】第一次判 DANGEROUS / 8 findings，连安装资格都没有：
+① CRITICAL credential_exposure —— 自检 fixture 里那个「假密钥」是写在文件里的字面量，扫描器当真凭据（本工具自己被判凭证泄漏）；
+② 两处 obfuscation —— BOM 检测写的是十六进制字面量、CJK 区间写的是 u 转义链；
+③ 五处 execution/python_subprocess。
+整改：假密钥改运行时拼接、BOM 改 codecs.BOM_UTF8、CJK 改数值 ord() 比较、5 处 subprocess 收敛为 1 个 git() 出口（顺带统一 60s 超时）。
+【结果】重扫 Verdict SAFE / Decision ALLOWED（不需要 --force），装进沙箱 skill-tooling/skillweave（6 个文件：SKILL.md + 4 references + scripts/weave.py）；
+用装好的那一份跑 --self-test 全过、layers/audit 正常；依赖检查 import 全在标准库内（python 3.9.6）。
+【残留】仍有一条 MEDIUM execution（唯一那个 git() 出口）—— 允许安装，但记在这里。
+【产物】沙箱里装好的那一份：/Users/maxim/.hermes/cache/scratch/hh-skillweave-2/skills/skill-tooling/skillweave
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:28` **agent** [exec] T-005#B-003: 登记线程 deleg_8d657a16#0 @default · 转录 /Users/maxim/.hermes/cache/delegation/live/deleg_8d657a16/task-0.log（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）
 - `2026-10-11 15:28` **agent** [status] T-005#B-003: pending → running（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）
 - `2026-10-11 15:29` **agent** [exec] T-005#B-003: 线程登记已清除（@default 收工）
 - `2026-10-11 15:29` **agent** [status] T-005#B-003: running → done（2 个独立判官各 15 行输出（wc -l 15/15，原件不改）。126 候选 / 14 题：should_trigger 14/14 全对 · should_not_trigger 5/6 · near_confusion 6/8。**全部 3 处错误都落在 audit 抓到的那个 1.00 相似对上**（P13 两票都投 tushare-data；P10 判官 B 投到 tushare=gold）—— 独立盲判把结构度量确认为唯一错源。校正随机分 BoR：should_trigger 1.00 · should_not_trigger 0.832 · near_confusion 0.748）
@@ -488,6 +501,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 16:18` **agent** [status] T-008#B-003: pending → done（端到端走完（全程在临时复制的 pack 上，原仓库未动）：① 真实 diff 不是提案 —— /tmp/pack-fix3 上 git diff --stat = 209 files changed（52 条 git mv + 1 对合并），逐条自检 ✓、路径集合级对账 ✓；② layers 前后四数（同一 HEAD b8298f4）：L1 条目 68→24 · 常驻 20,864→20,699 字符（6443→6298 token）· L2 超限 16→15 · L3 孤儿 104→101；③ 评测：round4 两个独立判官输出落盘各 15 行（14 题逐题一行 + DONE），打分 should_trigger 0.937 / should_not_trigger 1.0 / near_confusion 1.0；④ 判官输出行数与题面数对齐（14 题面 → 15 行含 DONE）。未做：正文下沉（split 14 条仍只是提案，需要模型判断哪段该沉）。）
 - `2026-10-11 16:27` **agent** [block] 新增块 T-008#B-004「四类动作补齐实测：拆（落地）+ 改写（落地）」
 - `2026-10-11 16:28` **agent** [status] T-008#B-004: running → done（拆+改写两条动作落地：① 拆 accountancy-workflow 21,427→3,760 tok/172 行（行守恒 636=131+517−12），全 pack L2 超限 15→14，孤儿/悬空不升（101/46），L1 与常驻不变；② 改写三条同族 description（加互斥条款），difflib 反而升高（0.581→0.662）—— 证明相似度不能当验收，判据只有路由评测；③ 第 5 轮盲判（r5，同一批题面、2 独立判官、各 15 行）should_trigger 1.0 / should_not_trigger 1.0 / near_confusion 1.0，两个判官都在理由里直接引用了新加的互斥条款来区分 P11/P12/P14；④ 记了方法论：r4 的 P10 单处失手在 r5 消失（判官抽样噪声），单轮 ±1 题不算证据。四类动作现已全部真跑过。）
+- `2026-10-11 16:37` **agent** [block] 新增块 T-008#B-005「skill 可安装性：一次真实安装 + 装后独立运行」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

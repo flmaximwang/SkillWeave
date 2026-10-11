@@ -349,6 +349,16 @@
    "height": 110,
    "color": "4",
    "text": "### T-008#B-004\n四类动作补齐实测：拆（落地）+ 改写（落地）\n\n`done` · @default\n\n【为什么要做】四类动作里「并」「分」在 T-004/T-008#B-003 已真跑过；「拆」「改写」一直只停在提案 —— 一个声称支持四类动作的工具，两类没跑过就是没证据。\n【拆】对全 pack 最胖的 accountancy-workflow（751 行 / 21427 tok）做拆分：扫标题算每段 token → "
+  },
+  {
+   "id": "T-008#B-005",
+   "type": "text",
+   "x": 40,
+   "y": 1470,
+   "width": 300,
+   "height": 110,
+   "color": "4",
+   "text": "### T-008#B-005\nskill 可安装性：一次真实安装 + 装后独立运行\n\n`done` · @default\n\n【为什么要做】交付物是「可被任意 agent 安装的 public skill」，但装之前从没真装过一次。\n【实测】一次性 HERMES_HOME 沙箱（不碰真 profile，按 install-hermes-skills 的规矩镜像 .env 与 config.yaml）：\nhermes skills instal"
   }
  ],
  "edges": [
