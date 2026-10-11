@@ -84,6 +84,19 @@ def parse_frontmatter(text):
     return meta, "\n".join(lines[end + 1:]), end + 2
 
 
+def fence_lines(body):
+    """处于代码围栏内的**行号集合**（1-based，相对 body）。围栏里的路径是示例，不是本 skill 的引用。"""
+    inside, f = set(), False
+    for i, ln in enumerate(body.split("\n"), start=1):
+        if ln.strip().startswith(FENCE):
+            f = not f
+            inside.add(i)
+            continue
+        if f:
+            inside.add(i)
+    return inside
+
+
 def headings(body, body_start_line):
     """正文标题；代码围栏内的 `#` 不算（逐行维护围栏状态）。"""
     out, fence = [], None
@@ -146,6 +159,8 @@ def extract_declared_refs(body, skill_rel):
     cands += [(m.group(1), m.start()) for m in re.finditer(r"\]\(([^)\s]{1,200})\)", body)]
     out, seen = [], set()
     for c, off in cands:
+        if "://" in c:                       # URL 不是本 skill 的相对引用（否则 www.x/a/b.md 会被当成路径）
+            continue
         for mm in PATH_RE.finditer(c):
             target = mm.group(0)
             if target in seen or "://" in target:
@@ -184,23 +199,38 @@ def analyze_skill(path, rel):
             node["summary_source"] = f"{rel}SKILL.md:{line} 首段首句"
 
     declared = extract_declared_refs(body, rel)
+    fenced = fence_lines(body)
     resolved, broken, external = set(), set(), set()
     refs = []
     for target, line in declared:
         t = target.lstrip("./")
+        # 对拍结论（docs/compare-tools.md §5）：围栏里的路径、以及没有目录部分的裸文件名，
+        # 都是**示例**，不是本 skill 的引用 —— 旧版把它们算成 broken，实测 6 条里 4 条是误报。
+        bare = "/" not in t and t != "SKILL.md"
+        if bare or line in fenced:
+            refs.append({"target": t, "kind": "example", "line": line})
+            continue
         local = os.path.normpath(os.path.join(path, t))
         at_pack = os.path.normpath(os.path.join(path, "..", "..", t))
         if os.path.exists(local):
             kind, resolved = "resolved", resolved | {t}
         elif os.path.exists(at_pack):
             kind, resolved = "resolved", resolved | {t}
-        elif t.startswith("../") or "/" in t and not t.startswith(("references/", "scripts/", "assets/")):
+        elif t.startswith("../") or not t.startswith(("references/", "scripts/", "assets/", "templates/")):
             kind, external = "external", external | {t}
         else:
             kind = "broken"
             broken.add(t)
         refs.append({"target": t, "kind": kind, "line": line})
     node["refs"] = refs
+    # 目录级点名：正文点名了 `templates/README.md` ⇒ `templates/` 整目录算被点名
+    named_dirs = set()
+    for r in refs:
+        d = os.path.dirname(r["target"])
+        while d:
+            named_dirs.add(d.rstrip("/") + "/")
+            d = os.path.dirname(d)
+    node["named_dirs"] = sorted(named_dirs)
 
     # 文件清单 + 孤儿（skill 目录内除 SKILL.md 外，没有任何祖先点名的文件）
     for dirpath, dirnames, filenames in os.walk(path):
@@ -215,7 +245,9 @@ def analyze_skill(path, rel):
             except OSError:
                 size = 0
             fkind = kind_of_file(frel)
-            named = frel in resolved or any(frel.endswith(r.lstrip("./")) for r in resolved)
+            named = (frel in resolved
+                     or any(frel.endswith(r.lstrip("./")) for r in resolved)
+                     or any(frel.startswith(d) for d in named_dirs))     # 目录级点名
             node["files"].append({"path": frel, "kind": fkind, "bytes": size,
                                   "orphan": (fkind != "instructions" and not named)})
     node["orphans"] = [f["path"] for f in node["files"] if f["orphan"]]
@@ -551,10 +583,18 @@ def self_test():
     skilldir = os.path.join(pack, "notes", "demo")     # pack → 类目 → skill
     try:
         os.makedirs(os.path.join(skilldir, "references"))
+        os.makedirs(os.path.join(skilldir, "templates"))
+        with open(os.path.join(skilldir, "templates", "README.md"), "w") as f:
+            f.write("模板说明\n")
+        with open(os.path.join(skilldir, "templates", "a.tex"), "w") as f:
+            f.write("模板正文\n")
+        with open(os.path.join(skilldir, "loose.txt"), "w") as f:
+            f.write("没人点名\n")
         with open(os.path.join(skilldir, "SKILL.md"), "w") as f:
             f.write("---\nname: demo\ndescription: >-\n  做一件事时用。\n  带触发词。\n---\n\n"
-                    "# Demo\n\n见 `references/guide.md`，另见 `references/gone.md`。\n\n"
-                    "```\n# 这是围栏里的假标题\n```\n\n## 小节\n")
+                    "# Demo\n\n见 `references/guide.md`，另见 `references/gone.md`。\n"
+                    "模板见 `templates/README.md`，随手写个 `run.py` 与 `fig.pdf`。\n\n"
+                    "```\n# 这是围栏里的假标题\npython `scripts/nothere.py`\n```\n\n## 小节\n")
         with open(os.path.join(skilldir, "references", "guide.md"), "w") as f:
             f.write("guide\n")
         with open(os.path.join(skilldir, "references", "unused.md"), "w") as f:
@@ -582,8 +622,11 @@ def self_test():
         assert s["name"] == "demo", s["name"]
         assert s["summary"] == "做一件事时用。 带触发词。", s["summary"]      # 折叠块被解析
         assert ">-" not in json.dumps(s), "frontmatter 折叠标记漏进产物"
-        assert s["orphans"] == ["references/unused.md"], s["orphans"]
+        assert s["orphans"] == ["loose.txt"], s["orphans"]
         assert s["broken"] == ["references/gone.md"], s["broken"]
+        ex = sorted(r["target"] for r in s["refs"] if r["kind"] == "example")
+        assert ex == ["fig.pdf", "run.py", "scripts/nothere.py"], ex      # 示例 ≠ broken
+        assert "templates/" in s["named_dirs"], s["named_dirs"]
         hs = [c["summary"] for c in s["children"] if c["kind"] == "heading"]
         assert "这是围栏里的假标题" not in hs and "小节" in hs, hs            # 围栏内标题不算
         assert cat["parent"] == "", cat["parent"]

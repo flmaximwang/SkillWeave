@@ -49,9 +49,22 @@
 - **不建议现在做**：`skill-tools` 的 BM25 检索式路由（我们要的是**判官式**路由归因评测，口径不同）；
   `claude-skills-cli` 的 `init` 脚手架（本仓库不做生成）。
 
-## 5. 本次对拍直接带来的两个待修 bug（已进 plan）
+## 5. 两个误报的修复结果（2026-10-11 修完并实测）
 
-1. **引用抽取要区分「示例」与「真引用」**：代码围栏内、以及 `` ``run.py`` `` 这种演示用的路径，
-   应标 `example` 而不是进 `broken` —— 现状会误报（实测 6 条 broken 里 4 条是误报）。
-2. **孤儿规则要加「目录级点名」**：`templates/README.md` 被点名，则该目录下的模板算被点名
-   （现状 44 条孤儿里绝大多数是 `templates/*`）。
+**修法**（`scripts/weave.py`）：① 引用分类新增 `example` 一类 —— **代码围栏内**出现的路径、以及**没有目录部分的裸文件名**
+（`run.py`/`fig.pdf`/`README.md`；裸 `SKILL.md` 仍算自指）都不再进 `broken`；② 顺带修掉 URL 被当路径的洞
+（`https://info.arxiv.org/help/api/basics.html` 会被抽成 `info.arxiv.org/help/api/basics.html`）；
+③ 孤儿规则加**目录级点名**（正文点名 `templates/README.md` ⇒ `templates/` 整目录算被点名）；
+④ `--self-test` 增加对应断言（围栏内示例不算 broken / 目录级点名 / 裸文件名算示例）。
+
+**实测（同一 pack：AgentSkill-UsingHermes，126 skill）**
+
+| 指标 | 修前 | 修后 | 说明 |
+|---|---|---|---|
+| 悬空引用（broken） | 301 | **45** | 抽 3 条真查盘：**剩下的都真不存在**（`references/troubleshooting-pyc-cache.md` 等）→ 假阳性清掉、真问题留下 |
+| 孤儿文件 | 239 | **106** | 剩下的多为 skill 内真没被点名过的文件 |
+| 单 skill 对照（`research-paper-writing`） | broken 6 / 孤儿 44 | **broken 0 / 孤儿 0** | 该 skill 的 6 条 broken 全是示例（其中 2 条 `skill-tools` 也误报为 broken —— 它们属于**用户要发布的代码仓库**模板，不是本 skill 的文件） |
+| 引用分类（全 pack） | — | resolved 241 · external 206 · **example 267** · broken 45 | |
+
+**结论**：`skill-tools` 会为「示例区里的路径」报假 broken；我们把这 267 条标成 `example` 并留档，
+这是内化之后**比上游更准**的一处。

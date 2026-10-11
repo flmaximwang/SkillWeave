@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 9/32 块（28%） · 状态 `active` · 更新于 2026-10-11 14:09
+**进度** 10/32 块（31%） · 状态 `active` · 更新于 2026-10-11 14:53
 
 **参与方** 本人(human)
 
@@ -13,7 +13,6 @@
 - `T-003#B-006` **内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积** — 已认领 · @default
 - `T-003#B-007` **内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥** — 已认领 · @default
 - `T-003#B-008` **内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数** — 已认领 · @default
-- `T-003#B-009` **修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」** — 已认领 · @default
 - `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
 - `T-004#B-003` **L1 收敛：把入口层条目压到上限内** — 已认领 · @default
 - `T-005#B-001` **判官输入生成器（候选只有 description）** — 已认领 · @default
@@ -85,9 +84,9 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-004,T-003_B-001,T-007_B-001,T-007_B-003 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-004,T-003_B-001,T-003_B-009,T-007_B-001,T-007_B-003 done;
   classDef claimed stroke-width:1px;
-  class T-002_B-002,T-002_B-003,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
+  class T-002_B-002,T-002_B-003,T-003_B-006,T-003_B-007,T-003_B-008,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef waiting stroke-width:1px;
@@ -270,7 +269,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 判据：这四个数出现在 `layers` 的 L2 段（或 `layers.json` 的 L2 节点里）；在 research-paper-writing 上与
 `claude-skills-cli` 报的同一 skill 对照（数量级一致即可，口径差异写进报告）。
     - 依赖：T-002#B-001
-- [ ] `T-003#B-009` **修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」** _impl_ — 已认领 @default
+- [x] `T-003#B-009` **修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」** _impl_ — 已完成 @default
     - 做什么：【做什么】对拍实测出的两处误报（`docs/compare-tools.md` §5）：
 ① 引用抽取区分「示例」与「真引用」：代码围栏内出现的路径、以及演示用的 `` ``run.py`` `` 这类，
 标 `example`（不进 `broken`）；只有正文散文里指向真实文件的才算 declared。
@@ -279,6 +278,10 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 判据：修前后两个数都实测贴出：broken 6 → 2（且剩的 2 条与 skill-tools 报的一致）；孤儿 44 → 实测值；
 `--self-test` 增加「围栏内示例路径不算 broken」的断言并通过。
     - 依赖：T-002#B-001
+    - 产物：`docs/compare-tools.md`
+    - 产物：`reports/2026-10-11-usinghermes/TREE.md`
+    - 产物：`reports/2026-10-11-usinghermes/LAYERS.md`
+    - run 2026-10-11 14:53 default pending→done 修完并实测：broken 301→45（剩 45 条抽 3 真查盘、都真不存在）、孤儿 239→106；单 skill research-paper-writing 6→0 / 44→0；新增 example 一类（267 条）与 URL 不误当路径；--self-test 加了 3 条断言全过
 
 ### T-004 优化：按度量的结果改结构 — 进行中
 @default
@@ -411,7 +414,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 13:59` **agent** [status] T-003#B-001: pending → done（layers 子命令（三级披露）：L1 入口层 skills/ 摆出 69 项 = 散技能 52 + 类目 17，常驻 21302 字符 ≈ 6694 token，❌ 超上限 20；research/ 17、autonomous-ai-agents/ 15、productivity/ 13。另跑 Dream（2 项 ✅）与 AgentSkill-SoftwareDev（30 项 ❌）交叉验证）
 - `2026-10-11 13:59` **agent** [status] T-007#B-001: pending → done（公开远端已建并推送（gh repo create flmaximwang/SkillWeave --public）；plans/skillweave 随仓库提交；origin/main == HEAD）
 - `2026-10-11 13:59` **agent** [block] 新增块 T-001#B-004「先例实勘：同类公开项目能不能直接用」
 - `2026-10-11 13:59` **agent** [block] 新增块 T-002#B-004「决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器」
@@ -431,6 +433,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 14:07` **agent** [block] 新增块 T-002#B-005「可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）」
 - `2026-10-11 14:09` **default** [decision] 用户 2026-10-11 补充需求（依赖政策）：不引外部依赖。原话「agent-skill-analysis 只是一个科研项目，还没有在社区中得到广泛的应用，后续的优化更新会受限，所以我倾向于不使用外部依赖，只是在其他项目效果更好时将其内化」。落成 docs/contract.md §6：不引 Node/npm/第三方 Python 包；内化 = 把规则/检查清单/字段口径/判断方法搬进来自己实现（纯 stdlib），并在 docs/compare-tools.md 记来源与实测对照；只在实测更好时内化那一条。据此撤销 T-002#B-005（--from-asa 适配器），对拍只作为一次性取数脚本。
 - `2026-10-11 14:09` **agent** [status] T-002#B-005: blocked → cancelled（按 docs/contract.md §6 撤销：不引外部依赖，不保留 --from-asa 适配器。将来要重新对拍，用一次性脚本取数即可（不进主路径）。）
+- `2026-10-11 14:53` **agent** [status] T-003#B-009: pending → done（修完并实测：broken 301→45（剩 45 条抽 3 真查盘、都真不存在）、孤儿 239→106；单 skill research-paper-writing 6→0 / 44→0；新增 example 一类（267 条）与 URL 不误当路径；--self-test 加了 3 条断言全过）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

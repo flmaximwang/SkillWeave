@@ -10,7 +10,7 @@
    11872 tok 1799 行  skills/pytest-patterns/
     9925 tok  542 行  skills/autonomous-ai-agents/hermes-profile-housekeeping/
 
-**L3（第三级 · 按需读）** 文件 470 个 / 5996139 B · 孤儿 239 · 悬空引用 301
+**L3（第三级 · 按需读）** 文件 470 个 / 5996139 B · 孤儿 106 · 悬空引用 45
     667833 B  assets/recruit-learning-in-session.workflow.html
     276567 B  assets/recruit-learning-in-session.workflow.png
     242277 B  scripts/office/schemas/ISO-IEC29500-4_2016/sml.xsd

@@ -35,7 +35,7 @@
 | `est_tokens` | 估算 token：CJK 字符 ×1 + 其它字符 ×0.25，四舍五入（**估算**，报告里必须写明口径） | 文件内容 |
 | `summary` | 一行摘要；**只能来自文件自身内容**，禁止手写 | frontmatter `description` 优先，否则正文首个非标题段落首句，都没有则 `null` |
 | `summary_source` | `summary` 的出处，如 `SKILL.md:3 frontmatter.description`；`null` 时也写 `null` | 行号 |
-| `refs` | 该节点正文里**真实出现**的引用：`[{target, kind: declared\|resolved\|broken\|external, line}]` | 正文（反引号/链接里的相对路径） |
+| `refs` | 该节点正文里**真实出现**的引用：`[{target, kind: declared\|resolved\|broken\|external\|example, line}]` | 正文（反引号/链接里的相对路径） |
 | `mentions` | 正文里点到的**同 pack 其它技能名**（路由信号，来自 pack 自己的技能名清单） | 正文 |
 | `children` | 子节点数组，按 `id` 排序 | 树结构 |
 
@@ -68,8 +68,11 @@
 - **可重建、可 diff**：同一 pack 连跑两次 → `tree.json` 逐字节相同（无时间戳、键序稳定、子节点排序）。
   改一个文件只应让相关节点及其祖先的 `bytes`/`est_tokens` 变动。
 - **引用解析基准**：`ref` 一律先按**该 skill 目录**解析，再按 pack 根解析；两者都不中就记 `broken`；
-  指向 pack 外的记 `external`。
-- **孤儿**：skill 目录内除 `SKILL.md` 外的文件，**没有任何祖先节点点名**（`refs` 里不出现）= `orphans`。
+  指向 pack 外的记 `external`。**两类不算引用、记 `example`**：① 出现在代码围栏内的路径（示例脚本/产物名）；
+  ② 没有目录部分的裸文件名（`run.py`、`fig.pdf`、`README.md` 这类正文里泛指的名字；裸 `SKILL.md` 是自指，仍按 resolved 记）。
+  依据：对拍实测（`docs/compare-tools.md` §5）旧口径把示例当 broken，6 条里 4 条是误报。
+- **孤儿**：skill 目录内除 `SKILL.md` 外的文件，**没有被任何祖先点名** = `orphans`。
+  「点名」含**目录级**：正文点名了 `templates/README.md`，则 `templates/` 整目录算被点名（该目录下的文件都不算孤儿）。
   0 容忍，但报告里只列清单，不自动删。
 
 ## 4. caps（阈值）与出处
@@ -102,7 +105,7 @@
 ```
 
 读它的判据：`python3 -c "import json; json.load(open('tree.json'))"` 能读；
-每个 `kind` 都必须落在 §1 的枚举里；`refs[].kind` 必须是 `declared|resolved|broken|external`。
+每个 `kind` 都必须落在 §1 的枚举里；`refs[].kind` 必须是 `declared|resolved|broken|external|example`。
 
 ## 6. 依赖与内化政策（用户 2026-10-11 定，硬约束）
 

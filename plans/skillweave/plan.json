@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T14:09:48+08:00",
+  "updated_at": "2026-10-11T14:53:10+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -496,7 +496,7 @@
           "id": "T-003#B-009",
           "title": "修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】对拍实测出的两处误报（`docs/compare-tools.md` §5）：\n① 引用抽取区分「示例」与「真引用」：代码围栏内出现的路径、以及演示用的 `` ``run.py`` `` 这类，\n标 `example`（不进 `broken`）；只有正文散文里指向真实文件的才算 declared。\n② 孤儿规则加「目录级点名」：`templates/README.md` 被点名 ⇒ 该目录下的模板算被点名（现状 44 条孤儿里绝大多数是 `templates/*`）。\n修完 broken 应从 6 降到 2（= skill-tools 独立报出的 `scripts/reproduce_table1.sh`、`scripts/make_figure2.py`），孤儿应显著下降。",
           "input": "",
@@ -505,15 +505,27 @@
           "done_when": [
             "修前后两个数都实测贴出：broken 6 → 2（且剩的 2 条与 skill-tools 报的一致）；孤儿 44 → 实测值；\n`--self-test` 增加「围栏内示例路径不算 broken」的断言并通过。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "docs/compare-tools.md",
+            "reports/2026-10-11-usinghermes/TREE.md",
+            "reports/2026-10-11-usinghermes/LAYERS.md"
+          ],
           "deps": [
             "T-002#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T14:07:51+08:00",
-          "runs": []
+          "status_since": "2026-10-11T14:53:10+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T14:53:10+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "修完并实测：broken 301→45（剩 45 条抽 3 真查盘、都真不存在）、孤儿 239→106；单 skill research-paper-writing 6→0 / 44→0；新增 example 一类（267 条）与 URL 不误当路径；--self-test 加了 3 条断言全过"
+            }
+          ]
         }
       ],
       "note": "",
@@ -1309,7 +1321,14 @@
       "kind": "status",
       "text": "T-002#B-005: blocked → cancelled（按 docs/contract.md §6 撤销：不引外部依赖，不保留 --from-asa 适配器。将来要重新对拍，用一次性脚本取数即可（不进主路径）。）",
       "ref": "T-002#B-005"
+    },
+    {
+      "at": "2026-10-11T14:53:10+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-003#B-009: pending → done（修完并实测：broken 301→45（剩 45 条抽 3 真查盘、都真不存在）、孤儿 239→106；单 skill research-paper-writing 6→0 / 44→0；新增 example 一类（267 条）与 URL 不误当路径；--self-test 加了 3 条断言全过）",
+      "ref": "T-003#B-009"
     }
   ],
-  "rev": "1a1aa2d92a8a"
+  "rev": "70e045146a28"
 }

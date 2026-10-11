@@ -177,8 +177,8 @@
    "y": 820,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-003#B-009\n修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」\n\n`claimed` · @default\n\n【做什么】对拍实测出的两处误报（`docs/compare-tools.md` §5）：\n① 引用抽取区分「示例」与「真引用」：代码围栏内出现的路径、以及演示用的 `` ``run.py`` `` 这类，\n标 `example`（不进 `broken`）；只有正文散文里指向真实文件的才算 declared。\n② 孤儿规"
+   "color": "4",
+   "text": "### T-003#B-009\n修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」\n\n`done` · @default\n\n【做什么】对拍实测出的两处误报（`docs/compare-tools.md` §5）：\n① 引用抽取区分「示例」与「真引用」：代码围栏内出现的路径、以及演示用的 `` ``run.py`` `` 这类，\n标 `example`（不进 `broken`）；只有正文散文里指向真实文件的才算 declared。\n② 孤儿规"
   },
   {
    "id": "T-004#B-001",
