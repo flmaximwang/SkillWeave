@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T14:58:07+08:00",
+  "updated_at": "2026-10-11T15:06:30+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -470,7 +470,7 @@
           "id": "T-003#B-007",
           "title": "内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】把这批**纯文本规则**做成 audit 的一段（stdlib 即可），每条给命中行号：\n① 引用文件存在（同 T-003#B-003 的 broken，但要去掉示例误报）；② `SKILL.md` 估算 token 超 5000；\n③ BOM / 二进制内容；④ `name` 与目录名不一致；⑤ 硬编码绝对路径（`/Users/...`、`/home/...`、`C:\\\\`）；\n⑥ 内嵌密钥形状（`sk-`/`ghp_`/`AKIA`/长 base64 赋值）。⑤⑥ 是安全/可移植闸，命中即列出文件与行。",
           "input": "",
@@ -479,15 +479,25 @@
           "done_when": [
             "在 UsingHermes 上跑一遍，逐条给出命中数（0 也要有一行实测）；对 ⑤⑥ 手工构造一个含 `/Users/x` 与一个\n`sk-` 假值的 fixture，断言两条都能命中（自检写进 `--self-test`）。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/checks.json"
+          ],
           "deps": [
             "T-002#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T14:07:51+08:00",
-          "runs": []
+          "status_since": "2026-10-11T15:06:30+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T15:06:30+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "内化 skill-tools 六条检查（新子命令 checks，安全闸命中即退 1）。UsingHermes 实测：悬空引用 45 · token 超预算 15 · BOM 3 · 二进制 0 · name-目录不一致 1 · 硬编码路径 116 · 内嵌密钥 0；--self-test 加了硬编码路径/密钥命中两条断言"
+            }
+          ]
         },
         {
           "id": "T-003#B-008",
@@ -1379,7 +1389,14 @@
       "kind": "status",
       "text": "T-003#B-008: pending → done（内化 claude-skills-cli 的量化告警：每 skill 报 code_blocks/sections/long_paragraphs/todos，layers 出全 pack 合计。实测 UsingHermes：代码块 697 · 章节 1791 · 长段落 234 · TODO 4）",
       "ref": "T-003#B-008"
+    },
+    {
+      "at": "2026-10-11T15:06:30+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-003#B-007: pending → done（内化 skill-tools 六条检查（新子命令 checks，安全闸命中即退 1）。UsingHermes 实测：悬空引用 45 · token 超预算 15 · BOM 3 · 二进制 0 · name-目录不一致 1 · 硬编码路径 116 · 内嵌密钥 0；--self-test 加了硬编码路径/密钥命中两条断言）",
+      "ref": "T-003#B-007"
     }
   ],
-  "rev": "e3deefbfacff"
+  "rev": "063fb63e6dc4"
 }

@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 13/32 块（41%） · 状态 `active` · 更新于 2026-10-11 14:58
+**进度** 14/32 块（44%） · 状态 `active` · 更新于 2026-10-11 15:06
 
 **参与方** 本人(human)
 
@@ -13,7 +13,6 @@
 - `T-003#B-003` **孤儿文件与悬空引用** — 已认领 · @default
 - `T-003#B-004` **近重复 / 互相抢题的节点** — 已认领 · @default
 - `T-003#B-005` **成本报告：常驻成本 + 多出的调用数** — 已认领 · @default
-- `T-003#B-007` **内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥** — 已认领 · @default
 - `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
 - `T-004#B-003` **L1 收敛：把入口层条目压到上限内** — 已认领 · @default
 - `T-005#B-001` **判官输入生成器（候选只有 description）** — 已认领 · @default
@@ -85,9 +84,9 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-004,T-003_B-001,T-003_B-006,T-003_B-008,T-003_B-009,T-007_B-001,T-007_B-003 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-004,T-003_B-001,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-007_B-001,T-007_B-003 done;
   classDef claimed stroke-width:1px;
-  class T-002_B-003,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-007,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
+  class T-002_B-003,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef waiting stroke-width:1px;
@@ -259,7 +258,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 及其祖先的 digest 变；③ `sha256` 与 `shasum -a 256` 抽查 3 个文件一致；④ contract.md §1 的字段表补上这四个字段。
     - 产物：`docs/contract.md`
     - run 2026-10-11 14:58 default pending→done 内化 asa 字段：每文件 sha256（与 shasum -a 256 对拍一致）· 节点 digest（忽略 version/updated/date/modified）· license/readme 检测 · size_by_kind 体积分解；字段写进 contract §1
-- [ ] `T-003#B-007` **内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥** _impl_ — 已认领 @default
+- [x] `T-003#B-007` **内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥** _impl_ — 已完成 @default
     - 做什么：【做什么】把这批**纯文本规则**做成 audit 的一段（stdlib 即可），每条给命中行号：
 ① 引用文件存在（同 T-003#B-003 的 broken，但要去掉示例误报）；② `SKILL.md` 估算 token 超 5000；
 ③ BOM / 二进制内容；④ `name` 与目录名不一致；⑤ 硬编码绝对路径（`/Users/...`、`/home/...`、`C:\\`）；
@@ -267,6 +266,8 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 判据：在 UsingHermes 上跑一遍，逐条给出命中数（0 也要有一行实测）；对 ⑤⑥ 手工构造一个含 `/Users/x` 与一个
 `sk-` 假值的 fixture，断言两条都能命中（自检写进 `--self-test`）。
     - 依赖：T-002#B-001
+    - 产物：`reports/2026-10-11-usinghermes/checks.json`
+    - run 2026-10-11 15:06 default pending→done 内化 skill-tools 六条检查（新子命令 checks，安全闸命中即退 1）。UsingHermes 实测：悬空引用 45 · token 超预算 15 · BOM 3 · 二进制 0 · name-目录不一致 1 · 硬编码路径 116 · 内嵌密钥 0；--self-test 加了硬编码路径/密钥命中两条断言
 - [x] `T-003#B-008` **内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数** _impl_ — 已完成 @default
     - 做什么：【做什么】在 L2 段给每个 skill 报四个数：正文里代码块数、章节（heading）数、>100 词的长段落数、
 `TODO`/`FIXME` 占位符数 —— 这正是 `references/split.md` 判断「该拆」的可量信号
@@ -421,7 +422,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 13:59` **agent** [block] 新增块 T-004#B-003「L1 收敛：把入口层条目压到上限内」
 - `2026-10-11 14:04` **agent** [status] T-001#B-001: blocked → done（① 公开仓库 → flmaximwang/SkillWeave（已建+推送）。② 用户 2026-10-11 定：**做成 public skill —— 可被任意 agent 安装的 skill**，不是纯 CLI 仓库。原话：『T1B1 就做成 public skill 吧，做成可被任意 agent 安装的 skill，纯 cli 我觉得跑不完整个流程，例如文档拆分在缺少语言模型的辅助时不可能做』。）
 - `2026-10-11 14:04` **agent** [status] T-007#B-003: blocked → done（定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。）
 - `2026-10-11 14:04` **agent** [block] T-004#B-001 改了 做什么
@@ -441,6 +441,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 14:58` **agent** [status] T-002#B-002: pending → done（同一 pack 连跑两次 sha256 逐字节相同（Dream 仓 fa34646e…）；在**同名目录**的副本上改一个 description 后 diff：只出现 bytes/est_tokens/description/description_chars/digest/summary/size_by_kind（30 行，全是该 skill 及其祖先））
 - `2026-10-11 14:58` **agent** [status] T-003#B-006: pending → done（内化 asa 字段：每文件 sha256（与 shasum -a 256 对拍一致）· 节点 digest（忽略 version/updated/date/modified）· license/readme 检测 · size_by_kind 体积分解；字段写进 contract §1）
 - `2026-10-11 14:58` **agent** [status] T-003#B-008: pending → done（内化 claude-skills-cli 的量化告警：每 skill 报 code_blocks/sections/long_paragraphs/todos，layers 出全 pack 合计。实测 UsingHermes：代码块 697 · 章节 1791 · 长段落 234 · TODO 4）
+- `2026-10-11 15:06` **agent** [status] T-003#B-007: pending → done（内化 skill-tools 六条检查（新子命令 checks，安全闸命中即退 1）。UsingHermes 实测：悬空引用 45 · token 超预算 15 · BOM 3 · 二进制 0 · name-目录不一致 1 · 硬编码路径 116 · 内嵌密钥 0；--self-test 加了硬编码路径/密钥命中两条断言）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

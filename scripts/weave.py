@@ -529,10 +529,86 @@ def cmd_layers(root, out):
 
 MAX_FIRST_LAYER = 20   # 出处：Dream 的 check-disclosure.py `MAX_FIRST_LAYER_SKILLS`；口径见 docs/contract.md §4
 
+# 内化自 skill-tools 的检查（`docs/compare-tools.md` §3）：安全/可移植闸 + spec 检查
+SECRET_PATTERNS = [
+    ("openai-like", re.compile(r"\bsk-[A-Za-z0-9_-]{16,}")),
+    ("github-pat", re.compile(r"\bghp_[A-Za-z0-9]{20,}")),
+    ("aws-akid", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("slack-token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}")),
+    ("private-key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
+]
+HARD_PATH = re.compile(r"(/Users/[A-Za-z0-9._-]+/|/home/[A-Za-z0-9._-]+/|[A-Za-z]:\\Users\\)")
+
+
+def iter_text_files(path):
+    for dirpath, dirnames, filenames in os.walk(path):
+        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+        for fn in sorted(filenames):
+            if fn not in SKIP_FILES and kind_of_file(fn) != "asset":
+                yield os.path.join(dirpath, fn)
+
+
+def scan_rules(root, skills):
+    """跑六条规则，逐条给命中（文件:行号）。返回 {"rule": [hits]}。"""
+    hits = {k: [] for k in ("broken_refs", "token_budget", "bom", "binary",
+                            "name_mismatch", "hardcoded_path", "embedded_secret")}
+    for s in skills:
+        skdir = os.path.join(root, s["id"])
+        if s["broken"]:
+            hits["broken_refs"] += [f"{s['id']}{b}" for b in s["broken"]]
+        if s["est_tokens"] > 5000:
+            hits["token_budget"].append(f"{s['id']}SKILL.md  est_tokens={s['est_tokens']}")
+        if s["name"] != os.path.basename(s["id"].rstrip("/")):
+            hits["name_mismatch"].append(f"{s['id']}  name={s['name']!r}")
+        for fp in iter_text_files(skdir):
+            rel = os.path.relpath(fp, root).replace(os.sep, "/")
+            try:
+                raw = open(fp, "rb").read()
+            except OSError:
+                continue
+            if raw.startswith(b"\xef\xbb\xbf"):
+                hits["bom"].append(rel)
+            if b"\x00" in raw[:8192]:
+                hits["binary"].append(rel)
+            if kind_of_file(rel) not in ("script", "reference", "instructions", "readme", "other"):
+                continue
+            for i, ln in enumerate(raw.decode("utf-8", "replace").split("\n"), 1):
+                if HARD_PATH.search(ln):
+                    hits["hardcoded_path"].append(f"{rel}:{i}")
+                for name, pat in SECRET_PATTERNS:
+                    if pat.search(ln):
+                        hits["embedded_secret"].append(f"{rel}:{i}  [{name}]")
+    return hits
+
+
+def cmd_checks(root, out):
+    """六条内化检查（skill-tools 口径）：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥。"""
+    skills, skipped = [], []
+    tracked = tracked_set(root)
+    tree = walk_dir(root, "", tracked, skipped, skills)
+    if tree is None:
+        print("[checks] FAIL 这个目录里没有任何 skill")
+        return 1
+    os.makedirs(out, exist_ok=True)
+    hits = scan_rules(root, skills)
+    with open(os.path.join(out, "checks.json"), "w", encoding="utf-8") as f:
+        json.dump({"pack": os.path.basename(root), "skills": len(skills), "hits": hits},
+                  f, ensure_ascii=False, indent=2, sort_keys=True)
+    print(f"[checks] pack={os.path.basename(root)} skills={len(skills)}")
+    for k, v in hits.items():
+        print(f"[checks] {k:<16} {len(v):>5}")
+    for k in ("embedded_secret", "hardcoded_path"):
+        for h in hits[k][:8]:
+            print(f"    {k}: {h}")
+    gate = len(hits["embedded_secret"]) + len(hits["hardcoded_path"])
+    print(f"[checks] 安全/可移植闸：{'❌ 命中 ' + str(gate) if gate else '✅ 无命中'}")
+    print(f"[checks] 出: {os.path.join(out, 'checks.json')}")
+    return 1 if gate else 0
+
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
-    ap.add_argument("cmd", nargs="?", choices=["tree", "layers"])
+    ap.add_argument("cmd", nargs="?", choices=["tree", "layers", "checks"])
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -546,6 +622,10 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
         return cmd_layers(root, out)
+    if a.cmd == "checks":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        return cmd_checks(root, out)
     root = os.path.abspath(a.pack.rstrip("/"))
     if not os.path.isdir(root):
         print(f"[tree] FAIL 目录不存在: {root}")
@@ -687,8 +767,17 @@ def self_test():
         a = open(os.path.join(out1, "tree.json"), "rb").read()
         b = open(os.path.join(out2, "tree.json"), "rb").read()
         assert a == b, "两次运行产物不一致（不可重建）"
+        # 内化检查：硬编码路径 + 内嵌密钥 必须命中（放在树断言之后，免得它进孤儿计数）
+        with open(os.path.join(skilldir, "references", "leak.md"), "w") as f:
+            f.write("见 /Users/someone/project/x.md\nkey = sk-ABCDEFGHIJKLMNOPQRSTUVWX\n")
+        out3 = os.path.join(tmp, "o3")
+        assert cmd_checks(pack, out3) == 1, "有命中就该退 1"
+        ch = json.load(open(os.path.join(out3, "checks.json")))["hits"]
+        assert len(ch["hardcoded_path"]) == 1, ch
+        assert len(ch["embedded_secret"]) == 1, ch
+        assert ch["name_mismatch"] == [], ch
         print("[self-test] ✅ 层（pack→类目→skill）/ 折叠 description / 孤儿 / 悬空 / "
-              "围栏内标题 / 两次一致 —— 全过")
+              "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 —— 全过")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

@@ -157,8 +157,8 @@
    "y": 560,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-003#B-007\n内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥\n\n`claimed` · @default\n\n【做什么】把这批**纯文本规则**做成 audit 的一段（stdlib 即可），每条给命中行号：\n① 引用文件存在（同 T-003#B-003 的 broken，但要去掉示例误报）；② `SKILL.md` 估算 token 超 5000；\n③ BOM / 二进制内容；④ `name` 与目录名不一致；⑤ 硬编码绝对"
+   "color": "4",
+   "text": "### T-003#B-007\n内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥\n\n`done` · @default\n\n【做什么】把这批**纯文本规则**做成 audit 的一段（stdlib 即可），每条给命中行号：\n① 引用文件存在（同 T-003#B-003 的 broken，但要去掉示例误报）；② `SKILL.md` 估算 token 超 5000；\n③ BOM / 二进制内容；④ `name` 与目录名不一致；⑤ 硬编码绝对"
   },
   {
    "id": "T-003#B-008",
