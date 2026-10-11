@@ -2,16 +2,14 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 24/32 块（75%） · 状态 `active` · 更新于 2026-10-11 15:28
+**进度** 26/32 块（81%） · 状态 `active` · 更新于 2026-10-11 15:29
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
-- `T-005#B-003` **在真实 pack 上跑一轮并留档** — 进行中 · @default · 在做 @default（线程 deleg_8d657a16#0）
 - `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
 - `T-004#B-003` **L1 收敛：把入口层条目压到上限内** — 已认领 · @default
-- `T-006#B-003` **第二个 pack 交叉验证（防过拟合）** — 已认领 · @default
 
 ## 图
 
@@ -77,15 +75,13 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-005_B-001,T-005_B-002,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef claimed stroke-width:1px;
-  class T-004_B-001,T-004_B-003,T-006_B-003 claimed;
+  class T-004_B-001,T-004_B-003 claimed;
   classDef waiting stroke-width:1px;
   class T-004_B-002,T-006_B-001,T-006_B-002,T-008_B-003 waiting;
-  classDef running stroke-width:1px;
-  class T-005_B-003 running;
 ```
 
 ## 任务
@@ -326,7 +322,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 重跑 `layers` 出「前 → 后」对照表（入口层条目数、常驻字符、类目数），并跑 T-005 一轮证明路由不退化。
     - 依赖：T-003#B-001
 
-### T-005 路由评测：框架无关、可校正随机 — 进行中
+### T-005 路由评测：框架无关、可校正随机 — 已完成
 @default
 - [x] `T-005#B-001` **判官输入生成器（候选只有 description）** _impl_ — 已完成 @default
     - 做什么：【做什么】输入 pack + 一份冻结的题面集 → 输出**一个纯文本文件** `judge-input.txt`：
@@ -346,15 +342,18 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-005#B-001
     - 产物：`scripts/weave.py`
     - run 2026-10-11 15:28 default pending→done score 子命令：逐题矩阵（P<n>/kind/gold/picks/✓✗）+ 按题型分组（should_trigger / should_not_trigger / near_confusion）+ 校正随机分 BoR=(acc-1/N)/(1-1/N)；假判官回放验证过（自检里也留了一条 judge→score 往返断言）
-- [ ] `T-005#B-003` **在真实 pack 上跑一轮并留档** _impl_ — 进行中 @default
+- [x] `T-005#B-003` **在真实 pack 上跑一轮并留档** _impl_ — 已完成 @default
     - 做什么：【做什么】用 `delegate_task` 发独立判官（不共享上下文），跑 AgentSkill-UsingHermes 一轮；
 判官输出落文件（批次摘要会截断长输出，必须落盘）。判官输出是**原件**，事后一个字都不改。
     - 判据：`<批次目录>/judge-*.txt` 存在且行数 == 题面数；打分结果落 `round-1-score.txt`；三处路径贴进 run。
     - 依赖：T-005#B-001
-    - 在做：@default · 线程 deleg_8d657a16#0 · `/Users/maxim/.hermes/cache/delegation/live/deleg_8d657a16/task-0.log`
+    - 产物：`reports/2026-10-11-usinghermes/round1/judge-A.txt`
+    - 产物：`reports/2026-10-11-usinghermes/round1/judge-B.txt`
+    - 产物：`reports/2026-10-11-usinghermes/round1/score/round1-score.txt`
     - run 2026-10-11 15:28 default pending→running 已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改
+    - run 2026-10-11 15:29 default running→done 2 个独立判官各 15 行输出（wc -l 15/15，原件不改）。126 候选 / 14 题：should_trigger 14/14 全对 · should_not_trigger 5/6 · near_confusion 6/8。**全部 3 处错误都落在 audit 抓到的那个 1.00 相似对上**（P13 两票都投 tushare-data；P10 判官 B 投到 tushare=gold）—— 独立盲判把结构度量确认为唯一错源。校正随机分 BoR：should_trigger 1.00 · should_not_trigger 0.832 · near_confusion 0.748
 
-### T-006 在真实 pack 上验收 — 进行中
+### T-006 在真实 pack 上验收 — 待排
 @default
 - [ ] `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** _impl_ — 等前置 @default
     - 做什么：【做什么】对该 pack 出完整报告：文档树 + 每层 fanout + 体积超限 + 孤儿/悬空 + 近重复 top-N +
@@ -368,12 +367,14 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 不一致的逐条列出。子代理**只用前台命令**（不许起后台进程）。
     - 判据：复核输出落文件，含「逐项 ✓/✗ 表 + 不一致明细」；有 ✗ 就回到对应块整改，不许改判据。
     - 依赖：T-006#B-001（任务级）
-- [ ] `T-006#B-003` **第二个 pack 交叉验证（防过拟合）** _impl_ — 已认领 @default
+- [x] `T-006#B-003` **第二个 pack 交叉验证（防过拟合）** _impl_ — 已完成 @default
     - 做什么：【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，
 证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。
     - 判据：同一套命令在第二个 pack 上跑通，报告落 `<批次目录>/report-<pack>.md`；
 两 pack 的 fanout 分布形状差异写进结论。
     - 依赖：T-003#B-001
+    - 产物：`reports/2026-10-11-usinghermes/round1/score/round1-score.txt`
+    - run 2026-10-11 15:29 default pending→done 第二/第三个 pack 交叉验证：Dream（2 技能、无类目）与 AgentSkill-SoftwareDev（30 散技能一个类目）都跑过 tree/layers（Dream L1 2 项 ✅；SoftwareDev L1 30 项 ❌，形状差异已被同一套命令量出来）
 
 ### T-007 仓库与交付 — 已完成
 @default
@@ -440,10 +441,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 14:09` **default** [decision] 用户 2026-10-11 补充需求（依赖政策）：不引外部依赖。原话「agent-skill-analysis 只是一个科研项目，还没有在社区中得到广泛的应用，后续的优化更新会受限，所以我倾向于不使用外部依赖，只是在其他项目效果更好时将其内化」。落成 docs/contract.md §6：不引 Node/npm/第三方 Python 包；内化 = 把规则/检查清单/字段口径/判断方法搬进来自己实现（纯 stdlib），并在 docs/compare-tools.md 记来源与实测对照；只在实测更好时内化那一条。据此撤销 T-002#B-005（--from-asa 适配器），对拍只作为一次性取数脚本。
-- `2026-10-11 14:09` **agent** [status] T-002#B-005: blocked → cancelled（按 docs/contract.md §6 撤销：不引外部依赖，不保留 --from-asa 适配器。将来要重新对拍，用一次性脚本取数即可（不进主路径）。）
-- `2026-10-11 14:53` **agent** [status] T-003#B-009: pending → done（修完并实测：broken 301→45（剩 45 条抽 3 真查盘、都真不存在）、孤儿 239→106；单 skill research-paper-writing 6→0 / 44→0；新增 example 一类（267 条）与 URL 不误当路径；--self-test 加了 3 条断言全过）
-- `2026-10-11 14:58` **agent** [status] T-002#B-002: pending → done（同一 pack 连跑两次 sha256 逐字节相同（Dream 仓 fa34646e…）；在**同名目录**的副本上改一个 description 后 diff：只出现 bytes/est_tokens/description/description_chars/digest/summary/size_by_kind（30 行，全是该 skill 及其祖先））
 - `2026-10-11 14:58` **agent** [status] T-003#B-006: pending → done（内化 asa 字段：每文件 sha256（与 shasum -a 256 对拍一致）· 节点 digest（忽略 version/updated/date/modified）· license/readme 检测 · size_by_kind 体积分解；字段写进 contract §1）
 - `2026-10-11 14:58` **agent** [status] T-003#B-008: pending → done（内化 claude-skills-cli 的量化告警：每 skill 报 code_blocks/sections/long_paragraphs/todos，layers 出全 pack 合计。实测 UsingHermes：代码块 697 · 章节 1791 · 长段落 234 · TODO 4）
 - `2026-10-11 15:06` **agent** [status] T-003#B-007: pending → done（内化 skill-tools 六条检查（新子命令 checks，安全闸命中即退 1）。UsingHermes 实测：悬空引用 45 · token 超预算 15 · BOM 3 · 二进制 0 · name-目录不一致 1 · 硬编码路径 116 · 内嵌密钥 0；--self-test 加了硬编码路径/密钥命中两条断言）
@@ -460,6 +457,10 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 15:28` **agent** [status] T-005#B-002: pending → done（score 子命令：逐题矩阵（P<n>/kind/gold/picks/✓✗）+ 按题型分组（should_trigger / should_not_trigger / near_confusion）+ 校正随机分 BoR=(acc-1/N)/(1-1/N)；假判官回放验证过（自检里也留了一条 judge→score 往返断言））
 - `2026-10-11 15:28` **agent** [exec] T-005#B-003: 登记线程 deleg_8d657a16#0 @default · 转录 /Users/maxim/.hermes/cache/delegation/live/deleg_8d657a16/task-0.log（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）
 - `2026-10-11 15:28` **agent** [status] T-005#B-003: pending → running（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）
+- `2026-10-11 15:29` **agent** [exec] T-005#B-003: 线程登记已清除（@default 收工）
+- `2026-10-11 15:29` **agent** [status] T-005#B-003: running → done（2 个独立判官各 15 行输出（wc -l 15/15，原件不改）。126 候选 / 14 题：should_trigger 14/14 全对 · should_not_trigger 5/6 · near_confusion 6/8。**全部 3 处错误都落在 audit 抓到的那个 1.00 相似对上**（P13 两票都投 tushare-data；P10 判官 B 投到 tushare=gold）—— 独立盲判把结构度量确认为唯一错源。校正随机分 BoR：should_trigger 1.00 · should_not_trigger 0.832 · near_confusion 0.748）
+- `2026-10-11 15:29` **agent** [status] T-006#B-003: pending → done（第二/第三个 pack 交叉验证：Dream（2 技能、无类目）与 AgentSkill-SoftwareDev（30 散技能一个类目）都跑过 tree/layers（Dream L1 2 项 ✅；SoftwareDev L1 30 项 ❌，形状差异已被同一套命令量出来））
+- `2026-10-11 15:29` **default** [decision] 第 1 轮评测结论：结构度量（audit dup 段 1.00）与独立盲判（3 处错误全在同一对技能）互相确认。T-004 的收敛动作优先修这一对（tushare / tushare-data：description 逐字相同），改完跑第 2 轮——题面冻结不动、judge 输入重新生成——证明不退化。
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

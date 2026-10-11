@@ -237,8 +237,8 @@
    "y": 1210,
    "width": 300,
    "height": 110,
-   "color": "5",
-   "text": "### T-005#B-003\n在真实 pack 上跑一轮并留档\n\n`running` · @default · 在做 @default（线程 deleg_8d657a16#0）\n\n【做什么】用 `delegate_task` 发独立判官（不共享上下文），跑 AgentSkill-UsingHermes 一轮；\n判官输出落文件（批次摘要会截断长输出，必须落盘）。判官输出是**原件**，事后一个字都不改。"
+   "color": "4",
+   "text": "### T-005#B-003\n在真实 pack 上跑一轮并留档\n\n`done` · @default\n\n【做什么】用 `delegate_task` 发独立判官（不共享上下文），跑 AgentSkill-UsingHermes 一轮；\n判官输出落文件（批次摘要会截断长输出，必须落盘）。判官输出是**原件**，事后一个字都不改。"
   },
   {
    "id": "T-006#B-001",
@@ -267,8 +267,8 @@
    "y": 300,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-006#B-003\n第二个 pack 交叉验证（防过拟合）\n\n`claimed` · @default\n\n【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，\n证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。"
+   "color": "4",
+   "text": "### T-006#B-003\n第二个 pack 交叉验证（防过拟合）\n\n`done` · @default\n\n【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，\n证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。"
   },
   {
    "id": "T-007#B-001",

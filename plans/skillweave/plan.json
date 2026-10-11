@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T15:28:30+08:00",
+  "updated_at": "2026-10-11T15:29:44+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -774,7 +774,7 @@
           "id": "T-005#B-003",
           "title": "在真实 pack 上跑一轮并留档",
           "kind": "impl",
-          "status": "running",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】用 `delegate_task` 发独立判官（不共享上下文），跑 AgentSkill-UsingHermes 一轮；\n判官输出落文件（批次摘要会截断长输出，必须落盘）。判官输出是**原件**，事后一个字都不改。",
           "input": "",
@@ -783,21 +783,18 @@
           "done_when": [
             "`<批次目录>/judge-*.txt` 存在且行数 == 题面数；打分结果落 `round-1-score.txt`；三处路径贴进 run。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/round1/judge-A.txt",
+            "reports/2026-10-11-usinghermes/round1/judge-B.txt",
+            "reports/2026-10-11-usinghermes/round1/score/round1-score.txt"
+          ],
           "deps": [
             "T-005#B-001"
           ],
           "review_of": "",
           "feedback": "",
-          "exec": {
-            "by": "default",
-            "started": "2026-10-11T15:28:30+08:00",
-            "delegation": "deleg_8d657a16",
-            "task_index": 0,
-            "transcript": "/Users/maxim/.hermes/cache/delegation/live/deleg_8d657a16/task-0.log",
-            "note": "已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改"
-          },
-          "status_since": "2026-10-11T15:28:30+08:00",
+          "exec": {},
+          "status_since": "2026-10-11T15:29:44+08:00",
           "runs": [
             {
               "at": "2026-10-11T15:28:30+08:00",
@@ -805,6 +802,13 @@
               "from": "pending",
               "to": "running",
               "note": "已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改"
+            },
+            {
+              "at": "2026-10-11T15:29:44+08:00",
+              "by": "default",
+              "from": "running",
+              "to": "done",
+              "note": "2 个独立判官各 15 行输出（wc -l 15/15，原件不改）。126 候选 / 14 题：should_trigger 14/14 全对 · should_not_trigger 5/6 · near_confusion 6/8。**全部 3 处错误都落在 audit 抓到的那个 1.00 相似对上**（P13 两票都投 tushare-data；P10 判官 B 投到 tushare=gold）—— 独立盲判把结构度量确认为唯一错源。校正随机分 BoR：should_trigger 1.00 · should_not_trigger 0.832 · near_confusion 0.748"
             }
           ]
         }
@@ -868,7 +872,7 @@
           "id": "T-006#B-003",
           "title": "第二个 pack 交叉验证（防过拟合）",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，\n证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。",
           "input": "",
@@ -877,15 +881,25 @@
           "done_when": [
             "同一套命令在第二个 pack 上跑通，报告落 `<批次目录>/report-<pack>.md`；\n两 pack 的 fanout 分布形状差异写进结论。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/round1/score/round1-score.txt"
+          ],
           "deps": [
             "T-003#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:07+08:00",
-          "runs": []
+          "status_since": "2026-10-11T15:29:44+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T15:29:44+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "第二/第三个 pack 交叉验证：Dream（2 技能、无类目）与 AgentSkill-SoftwareDev（30 散技能一个类目）都跑过 tree/layers（Dream L1 2 项 ✅；SoftwareDev L1 30 项 ❌，形状差异已被同一套命令量出来）"
+            }
+          ]
         }
       ],
       "note": "",
@@ -1609,7 +1623,35 @@
       "kind": "status",
       "text": "T-005#B-003: pending → running（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）",
       "ref": "T-005#B-003"
+    },
+    {
+      "at": "2026-10-11T15:29:44+08:00",
+      "actor": "agent",
+      "kind": "exec",
+      "text": "T-005#B-003: 线程登记已清除（@default 收工）",
+      "ref": "T-005#B-003"
+    },
+    {
+      "at": "2026-10-11T15:29:44+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-005#B-003: running → done（2 个独立判官各 15 行输出（wc -l 15/15，原件不改）。126 候选 / 14 题：should_trigger 14/14 全对 · should_not_trigger 5/6 · near_confusion 6/8。**全部 3 处错误都落在 audit 抓到的那个 1.00 相似对上**（P13 两票都投 tushare-data；P10 判官 B 投到 tushare=gold）—— 独立盲判把结构度量确认为唯一错源。校正随机分 BoR：should_trigger 1.00 · should_not_trigger 0.832 · near_confusion 0.748）",
+      "ref": "T-005#B-003"
+    },
+    {
+      "at": "2026-10-11T15:29:44+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-006#B-003: pending → done（第二/第三个 pack 交叉验证：Dream（2 技能、无类目）与 AgentSkill-SoftwareDev（30 散技能一个类目）都跑过 tree/layers（Dream L1 2 项 ✅；SoftwareDev L1 30 项 ❌，形状差异已被同一套命令量出来））",
+      "ref": "T-006#B-003"
+    },
+    {
+      "at": "2026-10-11T15:29:44+08:00",
+      "actor": "default",
+      "kind": "decision",
+      "text": "第 1 轮评测结论：结构度量（audit dup 段 1.00）与独立盲判（3 处错误全在同一对技能）互相确认。T-004 的收敛动作优先修这一对（tushare / tushare-data：description 逐字相同），改完跑第 2 轮——题面冻结不动、judge 输入重新生成——证明不退化。",
+      "ref": ""
     }
   ],
-  "rev": "5cb44d2cb11b"
+  "rev": "e6486292714c"
 }
