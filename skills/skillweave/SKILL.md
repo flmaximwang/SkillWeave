@@ -36,7 +36,7 @@ license: MIT
 | **L2 第二级** | 被选中那个 skill 的 **`SKILL.md` 正文** | 触发时载入 | 正文 token/行数、它转指出去多少个兄弟 |
 | **L3 第三级** | 该 skill 的 `references/` `scripts/` `assets/` | 按需读 | 孤儿文件、悬空引用、最大文件 |
 
-## 命令（五条：四条只读 + 一条生成产物）
+## 命令（六条：四条只读 + 两条生成/改结构）
 
 ```bash
 SW=<本 skill 的 scripts/weave.py 绝对路径>     # 装好后：<skills 目录>/skillweave/scripts/weave.py
@@ -48,6 +48,9 @@ python3 "$SW" audit  "$PACK" --out /tmp/sw     # 审计四段：体积 / 孤儿�
 python3 "$SW" checks "$PACK" --out /tmp/sw     # 七条检查（含硬编码路径、内嵌密钥；命中退 1）
 python3 "$SW" propose "$PACK" --out /tmp/sw    # 四类动作的提案：**默认 dry-run，不改盘**
 python3 "$SW" visualize "$PACK"                 # 生成物落回 pack：TREE.md + TREE.html（三级披露的文本版与可视化）
+python3 "$SW" collapse  "$PACK" --out /tmp/sw   # 可选方案：塌成「L1 = 1 个 skill 入口」的账 + 伞体 + git mv 清单（dry-run）
+python3 "$SW" collapse  "$PACK" --out /tmp/sw --apply --entry-dir using-hermes \
+        --description "…"                       # 真塌：搬目录 + 写伞体与各岛 INDEX.md；**没 --description 直接拒绝**
 python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json   # 只执行机械那部分
 ```
 
@@ -58,6 +61,14 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 `visualize` 默认把两份产物写在 pack 根（`--out` 可改）：`TREE.md`（L1 菜单 → L2 正文 → L3 按需，逐 skill 数字）
 与 `TREE.html`（自包含、离线可开；互指图画成圆环 + 弦，节点带编号 + 框内图例）。两份都是**生成物，不要手改**。
 互指图的边 = 「某个 skill 的任何文本文件里点到另一个 skill 的**目录名**」；岛 = 该图的连通分量。
+
+`collapse` 是**可选**的第二种形状（默认不做）：**L1 = 1 个 skill 入口 → L2 = 13 个岛 → L3 = 39 篇正文**。
+分工照旧：搬目录、生成伞体与各岛 `INDEX.md` 是机械动作，工具做；**那一条 `description` 必须你写**——
+它是唯一的常驻触发词、是判断题，所以 `--apply` 不给 `--description` 会直接拒绝（不生成半成品）。
+在 UsingHermes 上实测过的账：常驻 3,310 → **58** tok（description 写多长就是多少）· 伞体 556 tok（13 行）·
+各岛 `INDEX.md` 合计 4,344 tok（均值 334）· **独立可装从 39 个降到 1 个**（其余变成 `references/`）。
+注意一条**构造性假象**：塌完 `孤儿`/`悬空` 会归零——伞体按目录点名了每个 `references/<岛>/`，目录级点名把里面全盖住了，
+不是问题被修好，是这条指标失去分辨力。
 **岛数对口径敏感**（同一份数据：只看 SKILL.md 的 frontmatter `name` → 11 个；再加「引用落到别的 skill 目录」→ 10 个；
 扫全部文本文件按目录名 → 13 个）——报岛数必须连口径一起报。
 

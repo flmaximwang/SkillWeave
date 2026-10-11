@@ -50,6 +50,8 @@ python3 scripts/weave.py propose <pack 目录> --out DIR --apply-group map.json 
 
 python3 scripts/weave.py visualize <pack 目录> [--out DIR]      # 生成 TREE.md + TREE.html（默认落回 pack 根）
                                                                 # 三级披露文本版 + 自包含可视化；互指岛的圆环 + 弦图
+python3 scripts/weave.py collapse  <pack 目录> --out DIR        # 可选形状：L1=1 入口 / L2=岛 / L3=正文 的账 + 伞体草稿（dry-run）
+python3 scripts/weave.py collapse  <pack 目录> --out DIR --apply --entry-dir <名字> --description "…"   # 真塌
 
 # 自检（自带 fixture，不碰真实数据）
 python3 scripts/weave.py --self-test

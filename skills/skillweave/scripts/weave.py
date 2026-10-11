@@ -1000,12 +1000,14 @@ def cmd_score(key_path, judge_paths, out):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
     ap.add_argument("cmd", nargs="?",
-                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize"])
+                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize", "collapse"])
     ap.add_argument("--prompts", default=None)
     ap.add_argument("--key", default=None)
     ap.add_argument("--judge", nargs="*", default=[])
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--apply-group", default=None)
+    ap.add_argument("--description", default=None)
+    ap.add_argument("--entry-dir", default=None)
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -1036,6 +1038,11 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or root          # 默认落回 pack 自己：可视化是给仓库看的产物
         return cmd_visualize(root, out)
+    if a.cmd == "collapse":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        return cmd_collapse(root, out, apply_changes=a.apply, description=a.description,
+                            entry_dir=a.entry_dir)
     if a.cmd == "judge":
         root = os.path.abspath((a.pack or ".").rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
@@ -1380,6 +1387,89 @@ def render_tree_html(root, skills, edges, islands, entry, rev, stats):
 """
 
 
+def island_dirs(entry_dir, skills, islands):
+    """岛 → 目录名的**机械**取法：整岛同处一个目录且不止一个成员 → 用那个目录名；
+    否则用成员自己的目录名（散落的、单成员的岛）。重名时补序号。"""
+    used, out = {}, []
+    for isl in islands:
+        dirs = sorted({os.path.basename(os.path.dirname(i.rstrip("/"))) for i in isl})
+        base = dirs[0] if (len(dirs) == 1 and len(isl) > 1) else os.path.basename(isl[0].rstrip("/"))
+        n = used.get(base, 0) + 1
+        used[base] = n
+        out.append((base if n == 1 else f"{base}-{n}", isl))
+    return out
+
+
+def umbrella_body(dirs, byid):
+    """伞体正文的机械部分：N 个岛各一行。写法固定，不改语义。"""
+    body = ["本 pack 只有这一个入口。先在这 %d 项里选一项，再读该岛的 `INDEX.md` 选具体 skill。" % len(dirs), ""]
+    for n, (name, isl) in enumerate(dirs, 1):
+        mem = " / ".join(byid[i]["name"] for i in isl[:6]) + (" …" if len(isl) > 6 else "")
+        body.append(f"{n}. **{name}**（{len(isl)} 个）— {mem} → `references/{name}/INDEX.md`")
+    return body
+
+
+def island_index_md(name, isl, byid):
+    """一个岛的 INDEX.md：成员逐条带 description（这是第三次点击看到的东西）。"""
+    return "\n".join([f"# {name}", ""] +
+                     [f"- **{byid[i]['name']}** — {byid[i]['description']}\n  `references/{name}/"
+                      f"{os.path.basename(i.rstrip('/'))}/SKILL.md`" for i in isl]) + "\n"
+
+
+def _rev(root):
+    g = git(root, "rev-parse", "--short", "HEAD")
+    return g.stdout.strip() if g is not None and g.returncode == 0 else "?"
+
+
+def _default_entry_dir(root):
+    base = os.path.basename(os.path.abspath(root.rstrip("/")))
+    base = re.sub(r"^AgentSkill-", "", base)
+    return base.lower()
+
+
+def render_collapse_md(root, skills, edges, islands, dirs, entry_dir, desc, before):
+    byid = {s["id"]: s for s in skills}
+    body = umbrella_body(dirs, byid)
+    body_tok = est_tokens("\n".join(body))
+    idx_tok = sum(est_tokens(island_index_md(n, i, byid)) for n, i in dirs)
+    resident_after = est_tokens(desc or "")
+    L = [f"# 单入口方案（L1 = 1 个 skill 入口）· {os.path.basename(root)}", "",
+         f"由 `weave.py collapse` 生成（**默认 dry-run，不改盘**）。基准 `{before['rev']}`。", "",
+         "## 形状", "", "```",
+         f"L1  1 项      {entry_dir}/（description = 常驻菜单，唯一一条）",
+         f"L2  {len(dirs)} 项     伞体里的岛索引（每岛一行）→ references/<岛>/INDEX.md",
+         f"L3  {len(skills)} 篇   各 skill 的正文（原目录整棵搬进 references/<岛>/<skill>/，内部相对引用不破）",
+         "```", "",
+         "## 本方案的账（同一台机器上量的）", "",
+         "| 项 | 现在（多入口） | 改成单入口 |", "|---|---|---|",
+         f"| L1 常驻 | {before['skills']} 条 description = **{before['resident']} tok** | 1 条 = "
+         f"**{resident_after} tok**（写出来的 description 多长就是多少） |",
+         f"| 第一次点击 | {before['entry']} 项 | **1 项** |",
+         f"| 第二次点击 | — | **{len(dirs)} 项**（岛索引，载入时付 **{body_tok} tok**） |",
+         f"| 第三次点击 | 无 | **{len(skills)} 项**（岛的 `INDEX.md`，**{idx_tok} tok**） |",
+         f"| 独立可装 | 每个 skill 各自能装 | **只剩这一个 skill**（39 个不再是 skill） |", "",
+         "## 伞体（`SKILL.md` 正文，机械生成的部分）", "", "```markdown"] + \
+        ["---", f"name: {entry_dir}", f"description: {desc or '（必须你写：这是触发词，工具不许代笔）'}", "---", ""] + \
+        body + ["```", "",
+                f"> `description` 由模型写（触发词是判断题）。`weave.py collapse --apply` 不带 `--description` 会拒绝执行。", "",
+                "## 要执行的机械动作", "", "```bash"]
+    for name, isl in dirs:
+        L.append(f"mkdir -p skills/{entry_dir}/references/{name}")
+        for i in isl:
+            L.append(f"git mv {i.rstrip('/')} skills/{entry_dir}/references/{name}/"
+                     f"{os.path.basename(i.rstrip('/'))}")
+    L += ["```", "", "## 每个岛的 INDEX.md", ""]
+    for name, isl in dirs:
+        L += [f"### {name}", "", "```markdown", island_index_md(name, isl, byid).rstrip(), "```", ""]
+    L += ["## 换口径时的注意", "",
+          "- 「岛」= 互指图（谁在正文/引用里点到谁的目录名）的连通分量；口径见 `docs/contract.md` §3。",
+          "- 岛数对口径敏感（同一份数据 11 / 10 / 13），报数必须连口径一起报。",
+          "- 单入口的代价是**独立可装**：39 个 skill 变成 1 个 skill 的 `references/`。"
+          "别的包/人想单独装其中一个就没法装了。",
+          ""]
+    return "\n".join(L)
+
+
 def cmd_visualize(root, out):
     """把文档树落成两份给人/给 agent 看的产物：`TREE.md` + `TREE.html`。"""
     skills, skipped = [], []
@@ -1407,10 +1497,7 @@ def cmd_visualize(root, out):
              "over_l2": len(over_l2),
              "orphans": sum(len(s["orphans"]) for s in skills),
              "broken": sum(len(s["broken"]) for s in skills)}
-    rev = "?"
-    g = git(root, "rev-parse", "--short", "HEAD")
-    if g is not None and g.returncode == 0:
-        rev = g.stdout.strip()
+    rev = _rev(root)
     os.makedirs(out, exist_ok=True)
     md = os.path.join(out, "TREE.md")
     html = os.path.join(out, "TREE.html")
@@ -1432,6 +1519,69 @@ def _leaves(node):
     for c in node["children"]:
         out += _leaves(c)
     return out
+
+
+def first_layer_entries(tree):
+    """入口层摆出几项（tree 口径，与 layers 一致）。"""
+    return [c["id"] for c in skills_root(tree)["children"] if c["kind"] in ("skill", "category")]
+
+
+def cmd_collapse(root, out, apply_changes=False, description=None, entry_dir=None):
+    """把 pack 塌成「L1 = 1 个 skill 入口」：**默认 dry-run**，写一份 `COLLAPSE.md`（数字 + 伞体 + 要跑的 git mv）。
+
+    分工：机械的（搬目录、生成伞体与各岛 `INDEX.md`）工具做；**那一条 description 必须人来写**——
+    它是唯一的常驻触发词，是判断题。所以没 `--description` 时 `--apply` 直接拒绝，不生成半成品。
+    """
+    skills, skipped = [], []
+    tree = walk_dir(root, root, "", tracked_set(root), skipped, skills)
+    if tree is None:
+        print("[collapse] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
+        return 1
+    add_mentions(root, skills)
+    edges = cross_skill_edges(root, skills)
+    islands = islands_of(skills, edges)
+    entry = entry_dir or _default_entry_dir(root)
+    dirs = island_dirs(entry, skills, islands)
+    before = {"skills": len(skills), "entry": len(first_layer_entries(tree)),
+              "resident": est_tokens("\n".join(s["description"] for s in skills)),
+              "rev": _rev(root)}
+    os.makedirs(out, exist_ok=True)
+    md = os.path.join(out, "COLLAPSE.md")
+    with open(md, "w", encoding="utf-8") as f:
+        f.write(render_collapse_md(root, skills, edges, islands, dirs, entry, description, before))
+    print(f"[collapse] 现在: L1 {before['entry']} 项 / 常驻 {before['resident']} tok → "
+          f"单入口: L1 1 项 / L2 {len(dirs)} 项（岛）/ L3 {len(skills)} 篇")
+    print(f"[collapse] 出: {md}")
+    if not apply_changes:
+        print("[collapse] dry-run：盘上未改任何文件（加 --apply --description \"...\" 才落盘）")
+        return 0
+    if not description:
+        print("[collapse] 拒绝执行：--description 必填 —— 那一条 description 是唯一的常驻触发词，工具不许代笔")
+        return 2
+
+    byid = {s["id"]: s for s in skills}
+    for name, isl in dirs:
+        ddir = os.path.join(root, "skills", entry, "references", name)
+        os.makedirs(ddir, exist_ok=True)
+        for i in isl:
+            src = i.rstrip("/")
+            dst = f"skills/{entry}/references/{name}/{os.path.basename(src)}"
+            g = git(root, "mv", src, dst)
+            if g is None or g.returncode != 0:
+                shutil.move(os.path.join(root, src), os.path.join(root, dst))
+        with open(os.path.join(ddir, "INDEX.md"), "w", encoding="utf-8") as f:
+            f.write(island_index_md(name, isl, byid))
+    head = ("---\nname: %s\ndescription: %s\n---\n\n# %s\n\n" % (entry, description.strip(), entry))
+    with open(os.path.join(root, "skills", entry, "SKILL.md"), "w", encoding="utf-8") as f:
+        f.write(head + "\n".join(umbrella_body(dirs, byid)) + "\n")
+    # 落盘后回读：技能数必须是 1、入口层必须是 1
+    skills2, skipped2 = [], []
+    tree2 = walk_dir(root, root, "", tracked_set(root), skipped2, skills2)
+    n_entry = len(first_layer_entries(tree2)) if tree2 else -1
+    ok = (len(skills2) == 1 and n_entry == 1)
+    print(f"[collapse] 落盘后回读：技能 {len(skills2)} 个 · 入口层 {n_entry} 项 —— "
+          f"{'✅' if ok else '❌ 没塌成单入口'} · 岛 {len(dirs)} 个 · 各岛 INDEX.md 已写")
+    return 0 if ok else 1
 
 
 # ---------------------------------------------------------------- 自检
@@ -1535,6 +1685,13 @@ def self_test():
         htv = open(os.path.join(out5, "TREE.html"), encoding="utf-8").read()
         assert "notes/demo/" in mdv and "demo" in htv, (mdv[:200], htv[:200])
         assert htv.count("<circle") == 1, htv.count("<circle")
+        # 单入口方案：干跑必须算出 L1=1；--apply 不给 description 必须拒绝（不许生成半成品）
+        out6 = os.path.join(tmp, "o6")
+        assert cmd_collapse(pack, out6) == 0
+        cm = open(os.path.join(out6, "COLLAPSE.md"), encoding="utf-8").read()
+        assert "L1  1 项" in cm and "notes/demo" in cm, cm[:200]
+        assert cmd_collapse(pack, out6, apply_changes=True) == 2      # 缺 description → 拒绝
+        assert cmd_collapse(pack, out6, apply_changes=True, description="演示：把 demo 收成一个入口。") == 0
         print("[self-test] ✅ 层（pack→类目→skill）/ 折叠 description / 孤儿 / 悬空 / "
               "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 / 提案器四类动作 / "
               "layers↔audit 口径对拍 —— 全过")
