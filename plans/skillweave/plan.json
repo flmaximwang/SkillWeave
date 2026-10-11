@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T15:14:12+08:00",
+  "updated_at": "2026-10-11T15:17:17+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -900,7 +900,7 @@
           "id": "T-007#B-002",
           "title": "本仓库自己的分层披露自检",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】本仓库也是 skill pack 的一种形态，给自己留一条自检：\n`SKILL.md` 薄入口 + `references/` 下沉 + 无孤儿文档 + 体积极限，超限 exit 1。",
           "input": "",
@@ -909,15 +909,25 @@
           "done_when": [
             "`python3 scripts/selfcheck.py`（或等价命令）在仓库根跑出 exit 0，并把输出贴进 run。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "scripts/weave.py"
+          ],
           "deps": [
             "T-002#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:07+08:00",
-          "runs": []
+          "status_since": "2026-10-11T15:17:17+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T15:17:17+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "本仓库的分层披露自检可用 `python3 scripts/weave.py layers .` + `checks .` 自查（自托管跑通，上面两组数字即证据）"
+            }
+          ]
         },
         {
           "id": "T-007#B-003",
@@ -965,7 +975,7 @@
           "id": "T-008#B-001",
           "title": "skills/skillweave/SKILL.md：第一层薄入口",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`\n+ `references/`）。第一层只放：**什么时候用** · **输入是 pack（一整套含 SKILL.md 的文件夹树）不是单个\nSKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py tree` / `weave.py layers`）·\n**四类动作里哪些由 agent 用语言模型做、哪些机械动作由 CLI 做** · 每步一行转指到 `references/`。\n安装不依赖任何 agent 框架（没有 profile / lock / 安装器专属步骤）。",
           "input": "",
@@ -974,19 +984,29 @@
           "done_when": [
             "① `skills/skillweave/SKILL.md` 存在，frontmatter `name`+`description`（≤1024 字符，含触发词）；\n② 正文在上限内（行数/字节）且每份 `references/*.md` 都被正文点名（无孤儿）；\n③ 在本仓库根跑 `python3 scripts/weave.py layers .`：L1 条目数在上限内 ✅（自托管自检）；\n④ 一个没有装任何 Hermes 组件的 agent 只靠本仓库文件就能照做（判据：命令与路径要么是仓库内相对路径、\n要么是通用工具，出现任何 profile/lock 概念即不通过）。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "skills/skillweave/SKILL.md"
+          ],
           "deps": [],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T14:04:13+08:00",
-          "runs": []
+          "status_since": "2026-10-11T15:17:17+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T15:17:17+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "第一层薄入口写好并自托管验过：layers . → 入口层 skills/ 摆出 1 项（✅上限内）· 常驻 171 字符≈118 token；L2 skills/skillweave/ 1556tok/72 行（不超限）；L3 4 文件 0 孤儿 0 悬空；checks rc=0（无硬编码路径/密钥）；grep profile|lock|hermes|.hub 0 命中。自托管自检当场抓到「新建未提交的 skills/ 被 git 跟踪口径排除」这个真问题，已写进 SKILL.md"
+            }
+          ]
         },
         {
           "id": "T-008#B-002",
           "title": "references/：四类动作的做法（要语言模型的那几段）",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】四份 `references/`，每份回答「怎么判断 + 改完跑哪条命令重测」：\n`references/split.md`（拆：按标题切分；哪些段落该下沉、哪些必须留在第一层；留什么样的转指行）·\n`references/group.md`（分：散技能归入类目的两轴判据；类目名怎么起）·\n`references/merge.md`（并：近重复的取证方式；保留哪个、折进哪个、正文哪几段是重复的）·\n`references/rewrite.md`（改写：`description` 前 57 字符窗口、触发词优先、排除条款位置、改完必须重跑评测）。",
           "input": "",
@@ -995,15 +1015,25 @@
           "done_when": [
             "四份文件都存在且各被 SKILL.md 点名一次；每份含「判据」段与「改完重跑」段（命令可复制执行）；\n不出现「照经验改改」这类不可核验的说法。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "skills/skillweave/references/split.md"
+          ],
           "deps": [
             "T-008#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T14:04:13+08:00",
-          "runs": []
+          "status_since": "2026-10-11T15:17:17+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T15:17:17+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "四份 references 齐全且都被 SKILL.md 点名（孤儿 0）：split（切分界线/该下沉标准/转指写法/前后对照三数）· group（两轴判据/类目命名 3-8 个/四个验收数）· merge（五项取证→真重复合并非重复写界限→dup 段必须消失）· rewrite（57 字符窗口/触发词优先/排除条款位置/分组+校正随机重测）"
+            }
+          ]
         },
         {
           "id": "T-008#B-003",
@@ -1481,7 +1511,28 @@
       "kind": "status",
       "text": "T-002#B-003: pending → done（摘要来源可追溯：有 description 的取 frontmatter.description（并把该摘要回源文件 frontmatter 校验命中），无 description 的取正文首段首句带行号，都没有的写 null；audit/tree 产物里每条 summary_source 都可回源定位）",
       "ref": "T-002#B-003"
+    },
+    {
+      "at": "2026-10-11T15:17:17+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-008#B-001: pending → done（第一层薄入口写好并自托管验过：layers . → 入口层 skills/ 摆出 1 项（✅上限内）· 常驻 171 字符≈118 token；L2 skills/skillweave/ 1556tok/72 行（不超限）；L3 4 文件 0 孤儿 0 悬空；checks rc=0（无硬编码路径/密钥）；grep profile|lock|hermes|.hub 0 命中。自托管自检当场抓到「新建未提交的 skills/ 被 git 跟踪口径排除」这个真问题，已写进 SKILL.md）",
+      "ref": "T-008#B-001"
+    },
+    {
+      "at": "2026-10-11T15:17:17+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-008#B-002: pending → done（四份 references 齐全且都被 SKILL.md 点名（孤儿 0）：split（切分界线/该下沉标准/转指写法/前后对照三数）· group（两轴判据/类目命名 3-8 个/四个验收数）· merge（五项取证→真重复合并非重复写界限→dup 段必须消失）· rewrite（57 字符窗口/触发词优先/排除条款位置/分组+校正随机重测））",
+      "ref": "T-008#B-002"
+    },
+    {
+      "at": "2026-10-11T15:17:17+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-007#B-002: pending → done（本仓库的分层披露自检可用 `python3 scripts/weave.py layers .` + `checks .` 自查（自托管跑通，上面两组数字即证据））",
+      "ref": "T-007#B-002"
     }
   ],
-  "rev": "671d73b9abf8"
+  "rev": "3eeb61c7fd65"
 }

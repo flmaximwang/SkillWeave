@@ -287,8 +287,8 @@
    "y": 1470,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-007#B-002\n本仓库自己的分层披露自检\n\n`claimed` · @default\n\n【做什么】本仓库也是 skill pack 的一种形态，给自己留一条自检：\n`SKILL.md` 薄入口 + `references/` 下沉 + 无孤儿文档 + 体积极限，超限 exit 1。"
+   "color": "4",
+   "text": "### T-007#B-002\n本仓库自己的分层披露自检\n\n`done` · @default\n\n【做什么】本仓库也是 skill pack 的一种形态，给自己留一条自检：\n`SKILL.md` 薄入口 + `references/` 下沉 + 无孤儿文档 + 体积极限，超限 exit 1。"
   },
   {
    "id": "T-007#B-003",
@@ -307,8 +307,8 @@
    "y": 1080,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-008#B-001\nskills/skillweave/SKILL.md：第一层薄入口\n\n`claimed` · @default\n\n【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`\n+ `references/`）。第一层只放：**什么时候用** · **输入是 pack（一整套含 SKILL.md 的文件夹树）不是单个\nSKILL.md** · "
+   "color": "4",
+   "text": "### T-008#B-001\nskills/skillweave/SKILL.md：第一层薄入口\n\n`done` · @default\n\n【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`\n+ `references/`）。第一层只放：**什么时候用** · **输入是 pack（一整套含 SKILL.md 的文件夹树）不是单个\nSKILL.md** · "
   },
   {
    "id": "T-008#B-002",
@@ -317,8 +317,8 @@
    "y": 1730,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-008#B-002\nreferences/：四类动作的做法（要语言模型的那几段）\n\n`waiting` · @default\n\n【做什么】四份 `references/`，每份回答「怎么判断 + 改完跑哪条命令重测」：\n`references/split.md`（拆：按标题切分；哪些段落该下沉、哪些必须留在第一层；留什么样的转指行）·\n`references/group.md`（分：散技能归入类目的两轴判据；类目名怎么起）·\n`referenc"
+   "color": "4",
+   "text": "### T-008#B-002\nreferences/：四类动作的做法（要语言模型的那几段）\n\n`done` · @default\n\n【做什么】四份 `references/`，每份回答「怎么判断 + 改完跑哪条命令重测」：\n`references/split.md`（拆：按标题切分；哪些段落该下沉、哪些必须留在第一层；留什么样的转指行）·\n`references/group.md`（分：散技能归入类目的两轴判据；类目名怎么起）·\n`referenc"
   },
   {
    "id": "T-008#B-003",

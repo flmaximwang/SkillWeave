@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 19/32 块（59%） · 状态 `active` · 更新于 2026-10-11 15:14
+**进度** 22/32 块（69%） · 状态 `active` · 更新于 2026-10-11 15:17
 
 **参与方** 本人(human)
 
@@ -12,8 +12,6 @@
 - `T-004#B-003` **L1 收敛：把入口层条目压到上限内** — 已认领 · @default
 - `T-005#B-001` **判官输入生成器（候选只有 description）** — 已认领 · @default
 - `T-006#B-003` **第二个 pack 交叉验证（防过拟合）** — 已认领 · @default
-- `T-007#B-002` **本仓库自己的分层披露自检** — 已认领 · @default
-- `T-008#B-001` **skills/skillweave/SKILL.md：第一层薄入口** — 已认领 · @default
 
 ## 图
 
@@ -79,13 +77,13 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-007_B-001,T-007_B-003 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef claimed stroke-width:1px;
-  class T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
+  class T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003 claimed;
   classDef waiting stroke-width:1px;
-  class T-004_B-002,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-008_B-002,T-008_B-003 waiting;
+  class T-004_B-002,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-008_B-003 waiting;
 ```
 
 ## 任务
@@ -369,7 +367,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 两 pack 的 fanout 分布形状差异写进结论。
     - 依赖：T-003#B-001
 
-### T-007 仓库与交付 — 进行中
+### T-007 仓库与交付 — 已完成
 @default
 - [x] `T-007#B-001` **提交本仓库：README / docs / plans 一起进版本** _impl_ — 已完成 @default
     - 做什么：【做什么】按决策块 T-001#B-001 的答案建远端（或不建）并提交推送。
@@ -380,11 +378,13 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-001#B-001
     - 产物：`https://github.com/flmaximwang/SkillWeave`
     - run 2026-10-11 13:59 default pending→done 公开远端已建并推送（gh repo create flmaximwang/SkillWeave --public）；plans/skillweave 随仓库提交；origin/main == HEAD
-- [ ] `T-007#B-002` **本仓库自己的分层披露自检** _impl_ — 已认领 @default
+- [x] `T-007#B-002` **本仓库自己的分层披露自检** _impl_ — 已完成 @default
     - 做什么：【做什么】本仓库也是 skill pack 的一种形态，给自己留一条自检：
 `SKILL.md` 薄入口 + `references/` 下沉 + 无孤儿文档 + 体积极限，超限 exit 1。
     - 判据：`python3 scripts/selfcheck.py`（或等价命令）在仓库根跑出 exit 0，并把输出贴进 run。
     - 依赖：T-002#B-001
+    - 产物：`scripts/weave.py`
+    - run 2026-10-11 15:17 default pending→done 本仓库的分层披露自检可用 `python3 scripts/weave.py layers .` + `checks .` 自查（自托管跑通，上面两组数字即证据）
 - [x] `T-007#B-003` **交付形态：纯 CLI 仓库，还是同时可安装的 skill** _impl_ — 已完成 @default
     - 做什么：【做什么】按 T-001#B-001 第 2 问的答案落地：
 - 只做 CLI：README 写清 `python3 scripts/weave.py ...` 的用法即可；
@@ -395,9 +395,9 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-001#B-001
     - run 2026-10-11 14:04 you blocked→done 定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。
 
-### T-008 SkillWeave skill 本体（可被任意 agent 安装） — 进行中
+### T-008 SkillWeave skill 本体（可被任意 agent 安装） — 待排
 @default
-- [ ] `T-008#B-001` **skills/skillweave/SKILL.md：第一层薄入口** _impl_ — 已认领 @default
+- [x] `T-008#B-001` **skills/skillweave/SKILL.md：第一层薄入口** _impl_ — 已完成 @default
     - 做什么：【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`
 + `references/`）。第一层只放：**什么时候用** · **输入是 pack（一整套含 SKILL.md 的文件夹树）不是单个
 SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py tree` / `weave.py layers`）·
@@ -408,7 +408,9 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 ③ 在本仓库根跑 `python3 scripts/weave.py layers .`：L1 条目数在上限内 ✅（自托管自检）；
 ④ 一个没有装任何 Hermes 组件的 agent 只靠本仓库文件就能照做（判据：命令与路径要么是仓库内相对路径、
 要么是通用工具，出现任何 profile/lock 概念即不通过）。
-- [ ] `T-008#B-002` **references/：四类动作的做法（要语言模型的那几段）** _impl_ — 等前置 @default
+    - 产物：`skills/skillweave/SKILL.md`
+    - run 2026-10-11 15:17 default pending→done 第一层薄入口写好并自托管验过：layers . → 入口层 skills/ 摆出 1 项（✅上限内）· 常驻 171 字符≈118 token；L2 skills/skillweave/ 1556tok/72 行（不超限）；L3 4 文件 0 孤儿 0 悬空；checks rc=0（无硬编码路径/密钥）；grep profile|lock|hermes|.hub 0 命中。自托管自检当场抓到「新建未提交的 skills/ 被 git 跟踪口径排除」这个真问题，已写进 SKILL.md
+- [x] `T-008#B-002` **references/：四类动作的做法（要语言模型的那几段）** _impl_ — 已完成 @default
     - 做什么：【做什么】四份 `references/`，每份回答「怎么判断 + 改完跑哪条命令重测」：
 `references/split.md`（拆：按标题切分；哪些段落该下沉、哪些必须留在第一层；留什么样的转指行）·
 `references/group.md`（分：散技能归入类目的两轴判据；类目名怎么起）·
@@ -417,6 +419,8 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
     - 判据：四份文件都存在且各被 SKILL.md 点名一次；每份含「判据」段与「改完重跑」段（命令可复制执行）；
 不出现「照经验改改」这类不可核验的说法。
     - 依赖：T-008#B-001
+    - 产物：`skills/skillweave/references/split.md`
+    - run 2026-10-11 15:17 default pending→done 四份 references 齐全且都被 SKILL.md 点名（孤儿 0）：split（切分界线/该下沉标准/转指写法/前后对照三数）· group（两轴判据/类目命名 3-8 个/四个验收数）· merge（五项取证→真重复合并非重复写界限→dup 段必须消失）· rewrite（57 字符窗口/触发词优先/排除条款位置/分组+校正随机重测）
 - [ ] `T-008#B-003` **端到端：agent + CLI 走完一个真实 pack** _impl_ — 等前置 @default
     - 做什么：【做什么】照装好的 skill 走一遍完整流程（在**临时复制的** pack 上做，不动原仓库）：
 `layers` 出 L1/L2/L3 → 按 `references/` 的四类动作改 → 重跑 `layers` 出前后对照 → 跑 T-005 一轮评测证明路由不退化。
@@ -427,9 +431,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-002「references/：四类动作的做法（要语言模型的那几段）」
-- `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-003「端到端：agent + CLI 走完一个真实 pack」
-- `2026-10-11 14:07` **agent** [status] T-002#B-004: blocked → done（用户问「谁更准、谁更快、能否内化」。**实测对拍后定**（证据 docs/compare-tools.md）：① 结构数字三家一致（文件 56 / heading 89 / 行 1611 / token 差 <1%）→ 我的实现可信；② 准确性的差异都在语义判断上：asa 不误报示例路径但有真 broken 漏报（skill-tools 独立报出 scripts/reproduce_table1.sh、scripts/make_figure2.py 真缺失），我的引用抽取把示例路径也算进 broken（6 条里 4 条误报）、孤儿规则过严（44 条里绝大多数是 templates/*，只在 templates/README.md 被点名）；③ 效率：asa 冷 6.58s / 热 1.46s（单 skill），skill-tools 11.38s，claude-skills-cli 7.22s；SkillWeave 整个 pack 126 skill / 1941 节点 3.06s，纯 stdlib 离线。**内化方式 = 内化它们的知识与检查清单（无依赖），不引 Node/npm 硬依赖**；另留一个可选适配器 `--from-asa`。落地块见 T-003#B-006 ~ B-009。）
 - `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-006「内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积」
 - `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-007「内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥」
 - `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-008「内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数」
@@ -447,6 +448,9 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 15:14` **agent** [status] T-003#B-004: pending → done（同层近重复进 audit dup 段（difflib，同父目录两两）：1672 对里相似度>0.5 的 12 对。**实测抓到一对 1.00 的重复技能**：skills/research/tushare/ ↔ skills/research/tushare-data/ —— description 逐字相同、各 4 个文件、只有 name 不同，路由必然掷硬币；另有 boc-statement↔ccb-statement 0.81）
 - `2026-10-11 15:14` **agent** [status] T-003#B-005: pending → done（成本两组数进 audit cost 段：常驻 21302 字符≈6694 token；L2 全体 391700 tok（中位 2307）；L3 470 文件/5996139 B）
 - `2026-10-11 15:14` **agent** [status] T-002#B-003: pending → done（摘要来源可追溯：有 description 的取 frontmatter.description（并把该摘要回源文件 frontmatter 校验命中），无 description 的取正文首段首句带行号，都没有的写 null；audit/tree 产物里每条 summary_source 都可回源定位）
+- `2026-10-11 15:17` **agent** [status] T-008#B-001: pending → done（第一层薄入口写好并自托管验过：layers . → 入口层 skills/ 摆出 1 项（✅上限内）· 常驻 171 字符≈118 token；L2 skills/skillweave/ 1556tok/72 行（不超限）；L3 4 文件 0 孤儿 0 悬空；checks rc=0（无硬编码路径/密钥）；grep profile|lock|hermes|.hub 0 命中。自托管自检当场抓到「新建未提交的 skills/ 被 git 跟踪口径排除」这个真问题，已写进 SKILL.md）
+- `2026-10-11 15:17` **agent** [status] T-008#B-002: pending → done（四份 references 齐全且都被 SKILL.md 点名（孤儿 0）：split（切分界线/该下沉标准/转指写法/前后对照三数）· group（两轴判据/类目命名 3-8 个/四个验收数）· merge（五项取证→真重复合并非重复写界限→dup 段必须消失）· rewrite（57 字符窗口/触发词优先/排除条款位置/分组+校正随机重测））
+- `2026-10-11 15:17` **agent** [status] T-007#B-002: pending → done（本仓库的分层披露自检可用 `python3 scripts/weave.py layers .` + `checks .` 自查（自托管跑通，上面两组数字即证据））
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
