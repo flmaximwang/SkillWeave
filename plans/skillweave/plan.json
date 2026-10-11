@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T22:17:34+08:00",
+  "updated_at": "2026-10-11T22:17:51+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -1273,14 +1273,24 @@
           "input": "",
           "output": "",
           "command": "",
-          "done_when": [],
+          "done_when": [
+            "skill 单装后 --self-test 全过、layers/audit 正常、依赖全在标准库内"
+          ],
           "artifacts": [],
           "deps": [],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T16:37:28+08:00",
-          "runs": []
+          "status_since": "2026-10-11T22:17:51+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T22:17:51+08:00",
+              "by": "default",
+              "from": "done",
+              "to": "done",
+              "note": ""
+            }
+          ]
         },
         {
           "id": "T-008#B-006",
@@ -1982,7 +1992,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-005「L1 按互指岛的 13 个岛重排（入口层 28→13）+ 文档树可视化落进 UsingHermes 仓库」",
       "ref": "T-004#B-005"
+    },
+    {
+      "at": "2026-10-11T22:17:51+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-008#B-005: done → done（done_when 已更新）",
+      "ref": "T-008#B-005"
     }
   ],
-  "rev": "0dd519293cf7"
+  "rev": "edb674ea1880"
 }

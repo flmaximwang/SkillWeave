@@ -483,6 +483,8 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 用装好的那一份跑 --self-test 全过、layers/audit 正常；依赖检查 import 全在标准库内（python 3.9.6）。
 【残留】仍有一条 MEDIUM execution（唯一那个 git() 出口）—— 允许安装，但记在这里。
 【产物】沙箱里装好的那一份：/Users/maxim/.hermes/cache/scratch/hh-skillweave-2/skills/skill-tooling/skillweave
+    - 判据：skill 单装后 --self-test 全过、layers/audit 正常、依赖全在标准库内
+    - run 2026-10-11 22:17 default done→done 
 - [x] `T-008#B-006` **清理后包：新基线 + 5 个超限 skill 下沉（worktree 隔离）** _impl_ — 已完成 @default
     - 做什么：【背景】用户除杂完成（UsingHermes 125→39 技能，入口层 68→28 项，常驻 6443→3310 token）。
 附加要求：新开 worktree 测试无误后合并到 main；完成时确认所有 worktree 已合并并清理。
@@ -502,7 +504,6 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:29` **default** [decision] 第 1 轮评测结论：结构度量（audit dup 段 1.00）与独立盲判（3 处错误全在同一对技能）互相确认。T-004 的收敛动作优先修这一对（tushare / tushare-data：description 逐字相同），改完跑第 2 轮——题面冻结不动、judge 输入重新生成——证明不退化。
 - `2026-10-11 15:36` **default** [summary] T-004 第一刀（在副本 /tmp/pack-fix 上）：按 merge.md 取证后判定 tushare / tushare-data 为**真重复**（description 逐字同、references/数据接口.md 逐字节同、脚本同名微差、正文只差 slug 与 version 1.1.12/1.1.16），决定保留名字 tushare、取 1.1.16 的内容、删 tushare-data。改后实测：技能 126→125 · dup top 从 1.00 变 0.81（该对消失）·相似度>0.5 的对 12→11 · 常驻 6694→6548 token · 孤儿 106→103 · 悬空不变 45。第 2 轮评测已按冻结题面重生成判官输入（125 候选，tushare-data 已不在候选表），P10 的语义标注随结构更正（题面一字未动）；T-004#B-001（CLI 提案器）仍未做 —— 这一次是照 skill 的做法手工执行的，别把两者混起来记。
 - `2026-10-11 15:38` **agent** [status] T-004#B-002: pending → done（改完重跑出前后对照（同题面同金标）：should_trigger 0.938→1.0 · near_confusion 0.75→1.0 · should_not_trigger 1.0→1.0（BoR 0.937/0.748→全 1.0）；结构侧 dup top 1.00→0.81、常驻 6694→6548 token、技能 126→125。第 1 轮那 3 处错误全部落在被修的那一对上，改后零错误且无退化）
 - `2026-10-11 15:48` **default** [summary] T-004#B-003 执行记录（副本 /tmp/pack-fix2）：按 group.md 两轴判据把 52 个散技能全部归入类目（断言每个都有唯一落点，含 2 个最初漏掉的：dispatch-work-to-another-profile→hermes-ops、leave-and-rejoin-a-discord-thread→social-media）。L1 从 69 项（散 52+类目 17）→ **24 项（散 0+类目 24）**，常驻成本不变 6548 token（归入类目不增加菜单成本），悬空 45 不变、孤儿 103 不变。过程中修了我工具的两个真 bug：① 入口层判定（分组后会错抓成第一个类目）② 引用按 pack 根解析写死 ../.. 的深度假设（加一层类目就误报 3 条悬空）。24 项仍 >上限 20：再往下压需要合并现有类目或改成二级命名，属**分类学决策**，留给你拍板。
@@ -522,6 +523,7 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 - `2026-10-11 17:59` **agent** [status] T-008#B-006: running → done（全部完成。① r6 盲判：2 个独立判官各 15 行、结果 14/14 全对（应触发 7/7 · 不该触发 3/3 全 none · 近邻混淆 4/4）， BoR 全 1.0，39 候选下校正随机基线 0.0256；② worktree 改动（5 个超限 skill 下沉）已从主 clone 以 --ff-only 合并进 main 并推送， origin/main = 0de1ca9；③ 两个 worktree 都已移除、分支已删（skillweave/cleanup-audit、cheatsheet）， git worktree list 只剩主 clone、git branch 只剩 main、工作区 0 项；④ 顺带清了 AgentSkill-AgentEvolution 的 3 个陈旧 worktree （每条分支 ahead=0 且工作区干净）连同 8 条已合并分支；该包 HEAD=origin/main=7d9fff3、工作区干净。 未做：L1 仍 28 项（建议把上限 20 当参考线，不逆着用户的拉平动作塞类目）；8 对同层相似 + 1 对疑似真重复只报不改。）
 - `2026-10-11 22:17` **agent** [status] T-004#B-004: blocked → done（决策（用户 2026-10-11 拍板）：L1 就定为互指图的 13 个岛，不再往 20 上削。依据：① 互指图（谁在正文/引用里点到谁的目录名）忽略方向后得 13 个连通分量 = 21/4/3/2 + 九个 1；② description 词面两两 Jaccard 最高只有 0.12 —— 词面数据完全不支持任何「该分几组」的结论，分组只能靠关系或靠人；③ 岛数对口径敏感（只看 SKILL.md 的 name 互指 → 11；再加引用边 → 10；扫全文件按目录名 → 13），所以口径写进 contract §3，报数必须连口径一起报。落法：4 个多成员岛 → 类目目录（hermes-ops / housekeeping / extensions-and-source / authoring-and-discovery），9 个单成员岛 → 留作散项，入口层 = 4 + 9 = 13 项（≤20，❌ 旗标消失）。20 本身在 contract §4 定为**参考线不是硬闸**（出处是 Dream 的常量，不是规范）。）
 - `2026-10-11 22:17` **default** [block] 新增块 T-004#B-005「L1 按互指岛的 13 个岛重排（入口层 28→13）+ 文档树可视化落进 UsingHermes 仓库」
+- `2026-10-11 22:17` **agent** [status] T-008#B-005: done → done（done_when 已更新）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
