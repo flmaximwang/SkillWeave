@@ -71,6 +71,10 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 `TODO.md`（**照着做的待办清单**：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判；悬空按文件聚合成一行）。命令行自检「表行数 == 节点数」（每个文档恰好出现一次）。
 **根的数量 = 形状**：多入口 = K 个根（每个 skill 的 `SKILL.md`）；单入口 = 1 个根。
 
+**派发**：`weave.py dispatch <pack>` 划批（单位 = skill 子树，≤10 个/批）+ 事实补全 + 落 `dispatch/*.prompt.md`；
+**验收**：`weave.py verify <pack> --state dispatch/state.json --expect-fixed <id…>` —— 集合级对账 + 拆分守恒 +
+回归拦截 + 梯子记账，失败就整批回滚重派（不许用相同 prompt 重派）。
+
 **免检表放在包里**：`<pack>/.skillweave/waivers.txt`，一行一条 `<glob>` + 两个以上空格 + 理由。命中的不进待办、
 只在 TODO.md 的「已豁免」栏记一行 —— 「哪张 png 是给人看的」「哪个 json 是测试留档」是**包主的判断**，不是通用真理，
 所以规则写在包里，工具只匹配 + 单独计数。

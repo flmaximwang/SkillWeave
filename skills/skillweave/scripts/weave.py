@@ -17,6 +17,7 @@ import codecs
 import collections
 import difflib
 import fnmatch
+import time
 import hashlib
 import json
 import math
@@ -1001,7 +1002,8 @@ def cmd_score(key_path, judge_paths, out):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
     ap.add_argument("cmd", nargs="?",
-                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize", "collapse", "prepare", "disclosure"])
+                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize",
+                             "collapse", "prepare", "disclosure", "dispatch", "verify"])
     ap.add_argument("--prompts", default=None)
     ap.add_argument("--key", default=None)
     ap.add_argument("--judge", nargs="*", default=[])
@@ -1011,6 +1013,10 @@ def main(argv=None):
     ap.add_argument("--entry-dir", default=None)
     ap.add_argument("--dest", default=None)
     ap.add_argument("--shape", default=None)
+    ap.add_argument("--state", default=None)
+    ap.add_argument("--expect-fixed", nargs="*", default=[])
+    ap.add_argument("--splits", default=None)
+    ap.add_argument("--batch-size", type=int, default=10)
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -1045,6 +1051,17 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
         return cmd_disclosure(root, out)
+    if a.cmd == "dispatch":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or root
+        return cmd_dispatch(root, out, batch_size=a.batch_size)
+    if a.cmd == "verify":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        if not a.state:
+            print("[verify] 需要 --state <dispatch/state.json>（计数在那份文件里，不在谁记忆里）")
+            return 2
+        return cmd_verify(root, a.state, a.expect_fixed, a.splits, out)
     if a.cmd == "prepare":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
@@ -1698,6 +1715,288 @@ def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers):
     return "\n".join(L), len(todo), len(waived)
 
 
+# ────────────────────────── 派发与验收（第三步的机械部分） ──────────────────────────
+# 口径（docs/contract.md §8）：
+#   · 派发前**事实补全**：能从树里查到的（目标候选路径、兄弟文件、文件行数）先算好塞进 prompt，
+#     让子代理「验路径」而不是「猜路径」——这是第一次成功率的大头。
+#   · 单位 = skill 子树；批次间文件集合两两不相交（断言）。
+#   · 重派不许打转：prompt hash 相同就拒绝重派；每级换的是输入（R1 证据 → R2 减粒度 → R3 喂事实 →
+#     R4 换执行者 → R5 落 PARKED.md）。
+#   · 计数在文件里（dispatch/state.json），不在谁的记忆里。
+
+def _scan_fresh(root, tag="scan"):
+    """跑一遍 disclosure 到临时目录再读回 —— 复用同一条代码路径，避免两套算法漂移。"""
+    tmp = tempfile.mkdtemp(prefix=f"skillweave-{tag}-")
+    if cmd_disclosure(root, tmp) != 0:
+        return None, tmp
+    with open(os.path.join(tmp, "disclosure.json"), encoding="utf-8") as f:
+        return json.load(f), tmp
+
+
+def _item_id(kind, path, line=0):
+    return f"{kind}-{hashlib.sha1(f'{path}:{line}'.encode()).hexdigest()[:8]}"
+
+
+def _findings(dj, root):
+    """把 disclosure.json 里的发现拉平成 {id: {...}}，id 稳定（kind + path:line 的短 hash）。"""
+    F = {}
+
+    def add(kind, path, line, target, num, who):
+        F[_item_id(kind, path, line)] = {"id": _item_id(kind, path, line), "kind": kind,
+                                         "path": path, "line": line, "target": target,
+                                         "num": num, "owner": _owner_of(path, dj, root), "who": who}
+
+    for p, o in dj["over"]:
+        add("超限", p, 0, "", "; ".join(o), "待模型")
+    for p in dj["orphans"]:
+        add("到不了根", p, 0, "", f"{dj['nodes'][p]['bytes']} B", "待模型")
+    for src, tgt, ln in dj["broken"]:
+        add("悬空", src, ln, tgt, "", "待模型")
+    for r, a, b in dj.get("root_near_dup", []):
+        add("近重复", a, 0, b, f"相似度 {r}", "待模型")
+    return F
+
+
+def _owner_of(path, dj, root):
+    """文件归属哪个 skill = 最长前缀匹配的 SKILL.md 所在目录；没匹配上归伞/包根。"""
+    cands = [p for p in dj["nodes"] if p.endswith("SKILL.md") and path.startswith(os.path.dirname(p) + "/")]
+    if cands:
+        return max(cands, key=len)
+    return path if path.endswith("SKILL.md") else "(pack)"
+
+
+def _doc_inbound(dj, path):
+    n = sum(1 for _s, ts in dj["edges"].items() if path in ts)
+    return n
+
+
+def _pack_files(root):
+    out = []
+    for dp, dns, fns in os.walk(root):
+        dns[:] = [d for d in dns if d not in (".git", ".skillweave")]
+        for fn in fns:
+            out.append(os.path.relpath(os.path.join(dp, fn), root).replace(os.sep, "/"))
+    return out
+
+
+def _facts_for(item, root, dj, files):
+    """**事实补全**：把能从树/包里查到的机械事实算出来，喂给子代理。判断留给它。"""
+    lines = read_text(os.path.join(root, item["path"])).split("\n") if \
+        os.path.isfile(os.path.join(root, item["path"])) else [""]
+    if item["kind"] == "悬空":
+        base = os.path.basename(item["target"])
+        cands = sorted(p for p in files if os.path.basename(p) == base)
+        return {"候选目标（包内同名文件）": cands or ["（包内没有同名文件 —— 可能是包外文件，判豁免）"],
+                "该行原文": lines[item["line"] - 1].strip() if 0 < item["line"] <= len(lines) else "?"}
+    if item["kind"] == "到不了根":
+        sibs = sorted(p for p in dj["nodes"]
+                      if os.path.dirname(p) == os.path.dirname(item["path"]) and p != item["path"])
+        return {"同目录兄弟（谁被披露了照它办）": sibs or ["（没有兄弟）"],
+                "首行": next((l for l in lines if l.strip()), "")}
+    if item["kind"] == "超限":
+        hs = [l for l in lines if re.match(r"^##?\s", l)]
+        return {"二级标题（拆分只能按主题切，标题只是线索）": hs[:20] or ["（没有二级标题）"],
+                "行数": len(lines)}
+    return {}
+
+
+def _prompt_for(batch, root, F, files, dj, base_rev, pack):
+    rules = f"""# 派发批次 {batch['id']} · skill 子树
+
+你是 SkillWeave 的修复执行者。**只产出提案，不要写盘、不要改仓库、不许开后台进程**。
+仓库副本：`{root}`（git rev `{base_rev}`）。你的范围只有下面列出的 skill：
+
+{chr(10).join('- `' + s + '`' for s in batch['skills'])}
+
+## 铁律
+1. 只改**引用路径**与**拆分**，不改文义、不加新内容、不删没让你删的。
+2. 改动必须**逐条**对应下面的条目 id：每条回一个对象，不许合并、不许漏。
+3. **删引用**必须给理由码：`external`（在说包外文件）· `obsolete`（内容已失效）· `typo-fixed`（拼错，已改对）。
+   标 `external` 的会要求进免检表；标 `obsolete` 的一律不自动通过。
+4. **拆分**：按**主题**切，不按标题机械切；拆分必须给 `parts`（new_path → 正文），
+   且拆完每个新文件都要被该 skill 的 `SKILL.md` 披露（否则它立刻变成新的「到不了根」）。
+   拆分只允许「搬家」：删掉空行与标题行后，原文的字符序列必须等于各 part 拼接 —— 不许重写。
+5. 判不了的（该删还是该留、拆几份）→ 回 `"verdict": "parked"` + 理由，**不要硬做**。
+
+## 输出（严格 JSON，一个对象，不要解释）
+```json
+{{"batch": "{batch['id']}", "results": [
+  {{"id": "条目id", "verdict": "fixed|waived|parked",
+    "edits": [{{"file": "相对路径", "line": 12, "before": "原行逐字", "after": "新行"}}],
+    "parts": {{"新文件相对路径": "正文"}},
+    "reason_code": "external|obsolete|typo-fixed|",
+    "reason": "一句话"}}]}}
+```
+
+## 条目与事实（事实已替你查好；据此判断，不要另猜）
+"""
+    body = [rules]
+    for it in batch["items"]:
+        f = _facts_for(it, root, dj, files)
+        body.append(f"### `{it['id']}` · {it['kind']} · `{it['path']}`"
+                    + (f":{it['line']}" if it["line"] else "")
+                    + (f" → `{it['target']}`" if it["target"] else "")
+                    + (f"（{it['num']}）" if it["num"] else "") + "\n")
+        for k, v in f.items():
+            body.append(f"- {k}: " + ("; ".join(f"`{x}`" for x in v) if isinstance(v, list) else f"`{v}`"))
+    return "\n".join(body) + "\n"
+
+
+def cmd_dispatch(root, out, batch_size=10):
+    """派发前的事实补全 + 批次划分 + prompt 落盘 + 计数起点。产物：dispatch/{plan.json,state.json,batch-*.md}"""
+    dj, _ = _scan_fresh(root, "dispatch")
+    if dj is None:
+        print("[dispatch] FAIL 这个 pack 里没有 skill")
+        return 1
+    files = _pack_files(root)
+    F = _findings(dj, root)
+    waivers = _read_waivers(root)
+    todo = {i: it for i, it in F.items() if not _waived(it["path"], waivers)}
+    by_skill = collections.defaultdict(list)
+    for it in todo.values():
+        by_skill[it["owner"]].append(it)
+    order = sorted(by_skill, key=lambda s: -len(by_skill[s]))
+    batches, cur = [], []
+    for sk in order:                                   # 按 skill 填批：每批 ≤ batch_size 个 skill
+        cur.append(sk)
+        if len(cur) == batch_size:
+            batches.append(cur)
+            cur = []
+    if cur:
+        batches.append(cur)
+    base_rev = _rev(root)
+    d = os.path.join(out, "dispatch")
+    os.makedirs(d, exist_ok=True)
+    plan = {"pack": os.path.basename(root), "base_rev": base_rev, "batch_size": batch_size,
+            "baseline": os.path.join(out, "disclosure.json"), "batches": []}
+    for n, skills in enumerate(batches, 1):
+        items = sorted((it for sk in skills for it in by_skill[sk]), key=lambda x: (x["kind"], x["path"], x["line"]))
+        b = {"id": f"B{n}", "skills": skills, "items": items}
+        text = _prompt_for(b, root, F, files, dj, base_rev, os.path.basename(root))
+        b["prompt"] = f"dispatch/batch-{n}.prompt.md"
+        b["prompt_sha256"] = hashlib.sha256(text.encode()).hexdigest()[:16]
+        with open(os.path.join(d, f"batch-{n}.prompt.md"), "w", encoding="utf-8") as f:
+            f.write(text)
+        plan["batches"].append(b)
+    # 断言：批次间文件集合两两不相交（否则两个 agent 会改同一个文件）
+    seen = {}
+    for b in plan["batches"]:
+        for it in b["items"]:
+            if it["path"] in seen and seen[it["path"]] != b["id"]:
+                print(f"[dispatch] FAIL 文件 `{it['path']}` 同时落在 {seen[it['path']]} 与 {b['id']} —— 归属没切干净")
+                return 1
+            seen[it["path"]] = b["id"]
+    plan["todo"] = sum(len(b["items"]) for b in plan["batches"])
+    with open(os.path.join(d, "plan.json"), "w", encoding="utf-8") as f:
+        json.dump(plan, f, ensure_ascii=False, indent=2, sort_keys=True)
+    state = {"pack": plan["pack"], "base_rev": base_rev, "baseline": plan["baseline"],
+             "attempts": {it["id"]: 0 for b in plan["batches"] for it in b["items"]},
+             "prompt_hash": {b["id"]: b["prompt_sha256"] for b in plan["batches"]}}
+    with open(os.path.join(d, "state.json"), "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+    print(f"[dispatch] {len(plan['batches'])} 批 · {plan['todo']} 条 · 基线 rev {base_rev}")
+    for b in plan["batches"]:
+        print(f"[dispatch]   {b['id']}: {len(b['skills'])} 个 skill / {len(b['items'])} 条 → {b['prompt']}")
+    print(f"[dispatch] 出: {os.path.join(d, 'plan.json')}")
+    return 0
+
+
+LADDER = [
+    "R1 给证据：把拦截判据的原文 + 上次 diff 塞进 prompt（多数失败是它不知道自己错在哪）",
+    "R2 减粒度：一个 agent 只做一条（锚点唯一、上下文窄）",
+    "R3 喂事实：把候选路径/父文档/正确拼写直接给它，不让它推理",
+    "R4 换执行者：同 prompt 换模型（执行者与判官分离）",
+    "R5 落 PARKED.md：停止重试，记条目 + 证据 + 建议",
+]
+
+
+def _content_key(text):
+    """内容守恒用的归一化：去掉空行与标题行后的字符序列（拆分允许新增标题/分家，但不许改字）。"""
+    keep = [l.strip() for l in text.split("\n")
+            if l.strip() and not re.match(r"^#{1,6}\s", l.strip())]
+    return "".join(keep)
+
+
+def cmd_verify(root, state_path, expect_fixed, splits_path, out):
+    """**验收（闸 1）**：集合级对账 —— 该消的消了 · 无新增 · 外部集合不变 · 拆分守恒 + 新文件被披露。
+
+    不过就**整批回滚**（不逐条打补丁），并按梯子 R1..R5 决定下一次派发要改什么。"""
+    with open(state_path, encoding="utf-8") as f:
+        st = json.load(f)
+    with open(st["baseline"], encoding="utf-8") as f:
+        base = json.load(f)
+    dj, _ = _scan_fresh(root, "verify")
+    if dj is None:
+        print("[verify] FAIL 扫不动这个 pack")
+        return 1
+    before, after = _findings(base, root), _findings(dj, root)
+    fails = []
+    new = sorted(set(after) - set(before))
+    if new:
+        fails.append("新增发现（回归）：" + "; ".join(f"{after[i]['kind']} `{after[i]['path']}`" for i in new[:5]))
+    missing = [i for i in expect_fixed if i in after]
+    if missing:
+        fails.append(f"该消的没消：{len(missing)} 条 —— " + "; ".join(f"{i}" for i in missing[:5]))
+    if set(base.get("external", [])) != set(dj.get("external", [])):
+        fails.append("external 集合变了（说明有人动了包外引用的判断）")
+    if splits_path:
+        with open(splits_path, encoding="utf-8") as f:
+            for orig, parts in json.load(f).items():
+                g = git(root, "show", f"{st['base_rev']}:{orig}")
+                if g is not None and g.returncode == 0:
+                    want = _content_key(g.stdout)
+                    got = "".join(_content_key(read_text(os.path.join(root, p)))
+                                  for p in parts if os.path.isfile(os.path.join(root, p)))
+                    if want != got:
+                        fails.append(f"拆分不守恒：`{orig}` 的内容与 {len(parts)} 个新文件拼起来不一致")
+                for p in parts:
+                    if os.path.isfile(os.path.join(root, p)) and _doc_inbound(dj, p) == 0:
+                        fails.append(f"拆出来的 `{p}` 没人披露 —— 它现在是新的「到不了根」")
+    # 记账 + 梯子：**回归项也算在账上**（新增的发现同样要走 R1..R5，否则它会悄悄留在地上）
+    targets = list(expect_fixed) + [i for i in new if i in after]
+    for i in targets:
+        st["attempts"][i] = st["attempts"].get(i, 0) + 1
+    rounds = {}
+    for i in targets:
+        n = st["attempts"][i]
+        tag = "回归 " if i in new else ""
+        rounds[i] = f"✅ 已修" if i not in after else f"{tag}{LADDER[n - 1] if n <= len(LADDER) else LADDER[-1]}"
+    with open(state_path, "w", encoding="utf-8") as f:
+        json.dump(st, f, ensure_ascii=False, indent=2, sort_keys=True)
+    parked = [i for i in targets if i in after and st["attempts"][i] >= len(LADDER)]
+    os.makedirs(out, exist_ok=True)
+    run = os.path.join(out, "RUN.md")
+    with open(run, "a", encoding="utf-8") as f:
+        f.write(f"\n## 验收 {time.strftime('%Y-%m-%d %H:%M:%S')} · rev {_rev(root)}\n\n")
+        f.write(("**PASS**" if not fails else "**FAIL**") + f" · 验 {len(expect_fixed)} 条\n\n")
+        for i in targets:
+            f.write(f"- `{i}` → {rounds[i]}\n")
+        for x in fails:
+            f.write(f"- ⛔ {x}\n")
+    if parked:
+        pk = os.path.join(out, "PARKED.md")
+        with open(pk, "a", encoding="utf-8") as f:
+            f.write(f"\n## {time.strftime('%Y-%m-%d')} · 走完梯子仍未过（不是能力问题，是口径分歧）\n\n")
+            for i in parked:
+                f.write(f"- `{i}` · {after[i]['kind']} · `{after[i]['path']}`"
+                        + (f":{after[i]['line']}" if after[i]["line"] else "")
+                        + f" · 尝试 {st['attempts'][i]} 次 —— 需要一条规则（豁免/该删/该合）才能自动过\n")
+    for i in targets:
+        if i not in after:
+            print(f"[verify] ✅ {i} 已修")
+    for x in fails:
+        print(f"[verify] ⛔ {x}")
+    if not fails:
+        print(f"[verify] PASS · rev {_rev(root)} · 记录 → {run}")
+        return 0
+    print("[verify] FAIL —— 整批回滚（不逐条打补丁），下一次派发按以下级别改输入：")
+    for i in targets:
+        if i in after:
+            print(f"[verify]   {i}: {rounds[i]}")
+    print(f"[verify] 记录 → {run}")
+    return 1
+
+
 def cmd_disclosure(root, out):
     """**第二步**：以每个根文档为起点，把披露链递归展开到 L1..Ln，并逐文档体检 → `DISCLOSURE.md`。
 
@@ -2161,6 +2460,28 @@ def self_test():
         assert cmd_disclosure(pack, out9) == 0
         t1 = open(os.path.join(out9, "TODO.md"), encoding="utf-8").read()
         assert "没人点名是刻意的" in t1, t1[:400]
+        # 派发：事实补全 + 批次 + 计数起点
+        assert cmd_dispatch(pack, out9, batch_size=10) == 0, "dispatch 该成功"
+        pl = json.load(open(os.path.join(out9, "dispatch", "plan.json"), encoding="utf-8"))
+        ids = [it["id"] for b in pl["batches"] for it in b["items"]]
+        assert ids and len(ids) == len(set(ids)), "条目 id 必须唯一"
+        pr = open(os.path.join(out9, "dispatch", "batch-1.prompt.md"), encoding="utf-8").read()
+        assert "只产出提案" in pr and "不许开后台进程" in pr, pr[:200]
+        assert "候选目标" in pr or "二级标题" in pr, "prompt 里必须有事实补全段"
+        assert os.path.isfile(os.path.join(out9, "dispatch", "state.json")), "缺 state.json"
+        # 验收：干净 → PASS；注入一条新悬空 → FAIL，并给梯子
+        st = os.path.join(out9, "dispatch", "state.json")
+        assert cmd_verify(pack, st, [], None, out9) == 0, "没改动的 pack、没声称修过任何东西 → 应 PASS"
+        try:
+            p2 = os.path.join(pack, "第二只", "SKILL.md")
+            os.makedirs(os.path.dirname(p2), exist_ok=True)
+            with open(p2, "w", encoding="utf-8") as f:
+                f.write("---\nname: 第二只\ndescription: 另一只 demo，用来测新增悬空。\n---\n\n见 `references/nope.md`。\n")
+            assert cmd_verify(pack, st, [], None, out9) == 1, "新增悬空必须 FAIL"
+            run = open(os.path.join(out9, "RUN.md"), encoding="utf-8").read()
+            assert "⛔" in run and "R1" in run, "FAIL 时要写拦截判据与下一级 R 指令"
+        finally:
+            shutil.rmtree(os.path.join(pack, "第二只"), ignore_errors=True)
         # 第一步 prepare：非 git 的输入 → 副本由 git 管、原目录不被碰、BASELINE.md 出两种形状的账
         out7 = os.path.join(tmp, "o7")
         dest7 = os.path.join(tmp, "ws", "pack")
