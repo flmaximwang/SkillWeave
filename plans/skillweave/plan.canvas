@@ -367,8 +367,8 @@
    "y": 1600,
    "width": 300,
    "height": 110,
-   "color": "5",
-   "text": "### T-008#B-006\n清理后包：新基线 + 5 个超限 skill 下沉（worktree 隔离）\n\n`running` · @default\n\n【背景】用户除杂完成（UsingHermes 125→39 技能，入口层 68→28 项，常驻 6443→3310 token）。\n附加要求：新开 worktree 测试无误后合并到 main；完成时确认所有 worktree 已合并并清理。\n【做法】worktree = ~/Documents/AgentSkill-"
+   "color": "4",
+   "text": "### T-008#B-006\n清理后包：新基线 + 5 个超限 skill 下沉（worktree 隔离）\n\n`done` · @default\n\n【背景】用户除杂完成（UsingHermes 125→39 技能，入口层 68→28 项，常驻 6443→3310 token）。\n附加要求：新开 worktree 测试无误后合并到 main；完成时确认所有 worktree 已合并并清理。\n【做法】worktree = ~/Documents/AgentSkill-"
   }
  ],
  "edges": [

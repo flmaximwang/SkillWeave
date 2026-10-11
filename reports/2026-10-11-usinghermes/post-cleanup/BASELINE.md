@@ -55,7 +55,39 @@
 
 改写触发词能压低这类混淆，但它改的是 **L1 唯一的信号**（路由全靠这一行），**要先给你看措辞**再动 —— 这 8 条已列成提案，等你点头。
 
-## 4. 这一轮的可复现命令
+## 4. 盲判（r6）：清理后 **14/14 全对**
+
+题面是新出的 `../prompts-cleaned.json`（旧题面 11 条金标已被迁走，不能复用），**r6 起是新系列**，不与 r1–r5 混比。
+判官 2 个，各 15 行（14 题 + DONE），输出原件在 `../round6/judge-{A,B}.txt`，打分 `../round6/score/score.json`。
+
+| 分组 | 结果 | BoR |
+|---|---|---|
+| `should_trigger` | **7/7** | 1.0 |
+| `should_not_trigger` | **3/3**（全 `none`） | 1.0 |
+| `near_confusion` | **4/4** | 1.0 |
+
+（39 候选时校正随机基线 chance = 0.0256）
+
+**两个判官的失手原因说明，比分数更有用**：三题「不该触发」他们都干净地判 `none`，理由写得比候选表还准 ——
+P9（从零**写** MCP server）被识别为「候选只覆盖往 Hermes 里**接** MCP」，P10（Chrome 闪退）被识别为
+「候选的 browser 相关只讲 Hermes 浏览器通道故障」。四题近邻混淆也都点名了区分词：
+`SOUL.md`（authoring）/ `renaming`（configuration）/ `cron`+投递目标（cron-jobs）/ `Gateway lifecycle — per-profile start/stop`（session-list）。
+
+## 5. 合并与清理记录（worktree 收尾）
+
+```
+主 clone:  git checkout main → git merge --ff-only skillweave/cleanup-audit → git push origin main
+           origin/main = 0de1ca9
+移除:      AgentSkill-wt/AgentSkill-UsingHermes-skillweave  （分支 skillweave/cleanup-audit 已删）
+           AgentSkill-wt/AgentSkill-UsingHermes-cheatsheet   （在 a7dd123、ahead=0，分支已删；要再开一条命令）
+验证:      git worktree list → 只剩主 clone；git branch → 只剩 main；工作区 0 项
+```
+
+**顺带清了 AgentSkill-AgentEvolution 的 3 个陈旧 worktree**（别的会话留下的）：每条分支都 `ahead=0`
+（无未合并提交）、工作区干净 —— 移除 worktree 后连 8 条已合并分支一起删（含 4 条 `backport-*`、`fix-scan`、
+`merge-backports`、`auto-optimize/*`、`skillwt-pack-repo-rule`）。该包现在 `HEAD = origin/main = 7d9fff3`、工作区干净。
+
+## 6. 这一轮的可复现命令
 
 ```bash
 git -C ~/Documents/AgentSkill/AgentSkill-UsingHermes worktree add \
