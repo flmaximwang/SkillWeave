@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T14:53:10+08:00",
+  "updated_at": "2026-10-11T14:58:07+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -193,7 +193,7 @@
           "id": "T-002#B-002",
           "title": "可重建、可 diff",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】同一 pack 连跑两次，产物逐字节相同（排序稳定、无时间戳）；\n改动 pack 里一个文件后，diff 只出现在相关节点及其祖先的 `bytes`/`est_tokens` 上。",
           "input": "",
@@ -202,15 +202,25 @@
           "done_when": [
             "① 两次运行的 `sha256` 相同（贴两条 sha）。② 改一个文件的 description 后重跑，`diff tree.json`\n只出现预期字段（贴 diff 原文）。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "scripts/weave.py"
+          ],
           "deps": [
             "T-002#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "status_since": "2026-10-11T14:58:07+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T14:58:07+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "同一 pack 连跑两次 sha256 逐字节相同（Dream 仓 fa34646e…）；在**同名目录**的副本上改一个 description 后 diff：只出现 bytes/est_tokens/description/description_chars/digest/summary/size_by_kind（30 行，全是该 skill 及其祖先）"
+            }
+          ]
         },
         {
           "id": "T-002#B-003",
@@ -429,7 +439,7 @@
           "id": "T-003#B-006",
           "title": "内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】把 `agent-skill-analysis` 有而我没有的字段补进树节点（纯 stdlib，不引依赖）：\n每文件 `sha256`；节点内容 `digest`（内容指纹，忽略 `metadata.version` 这类版本键 —— 用来做「可重建可 diff」的硬判据）；\n`license` / `readme` 检测；`size.byKind`（指令重量 vs 资源重量）；产物里写明 token 口径。\n字段名沿用 asa 的写法（`docs/similar-work.md` A1 / `docs/contract.md` §1），便于将来 `--from-asa` 对齐。",
           "input": "",
@@ -438,13 +448,23 @@
           "done_when": [
             "在 UsingHermes 上重跑：① 同一 pack 连跑两次 `digest` 逐字节相同；② 改一个 `references/*.md` 后只有该 skill\n及其祖先的 digest 变；③ `sha256` 与 `shasum -a 256` 抽查 3 个文件一致；④ contract.md §1 的字段表补上这四个字段。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "docs/contract.md"
+          ],
           "deps": [],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T14:07:51+08:00",
-          "runs": []
+          "status_since": "2026-10-11T14:58:07+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T14:58:07+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "内化 asa 字段：每文件 sha256（与 shasum -a 256 对拍一致）· 节点 digest（忽略 version/updated/date/modified）· license/readme 检测 · size_by_kind 体积分解；字段写进 contract §1"
+            }
+          ]
         },
         {
           "id": "T-003#B-007",
@@ -473,7 +493,7 @@
           "id": "T-003#B-008",
           "title": "内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】在 L2 段给每个 skill 报四个数：正文里代码块数、章节（heading）数、>100 词的长段落数、\n`TODO`/`FIXME` 占位符数 —— 这正是 `references/split.md` 判断「该拆」的可量信号\n（`claude-skills-cli` 在同一个 skill 上报：56 代码示例 / 133 章节 / 12 长段落 / 有 TODO）。",
           "input": "",
@@ -482,15 +502,25 @@
           "done_when": [
             "这四个数出现在 `layers` 的 L2 段（或 `layers.json` 的 L2 节点里）；在 research-paper-writing 上与\n`claude-skills-cli` 报的同一 skill 对照（数量级一致即可，口径差异写进报告）。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/LAYERS.md"
+          ],
           "deps": [
             "T-002#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T14:07:51+08:00",
-          "runs": []
+          "status_since": "2026-10-11T14:58:07+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T14:58:07+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "内化 claude-skills-cli 的量化告警：每 skill 报 code_blocks/sections/long_paragraphs/todos，layers 出全 pack 合计。实测 UsingHermes：代码块 697 · 章节 1791 · 长段落 234 · TODO 4"
+            }
+          ]
         },
         {
           "id": "T-003#B-009",
@@ -1328,7 +1358,28 @@
       "kind": "status",
       "text": "T-003#B-009: pending → done（修完并实测：broken 301→45（剩 45 条抽 3 真查盘、都真不存在）、孤儿 239→106；单 skill research-paper-writing 6→0 / 44→0；新增 example 一类（267 条）与 URL 不误当路径；--self-test 加了 3 条断言全过）",
       "ref": "T-003#B-009"
+    },
+    {
+      "at": "2026-10-11T14:58:07+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-002#B-002: pending → done（同一 pack 连跑两次 sha256 逐字节相同（Dream 仓 fa34646e…）；在**同名目录**的副本上改一个 description 后 diff：只出现 bytes/est_tokens/description/description_chars/digest/summary/size_by_kind（30 行，全是该 skill 及其祖先））",
+      "ref": "T-002#B-002"
+    },
+    {
+      "at": "2026-10-11T14:58:07+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-003#B-006: pending → done（内化 asa 字段：每文件 sha256（与 shasum -a 256 对拍一致）· 节点 digest（忽略 version/updated/date/modified）· license/readme 检测 · size_by_kind 体积分解；字段写进 contract §1）",
+      "ref": "T-003#B-006"
+    },
+    {
+      "at": "2026-10-11T14:58:07+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-003#B-008: pending → done（内化 claude-skills-cli 的量化告警：每 skill 报 code_blocks/sections/long_paragraphs/todos，layers 出全 pack 合计。实测 UsingHermes：代码块 697 · 章节 1791 · 长段落 234 · TODO 4）",
+      "ref": "T-003#B-008"
     }
   ],
-  "rev": "70e045146a28"
+  "rev": "e3deefbfacff"
 }

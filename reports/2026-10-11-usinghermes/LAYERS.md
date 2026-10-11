@@ -9,6 +9,12 @@
    17134 tok  874 行  skills/maintain-hermes-profile/
    11872 tok 1799 行  skills/pytest-patterns/
     9925 tok  542 行  skills/autonomous-ai-agents/hermes-profile-housekeeping/
+  可量信号（全 pack）：代码块 697 · 章节 1791 · 长段落 234 · TODO/FIXME 4
+    code_blocks=4    sections=24   long=23   todos=0   skills/maintain-hermes-profile/
+    code_blocks=3    sections=18   long=15   todos=0   skills/autonomous-ai-agents/hermes-profile-housekeeping/
+    code_blocks=3    sections=13   long=9    todos=0   skills/manage-hermes-cron-jobs/
+    code_blocks=10   sections=22   long=8    todos=0   skills/maintain-hermes-gateway/
+    code_blocks=0    sections=9    long=9    todos=0   skills/research/sequence-file-formats/
 
 **L3（第三级 · 按需读）** 文件 470 个 / 5996139 B · 孤儿 106 · 悬空引用 45
     667833 B  assets/recruit-learning-in-session.workflow.html

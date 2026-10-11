@@ -13,6 +13,7 @@ ponytail: 只做「树 + 每层 fanout」，不做语义索引/向量；规模�
           pack 数到几千个 skill 时仍是秒级。
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -45,6 +46,35 @@ def est_tokens(text):
     cjk = sum(1 for ch in text if "\u2e80" <= ch <= "\u9fff"
               or "\u3000" <= ch <= "\u303f" or "\uff00" <= ch <= "\uffef")
     return int(round(cjk + (len(text) - cjk) * 0.25))
+
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+DIGEST_IGNORE = {"version", "updated", "date", "modified"}   # 改这些不算内容变化（内化自 asa 的 digest 口径）
+
+
+def content_digest(meta, body):
+    """内容指纹：忽略版本类键的 frontmatter + 正文。用来判「可 diff」——同一内容必得同一指纹。"""
+    keep = {k: v for k, v in meta.items() if k not in DIGEST_IGNORE}
+    return hashlib.sha256(
+        (json.dumps(keep, sort_keys=True, ensure_ascii=False) + "\n" + body).encode("utf-8")).hexdigest()
+
+
+def body_counts(body, sections):
+    """「该拆」的可量信号（内化自 claude-skills-cli 的告警口径）。
+    ponytail: 段落切分按空行 + 排除以 # / 围栏 / 表格 / 标签开头的块；围栏内的段落仍可能被计入，够用。"""
+    blocks = body.count("```") // 2
+    paras = [p for p in re.split(r"\n\s*\n", body)
+             if p.strip() and not p.lstrip().startswith(("#", "```", "~~~", "|", "<"))]
+    return {"code_blocks": blocks, "sections": sections,
+            "long_paragraphs": sum(1 for p in paras if len(p.split()) > 100),
+            "todos": len(re.findall(r"\b(?:TODO|FIXME)\b", body))}
 
 
 def parse_frontmatter(text):
@@ -249,10 +279,20 @@ def analyze_skill(path, rel):
                      or any(frel.endswith(r.lstrip("./")) for r in resolved)
                      or any(frel.startswith(d) for d in named_dirs))     # 目录级点名
             node["files"].append({"path": frel, "kind": fkind, "bytes": size,
+                                  "sha256": sha256_file(fp),
                                   "orphan": (fkind != "instructions" and not named)})
     node["orphans"] = [f["path"] for f in node["files"] if f["orphan"]]
     node["broken"] = sorted(broken)
-    node["headings"] = headings(body, body_line)
+    hs = headings(body, body_line)
+    node["headings"] = hs
+    node["counts"] = body_counts(body, len(hs))            # 内化：该拆的可量信号
+    node["digest"] = content_digest(meta, body)            # 内化：内容指纹（改 version 不变）
+    node["license"] = next((f["path"] for f in node["files"] if f["kind"] == "license"), None)
+    node["readme"] = next((f["path"] for f in node["files"] if f["kind"] == "readme"), None)
+    by_kind = {}
+    for f in node["files"]:
+        by_kind[f["kind"]] = by_kind.get(f["kind"], 0) + f["bytes"]
+    node["size_by_kind"] = by_kind                         # 内化：指令重量 vs 资源重量
     return node
 
 
@@ -437,6 +477,10 @@ def cmd_layers(root, out):
                "orphans": len(orphans), "broken": len(broken),
                "largest": big_l3},
     }
+    rep["L2"]["counts_totals"] = {k: sum(s["counts"][k] for s in skills)
+                                  for k in ("code_blocks", "sections", "long_paragraphs", "todos")}
+    rep["L2"]["counts_worst"] = sorted([{"id": s["id"], **s["counts"]} for s in skills],
+                                       key=lambda r: -(r["long_paragraphs"] * 10 + r["code_blocks"]))[:5]
     with open(os.path.join(out, "layers.json"), "w", encoding="utf-8") as f:
         json.dump(rep, f, ensure_ascii=False, indent=2, sort_keys=True)
 
@@ -453,6 +497,12 @@ def cmd_layers(root, out):
              f"（>5000 est_token 或 >500 行）")
     for r in rep["L2"]["max_many"]:
         L.append(f"  {r['est_tokens']:>6} tok {r['lines']:>4} 行  {r['id']}")
+    ct = rep["L2"]["counts_totals"]
+    L.append(f"  可量信号（全 pack）：代码块 {ct['code_blocks']} · 章节 {ct['sections']} · "
+             f"长段落 {ct['long_paragraphs']} · TODO/FIXME {ct['todos']}")
+    for r in rep["L2"]["counts_worst"]:
+        L.append(f"    code_blocks={r['code_blocks']:<4} sections={r['sections']:<4} "
+                 f"long={r['long_paragraphs']:<4} todos={r['todos']:<3} {r['id']}")
     L.append("")
     L.append(f"**L3（第三级 · 按需读）** 文件 {len(l3_files)} 个 / {rep['L3']['bytes']} B · "
              f"孤儿 {len(orphans)} · 悬空引用 {len(broken)}")
@@ -470,6 +520,9 @@ def cmd_layers(root, out):
     print(f"[layers] L2 正文超限={len(over_l2)} 个 · 最大: "
           + "; ".join(f"{r['id']}={r['est_tokens']}tok/{r['lines']}行" for r in rep['L2']['max_many'][:3]))
     print(f"[layers] L3 文件={len(l3_files)} 孤儿={len(orphans)} 悬空={len(broken)}")
+    c = rep["L2"]["counts_totals"]
+    print(f"[layers] L2 可量信号：代码块={c['code_blocks']} 章节={c['sections']} "
+          f"长段落={c['long_paragraphs']} TODO={c['todos']}")
     print(f"[layers] 出: {os.path.join(out, 'LAYERS.md')}")
     return 0
 

@@ -39,6 +39,11 @@
 | `mentions` | 正文里点到的**同 pack 其它技能名**（路由信号，来自 pack 自己的技能名清单） | 正文 |
 | `children` | 子节点数组，按 `id` 排序 | 树结构 |
 
+**内化自上游的字段（2026-10-11 加，出处见 `docs/compare-tools.md` §3）**：每文件 `sha256`；skill 节点
+`digest`（忽略 `version`/`updated`/`date`/`modified` 的内容指纹，用来判「同一内容是否变了」）、
+`license` / `readme`（命中的路径，无则 `null`）、`size_by_kind`（按 `kind` 的字节分解 = 指令重量 vs 资源重量）、
+`counts`（`code_blocks` / `sections` / `long_paragraphs` / `todos` —— 「该拆」的可量信号）。
+
 **`kind` 判定（唯一一处定义）**
 
 1. 有 `SKILL.md` 的目录 = `skill`。

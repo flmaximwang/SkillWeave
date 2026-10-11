@@ -57,8 +57,8 @@
    "y": 170,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-002#B-002\n可重建、可 diff\n\n`claimed` · @default\n\n【做什么】同一 pack 连跑两次，产物逐字节相同（排序稳定、无时间戳）；\n改动 pack 里一个文件后，diff 只出现在相关节点及其祖先的 `bytes`/`est_tokens` 上。"
+   "color": "4",
+   "text": "### T-002#B-002\n可重建、可 diff\n\n`done` · @default\n\n【做什么】同一 pack 连跑两次，产物逐字节相同（排序稳定、无时间戳）；\n改动 pack 里一个文件后，diff 只出现在相关节点及其祖先的 `bytes`/`est_tokens` 上。"
   },
   {
    "id": "T-002#B-003",
@@ -108,7 +108,7 @@
    "width": 300,
    "height": 110,
    "color": "0",
-   "text": "### T-003#B-002\n节点体积与规范建议值对照\n\n`waiting` · @default\n\n【做什么】逐节点报 `bytes` / `est_tokens`，对照 `SKILL.md` < 5000 token 与 `description` ≤ 1024 字符；\n超限的按超出比例排序输出清单。"
+   "text": "### T-003#B-002\n节点体积与规范建议值对照\n\n`claimed` · @default\n\n【做什么】逐节点报 `bytes` / `est_tokens`，对照 `SKILL.md` < 5000 token 与 `description` ≤ 1024 字符；\n超限的按超出比例排序输出清单。"
   },
   {
    "id": "T-003#B-003",
@@ -118,7 +118,7 @@
    "width": 300,
    "height": 110,
    "color": "0",
-   "text": "### T-003#B-003\n孤儿文件与悬空引用\n\n`waiting` · @default\n\n【做什么】两个方向都查：\n① 孤儿：没有任何祖先节点点名过的文件（含 `references/` 里没被 SKILL.md 提到的、`assets/` 里没人用的）；\n② 悬空：正文点名了但路径不存在的引用（相对路径解析 + 同 pack 技能名解析）。"
+   "text": "### T-003#B-003\n孤儿文件与悬空引用\n\n`claimed` · @default\n\n【做什么】两个方向都查：\n① 孤儿：没有任何祖先节点点名过的文件（含 `references/` 里没被 SKILL.md 提到的、`assets/` 里没人用的）；\n② 悬空：正文点名了但路径不存在的引用（相对路径解析 + 同 pack 技能名解析）。"
   },
   {
    "id": "T-003#B-004",
@@ -128,7 +128,7 @@
    "width": 300,
    "height": 110,
    "color": "0",
-   "text": "### T-003#B-004\n近重复 / 互相抢题的节点\n\n`waiting` · @default\n\n【做什么】同层节点两两比 description 与正文首段（纯 stdlib：difflib / token-shingle Jaccard），\n输出 top-N 相似对 + 相似度，标出「同层且相似度高」的对 —— 这是路由最容易错的形态\n（SkillRouter 在 80K 候选上实测：正文是必需信号，近重复是主"
+   "text": "### T-003#B-004\n近重复 / 互相抢题的节点\n\n`claimed` · @default\n\n【做什么】同层节点两两比 description 与正文首段（纯 stdlib：difflib / token-shingle Jaccard），\n输出 top-N 相似对 + 相似度，标出「同层且相似度高」的对 —— 这是路由最容易错的形态\n（SkillRouter 在 80K 候选上实测：正文是必需信号，近重复是主"
   },
   {
    "id": "T-003#B-005",
@@ -138,7 +138,7 @@
    "width": 300,
    "height": 110,
    "color": "0",
-   "text": "### T-003#B-005\n成本报告：常驻成本 + 多出的调用数\n\n`waiting` · @default\n\n【做什么】报两组数（Workday 报告的口径：分层披露提升检索质量、轻微增加延迟）：\n① 常驻成本 = 全部 `description` 的字节/估算 token（每个 agent 每次会话都要付的那份）；\n② 索引/激活成本 = `SKILL.md` 总量与「按需读一个文件」多出的一次调用数估算。"
+   "text": "### T-003#B-005\n成本报告：常驻成本 + 多出的调用数\n\n`claimed` · @default\n\n【做什么】报两组数（Workday 报告的口径：分层披露提升检索质量、轻微增加延迟）：\n① 常驻成本 = 全部 `description` 的字节/估算 token（每个 agent 每次会话都要付的那份）；\n② 索引/激活成本 = `SKILL.md` 总量与「按需读一个文件」多出的一次调用数估算。"
   },
   {
    "id": "T-003#B-006",
@@ -147,8 +147,8 @@
    "y": 690,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-003#B-006\n内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积\n\n`claimed` · @default\n\n【做什么】把 `agent-skill-analysis` 有而我没有的字段补进树节点（纯 stdlib，不引依赖）：\n每文件 `sha256`；节点内容 `digest`（内容指纹，忽略 `metadata.version` 这类版本键 —— 用来做「可重建可 diff」的硬判据）；\n`license` / `rea"
+   "color": "4",
+   "text": "### T-003#B-006\n内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积\n\n`done` · @default\n\n【做什么】把 `agent-skill-analysis` 有而我没有的字段补进树节点（纯 stdlib，不引依赖）：\n每文件 `sha256`；节点内容 `digest`（内容指纹，忽略 `metadata.version` 这类版本键 —— 用来做「可重建可 diff」的硬判据）；\n`license` / `rea"
   },
   {
    "id": "T-003#B-007",
@@ -167,8 +167,8 @@
    "y": 690,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-003#B-008\n内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数\n\n`claimed` · @default\n\n【做什么】在 L2 段给每个 skill 报四个数：正文里代码块数、章节（heading）数、>100 词的长段落数、\n`TODO`/`FIXME` 占位符数 —— 这正是 `references/split.md` 判断「该拆」的可量信号\n（`claude-skills-cli` 在同一个 skill 上报：56 代"
+   "color": "4",
+   "text": "### T-003#B-008\n内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数\n\n`done` · @default\n\n【做什么】在 L2 段给每个 skill 报四个数：正文里代码块数、章节（heading）数、>100 词的长段落数、\n`TODO`/`FIXME` 占位符数 —— 这正是 `references/split.md` 判断「该拆」的可量信号\n（`claude-skills-cli` 在同一个 skill 上报：56 代"
   },
   {
    "id": "T-003#B-009",
