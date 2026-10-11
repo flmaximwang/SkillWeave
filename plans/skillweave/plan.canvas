@@ -1,0 +1,388 @@
+{
+ "nodes": [
+  {
+   "id": "T-001#B-001",
+   "type": "text",
+   "x": 40,
+   "y": 40,
+   "width": 300,
+   "height": 110,
+   "color": "1",
+   "text": "### T-001#B-001\n决策：本仓库的落点与远端\n\n`blocked` · @you\n\n【问题】本仓库已在本地建成：`~/Repositories/Repo/SkillWeave`（`git init` 完成，**没有任何远端**，\n工作区只有 README.md / docs/prior-art.md / plans/）。要不要建 GitHub 远端，建的话叫什么、公开还是私有。\n\n1. 远端怎么定？\n"
+  },
+  {
+   "id": "T-001#B-002",
+   "type": "text",
+   "x": 40,
+   "y": 170,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-001#B-002\ndocs/contract.md：文档树节点 schema 与「层」的定义\n\n`claimed` · @default\n\n【做什么】写死两件事，之后所有脚本与报告都按它读：\n\n① 节点 schema：每个节点带 `path` / `kind`（`pack|category|skill|section|reference|script|asset`）/\n`bytes` / `est_tokens` / `summary` / `summar"
+  },
+  {
+   "id": "T-001#B-003",
+   "type": "text",
+   "x": 380,
+   "y": 40,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-001#B-003\ncaps 表：上限常量与它们的出处\n\n`waiting` · @default\n\n【做什么】把上限写成**一张常量表**（供 T-003 逐条判），每条都必须引 prior-art 的出处与口径：\n- 节点体积：`SKILL.md` 建议 < 5000 token（另报字节）；`description` ≤ 1024 字符（规范硬约束）。\n- fanout：**不设死值**；报分布 + 该层的校正随"
+  },
+  {
+   "id": "T-002#B-001",
+   "type": "text",
+   "x": 40,
+   "y": 300,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-002#B-001\nscripts/weave.py tree：把 pack 解析成节点图\n\n`claimed` · @default\n\n【做什么】纯 stdlib（无第三方依赖）的 `tree` 子命令：走一个 pack 目录 → 出 `tree.json` + `TREE.md`。\n- 解析 frontmatter：`name` / `description`（要为 `description: >-` 这类折叠块兜底，不能只用正则抓首行）。\n- 节点"
+  },
+  {
+   "id": "T-002#B-002",
+   "type": "text",
+   "x": 380,
+   "y": 170,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-002#B-002\n可重建、可 diff\n\n`waiting` · @default\n\n【做什么】同一 pack 连跑两次，产物逐字节相同（排序稳定、无时间戳）；\n改动 pack 里一个文件后，diff 只出现在相关节点及其祖先的 `bytes`/`est_tokens` 上。"
+  },
+  {
+   "id": "T-002#B-003",
+   "type": "text",
+   "x": 380,
+   "y": 300,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-002#B-003\n节点摘要的来源可追溯\n\n`waiting` · @default\n\n【做什么】每个节点的 `summary` 必须带 `summary_source`（如 `SKILL.md:3 frontmatter.description`），\n空的要显式写 `null`（不许编）。"
+  },
+  {
+   "id": "T-003#B-001",
+   "type": "text",
+   "x": 720,
+   "y": 40,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-003#B-001\n每层的选择数（fanout 分布 + 选项清单）\n\n`waiting` · @default\n\n【做什么】对每个 fanout>1 的节点：报该层的选项数与选项清单；全局给 fanout 分布直方图，\n并标出超出该层实测最优点的层（最优点来自 T-005，未跑时留空不猜）。\n\n【命令】`python3 scripts/weave.py audit <pack> --section fanout`"
+  },
+  {
+   "id": "T-003#B-002",
+   "type": "text",
+   "x": 720,
+   "y": 170,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-003#B-002\n节点体积与规范建议值对照\n\n`waiting` · @default\n\n【做什么】逐节点报 `bytes` / `est_tokens`，对照 `SKILL.md` < 5000 token 与 `description` ≤ 1024 字符；\n超限的按超出比例排序输出清单。"
+  },
+  {
+   "id": "T-003#B-003",
+   "type": "text",
+   "x": 720,
+   "y": 300,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-003#B-003\n孤儿文件与悬空引用\n\n`waiting` · @default\n\n【做什么】两个方向都查：\n① 孤儿：没有任何祖先节点点名过的文件（含 `references/` 里没被 SKILL.md 提到的、`assets/` 里没人用的）；\n② 悬空：正文点名了但路径不存在的引用（相对路径解析 + 同 pack 技能名解析）。"
+  },
+  {
+   "id": "T-003#B-004",
+   "type": "text",
+   "x": 720,
+   "y": 430,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-003#B-004\n近重复 / 互相抢题的节点\n\n`waiting` · @default\n\n【做什么】同层节点两两比 description 与正文首段（纯 stdlib：difflib / token-shingle Jaccard），\n输出 top-N 相似对 + 相似度，标出「同层且相似度高」的对 —— 这是路由最容易错的形态\n（SkillRouter 在 80K 候选上实测：正文是必需信号，近重复是主"
+  },
+  {
+   "id": "T-003#B-005",
+   "type": "text",
+   "x": 720,
+   "y": 560,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-003#B-005\n成本报告：常驻成本 + 多出的调用数\n\n`waiting` · @default\n\n【做什么】报两组数（Workday 报告的口径：分层披露提升检索质量、轻微增加延迟）：\n① 常驻成本 = 全部 `description` 的字节/估算 token（每个 agent 每次会话都要付的那份）；\n② 索引/激活成本 = `SKILL.md` 总量与「按需读一个文件」多出的一次调用数估算。"
+  },
+  {
+   "id": "T-004#B-001",
+   "type": "text",
+   "x": 40,
+   "y": 430,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-004#B-001\n四类动作的提案器（默认只出提案）\n\n`claimed` · @default\n\n【做什么】读 T-003 的报告，出**可执行的提案**（默认 `--dry-run`，只打印 diff 与影响面，不落盘）：\n- 拆：超过体积上限的节点 → 下沉到 `references/`，原位留一行转指；\n- 分：fanout 超最优点的一层 → 归入类目目录（并给出新路径清单）；\n- 并：同层近重复 → 合并"
+  },
+  {
+   "id": "T-004#B-002",
+   "type": "text",
+   "x": 380,
+   "y": 430,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-004#B-002\n改完自动重跑审计并出前后对照\n\n`waiting` · @default\n\n【做什么】`--apply` 之后自动重跑 T-003 全套，输出「前 → 后」对照表（fanout 分布、超限条数、\n孤儿数、近重复对数、常驻成本）。没有对照表 = 这次优化没有证据。"
+  },
+  {
+   "id": "T-005#B-001",
+   "type": "text",
+   "x": 40,
+   "y": 560,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-005#B-001\n判官输入生成器（候选只有 description）\n\n`claimed` · @default\n\n【做什么】输入 pack + 一份冻结的题面集 → 输出**一个纯文本文件** `judge-input.txt`：\n候选表（每行 `路径 | description 截断窗口`）+ 题面（编号）。任何 agent / 人都能拿它跑判官。\n同时输出 `judge-key.json`（每题的金标：归属节点 + 题型），*"
+  },
+  {
+   "id": "T-005#B-002",
+   "type": "text",
+   "x": 380,
+   "y": 560,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-005#B-002\n打分器：逐题矩阵 + 分组 + 校正随机分\n\n`waiting` · @default\n\n【做什么】吃「判官输出 + 金标」出逐题矩阵，按三类题分组给分；并给**校正随机**分\n（Meta 的 BoR 口径：在该层 fanout 下，比随机选好多少），因为 fanout=30 的一层和 fanout=5 的一层\n的裸成功率不可直接比。"
+  },
+  {
+   "id": "T-005#B-003",
+   "type": "text",
+   "x": 380,
+   "y": 690,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-005#B-003\n在真实 pack 上跑一轮并留档\n\n`waiting` · @default\n\n【做什么】用 `delegate_task` 发独立判官（不共享上下文），跑 AgentSkill-UsingHermes 一轮；\n判官输出落文件（批次摘要会截断长输出，必须落盘）。判官输出是**原件**，事后一个字都不改。"
+  },
+  {
+   "id": "T-006#B-001",
+   "type": "text",
+   "x": 1060,
+   "y": 40,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-006#B-001\n首个 subject：AgentSkill-UsingHermes 完整审计报告\n\n`waiting` · @default\n\n【做什么】对该 pack 出完整报告：文档树 + 每层 fanout + 体积超限 + 孤儿/悬空 + 近重复 top-N +\n成本两组数 + 优化提案。基线（2026-10-11 实测）：`skills/` 第一层 69 个条目（52 个直接是技能 + 17 个类目）、\n全 pack 126 份 `SKILL.md`"
+  },
+  {
+   "id": "T-006#B-002",
+   "type": "text",
+   "x": 1400,
+   "y": 40,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-006#B-002\n独立子代理复核（不许自己验自己）\n\n`waiting` · @default\n\n【做什么】派一个与执行者不同的子代理，只读报告与 pack，按报告里的命令重跑，逐项核对数字；\n不一致的逐条列出。子代理**只用前台命令**（不许起后台进程）。"
+  },
+  {
+   "id": "T-006#B-003",
+   "type": "text",
+   "x": 1060,
+   "y": 170,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-006#B-003\n第二个 pack 交叉验证（防过拟合）\n\n`waiting` · @default\n\n【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，\n证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。"
+  },
+  {
+   "id": "T-007#B-001",
+   "type": "text",
+   "x": 380,
+   "y": 820,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-007#B-001\n提交本仓库：README / docs / plans 一起进版本\n\n`waiting` · @default\n\n【做什么】按决策块 T-001#B-001 的答案建远端（或不建）并提交推送。\n本仓库自身守同一套规矩：`plans/skillweave/` 随仓库提交（`git add plans/`），README 给一行\n`file:///Users/maxim/Repositories/Repo/SkillWeave/pla"
+  },
+  {
+   "id": "T-007#B-002",
+   "type": "text",
+   "x": 380,
+   "y": 950,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-007#B-002\n本仓库自己的分层披露自检\n\n`waiting` · @default\n\n【做什么】本仓库也是 skill pack 的一种形态，给自己留一条自检：\n`SKILL.md` 薄入口 + `references/` 下沉 + 无孤儿文档 + 体积极限，超限 exit 1。"
+  },
+  {
+   "id": "T-007#B-003",
+   "type": "text",
+   "x": 380,
+   "y": 1080,
+   "width": 300,
+   "height": 110,
+   "color": "1",
+   "text": "### T-007#B-003\n交付形态：纯 CLI 仓库，还是同时可安装的 skill\n\n`blocked` · @default\n\n【做什么】按 T-001#B-001 第 2 问的答案落地：\n- 只做 CLI：README 写清 `python3 scripts/weave.py ...` 的用法即可；\n- 同时做 skill：加 `skills/skillweave/SKILL.md`（第一层薄、细节下沉、`name` + `descripti"
+  }
+ ],
+ "edges": [
+  {
+   "id": "e0",
+   "fromNode": "T-001#B-002",
+   "toNode": "T-001#B-003",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e1",
+   "fromNode": "T-002#B-001",
+   "toNode": "T-002#B-002",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e2",
+   "fromNode": "T-002#B-001",
+   "toNode": "T-002#B-003",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e3",
+   "fromNode": "T-002#B-002",
+   "toNode": "T-003#B-001",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e4",
+   "fromNode": "T-002#B-002",
+   "toNode": "T-003#B-002",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e5",
+   "fromNode": "T-002#B-002",
+   "toNode": "T-003#B-003",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e6",
+   "fromNode": "T-002#B-002",
+   "toNode": "T-003#B-004",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e7",
+   "fromNode": "T-002#B-002",
+   "toNode": "T-003#B-005",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e8",
+   "fromNode": "T-004#B-001",
+   "toNode": "T-004#B-002",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e9",
+   "fromNode": "T-005#B-001",
+   "toNode": "T-005#B-002",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e10",
+   "fromNode": "T-005#B-001",
+   "toNode": "T-005#B-003",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e11",
+   "fromNode": "T-003#B-005",
+   "toNode": "T-006#B-001",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e12",
+   "fromNode": "T-004#B-002",
+   "toNode": "T-006#B-001",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e13",
+   "fromNode": "T-006#B-001",
+   "toNode": "T-006#B-002",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e14",
+   "fromNode": "T-003#B-001",
+   "toNode": "T-006#B-003",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e15",
+   "fromNode": "T-001#B-001",
+   "toNode": "T-007#B-001",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e16",
+   "fromNode": "T-002#B-001",
+   "toNode": "T-007#B-002",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e17",
+   "fromNode": "T-001#B-001",
+   "toNode": "T-007#B-003",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  }
+ ]
+}

@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PLAN</title>
+<style>
+  /* loomerto 的**共用主题**：只读看板（plan.html）与可编辑画布（canvas.html）都注入这一段。
+   颜色 / 字体 / 状态色 / 状态胶囊 / 面板 / 按钮 / 分隔线 / 进度条只有这一份来源 ——
+   改这里，两个页面一起变；页面里只留各自**布局**规则。
+   注入方式：页面里放一个 CSS 注释标记，render.py（plan.html）与 serve.py（canvas.html）
+   在生成 / 送出时把那个标记换成这份文本（两页因此仍然是自包含的单文件）。 */
+:root{
+  --bg:#f7f8fa; --panel:#fff; --ink:#1f2328; --dim:#6b7280; --line:#e3e6ea;
+  /* 状态色：图例顺序 = 一个块的一生（待批准 → 等前置 → 待认领 → 已认领 → 进行中 → 待评审 → 已完成） */
+  --blocked:#e03131; --waiting:#98a2b3; --ready:#f08c00; --claimed:#0c8599;
+  --running:#1c7ed6; --review:#7048e8; --done:#2f9e44;
+  /* 「待排」与「等前置」同色：都还没轮到人动手；「已取消」也同色，靠虚线/空心方框区分 */
+  --pending:#98a2b3; --cancelled:#98a2b3;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 14px rgba(16,24,40,.06);
+  --font:-apple-system,"SF Pro SC","PingFang SC","Helvetica Neue",Segoe UI,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#14161a; --panel:#1c1f24; --ink:#e6e8eb; --dim:#9aa4b2; --line:#2b3038;
+         --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35); }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--font)}
+a{color:var(--running)}
+code,kbd,pre{font-family:var(--mono)}
+h1{margin:0 0 4px;font-size:20px;letter-spacing:.2px}
+.goal{margin:0;color:var(--dim);max-width:70ch}
+.meta{margin-top:10px;display:flex;flex-wrap:wrap;gap:16px;color:var(--dim);font-size:12.5px}
+.meta code{background:var(--bg);padding:2px 6px;border-radius:5px;border:1px solid var(--line)}
+.kv{margin:8px 0;color:var(--dim)}
+
+/* 状态胶囊：一处定义，两页共用（颜色一律走上面的 token） */
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:99px;
+      font-size:12px;font-weight:600;color:#fff;background:var(--waiting);white-space:nowrap}
+.pill.done{background:var(--done)} .pill.running{background:var(--running)}
+.pill.claimed{background:var(--claimed)} .pill.review{background:var(--review)}
+.pill.ready{background:var(--ready)} .pill.waiting{background:var(--waiting)}
+.pill.pending{background:var(--pending)} .pill.blocked{background:var(--blocked)}
+.pill.cancelled{background:var(--cancelled)}
+
+/* 平面与按钮：卡片 / 泳道 / 面板 / 工具条在两页是同一套观感 */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.panel > h2{margin:0;padding:12px 16px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+            color:var(--dim);border-bottom:1px solid var(--line)}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--dim);border-radius:6px;
+     padding:3px 10px;font-size:12px;line-height:1.7;cursor:pointer;font-family:inherit}
+.btn:hover{color:var(--ink);border-color:var(--dim)}
+.btn.primary{background:var(--running);border-color:var(--running);color:#fff}
+.btn.primary:hover{background:#1864ab;border-color:#1864ab;color:#fff}
+.btn.ghost{border-style:dashed}
+
+/* 拖动分隔线：1px 细线，hover / 拖动时变 3px 并换成 --running 色（两页同一套手感） */
+#splitter{position:fixed;top:0;bottom:0;width:9px;z-index:61;cursor:col-resize;background:transparent}
+#splitter::after{content:"";position:absolute;top:0;bottom:0;left:4px;width:1px;background:var(--line)}
+#splitter:hover::after,#splitter.dragging::after,#splitter:focus-visible::after{
+          left:3px;width:3px;background:var(--running)}
+body.resizing{user-select:none;cursor:col-resize}
+
+/* 进度条与图例 */
+.track{margin-top:12px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.track > i{display:block;height:100%;border-radius:99px;transition:width .4s;
+           background:linear-gradient(90deg,var(--running),var(--done))}
+.legend{display:flex;flex-wrap:wrap;gap:12px;padding:10px 16px;color:var(--dim);font-size:12px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.legend .zebra{border:1px dashed var(--dim);background:transparent}
+
+  /* ↓ 下面只放这一页的**布局**规则：颜色 / 字体 / 状态胶囊(.pill) / 按钮(.btn) / 分隔线(#splitter) /
+     进度条(.track) / 图例(.legend) 都来自上面的共用主题 theme.css —— 改样式去改那里，两个页面一起变。 */
+  :root{ --detail-w:clamp(280px,26vw,420px); }   /* 详情栏宽度：拖动分隔线后由 JS 写成固定 px */
+  header{padding:20px 24px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+  .wrap{display:block}
+  section.card{margin:16px 24px;background:var(--panel);border:1px solid var(--line);
+               border-radius:12px;box-shadow:var(--shadow)}
+  section.card > h2{margin:0;padding:12px 16px;font-size:13px;letter-spacing:.08em;
+                    text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line)}
+  .nodes{padding:16px}
+  .nowlist{display:flex;flex-wrap:wrap;gap:10px;padding:14px 16px}
+  .nowcard{border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-width:220px;
+           background:var(--bg);cursor:pointer;transition:border-color .12s,transform .12s}
+  .nowcard:hover{border-color:var(--running);transform:translateY(-1px)}
+  .nowcard.sel{outline:2px solid var(--running)}
+  .nowcard b{display:block;font-size:13px}
+  .nowcard .sub{color:var(--dim);font-size:12px}
+  #graph{position:relative;min-height:200px;overflow:auto;padding:8px 8px 8px 0}
+  #edges{position:absolute;inset:0;pointer-events:none}
+  .lane{position:absolute;font-size:12px;color:var(--dim);display:flex;align-items:center;
+        gap:8px;padding-bottom:2px;border-bottom:1px dashed var(--line)}
+  .lane i{width:9px;height:9px;border-radius:3px;display:inline-block;flex:none}
+  .lane b{color:var(--ink);font-weight:600}
+  .lane .lz{margin-left:auto;padding-right:4px}
+  .node{position:absolute;width:216px;height:88px;border-radius:10px;background:var(--panel);
+        border:1px solid var(--line);border-left:4px solid var(--waiting);padding:8px 10px;
+        cursor:pointer;box-shadow:var(--shadow);transition:transform .12s;overflow:hidden}
+        /* 宽度由 graph() 按 #graph 可用宽度动态写进行内样式；这里的 216px 只是没有 JS 时的兜底 */
+  .node:hover{transform:translateY(-2px)}
+  .node.sel{outline:2px solid var(--running)}
+  .node .id{font-size:11px;color:var(--dim);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .node .ttl{font-weight:600;margin-top:3px;line-height:1.3;height:34px;overflow:hidden;
+             display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .node .own{font-size:11.5px;color:var(--dim);margin-top:4px;display:flex;
+             justify-content:space-between;gap:6px}
+  .node.done{opacity:.6}
+  .node.cancelled{border-left-style:dashed}
+  /* 详情栏：常驻右侧、占满整页高度（不是点开才出现 —— 页面布局因此一次都不跳）；body 常驻让出
+     这段宽度，所以画布不会被盖住。宽度由 #splitter 这条分隔线拖拽控制。 */
+  body{padding-right:var(--detail-w)}
+  #detailpanel{position:fixed;right:0;top:0;bottom:0;width:var(--detail-w);z-index:60;
+               display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--line);
+               box-shadow:-10px 0 30px rgba(16,24,40,.10);overflow:hidden}
+  #detailbar{display:flex;align-items:center;justify-content:space-between;gap:8px;
+             padding:6px 8px 6px 12px;border-bottom:1px solid var(--line);background:var(--bg);
+             user-select:none}
+  #splitter{right:var(--detail-w)}     /* 其余（宽度/细线/hover）在共用主题里 */
+  #detailbar b{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+  #detailbar button{border:1px solid var(--line);background:var(--panel);color:var(--dim);
+                    border-radius:6px;padding:2px 9px;font-size:11.5px;line-height:1.6;cursor:pointer;
+                    font-family:inherit}
+  #detailbar button:hover{color:var(--ink);border-color:var(--dim)}
+  #detail{padding:14px 16px;font-size:13px;overflow:auto;flex:1 1 auto;min-height:0}
+  @media (max-width:900px){
+    /* 窄屏别让详情栏吃掉画布：默认栏宽收窄（拖过分隔线的话以拖出来的宽度为准） */
+    :root{--detail-w:clamp(240px,42vw,340px)}
+  }
+  #detail h3{margin:0 0 6px;font-size:15px}
+  #detail .kv{margin:8px 0;color:var(--dim)}
+  #detail ul{margin:6px 0 6px 18px;padding:0}
+  #detail p.doc{margin:8px 0;line-height:1.62}
+  #detail pre.cb{margin:8px 0;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;
+    overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.5;
+    white-space:pre;color:var(--ink)}
+  #detail .run{border-left:2px solid var(--line);padding:2px 0 2px 8px;margin:6px 0;color:var(--dim);font-size:12px}
+  .journal{padding:6px 16px 16px;font-size:12.5px;max-height:280px;overflow:auto}
+  .journal div{padding:3px 0;border-bottom:1px dashed var(--line);color:var(--dim)}
+  .journal b{color:var(--ink);font-weight:600}
+  .toolbar{padding:8px 16px;display:flex;gap:14px;align-items:center;color:var(--dim);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">—</h1>
+  <p class="goal" id="goal"></p>
+  <div class="meta">
+    <span id="prog"></span>
+    <span id="status"></span>
+    <span>更新 <span id="updated"></span></span>
+    <span id="who"></span>
+    <span><code id="slug"></code></span>
+  </div>
+  <div class="track"><i id="fill" style="width:0"></i></div>
+</header>
+
+<div class="wrap">
+  <div>
+    <section class="card"><h2>现在该谁动</h2><div class="nowlist" id="nownext"></div></section>
+    <section class="card">
+      <h2>任务图（块 = 文档，边 = 依赖）</h2>
+      <div class="toolbar">
+        <label><input type="checkbox" id="hidedone"> 隐藏已完成</label>
+        <span>点节点或卡片看详情（详情常驻右侧，拖分隔线可调宽度 · Esc 清空）</span>
+      </div>
+      <div id="graph"><svg id="edges"></svg></div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <section class="card"><h2>日志</h2><div class="journal" id="journal"></div></section>
+  </div>
+</div>
+
+<div id="splitter" tabindex="0" role="separator" aria-orientation="vertical"
+     aria-label="拖动调整详情栏宽度" title="拖动调整详情栏宽度（方向键微调）"></div>
+<aside id="detailpanel">
+  <div id="detailbar">
+    <b>详情</b>
+    <button id="detailclear" title="清空详情内容（Esc）—— 只清内容，边栏常驻不动">清空</button>
+  </div>
+  <div id="detail"><p class="goal">点任务图里的节点，或「现在该谁动」里的卡片。</p></div>
+</aside>
+
+<script>
+const PLAN = {"schema": "plan-weave/plan@1", "slug": "skillweave", "title": "SkillWeave · skill pack 文档树与分层披露", "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。", "status": "active", "created_at": "2026-10-11T13:42:06+08:00", "updated_at": "2026-10-11T13:42:07+08:00", "cadence": {"digest_hours": 6, "quiet_hours": "23:00-08:00"}, "participants": [{"id": "you", "kind": "human", "label": "本人", "channel": ""}], "tasks": [{"id": "T-001", "title": "契约与形状：先把「文档树」与「层」定义死", "owner": "default", "status": "pending", "deps": [], "blocks": [{"id": "T-001#B-001", "title": "决策：本仓库的落点与远端", "kind": "decision", "status": "blocked", "owner": "you", "doc": "【问题】本仓库已在本地建成：`~/Repositories/Repo/SkillWeave`（`git init` 完成，**没有任何远端**，\n工作区只有 README.md / docs/prior-art.md / plans/）。要不要建 GitHub 远端，建的话叫什么、公开还是私有。\n\n1. 远端怎么定？\n   - A：`flmaximwang/SkillWeave`（公开）—— 与 Dream / Loomerto 同级，别的 agent 可直接 `git clone` 用。\n   - B：同名但私有 —— 先自己用，等形状稳了再公开。\n   - C：不建远端，只在本地跑（那就没有备份，也没有跨机可用性）。\n2. 本仓库要不要同时做成「可被任意 agent 安装的 skill」（`skills/skillweave/SKILL.md`），\n   还是纯 CLI 工具仓库？（见 T-007#B-003，两问可一起答。）\n\n【解锁】答 1 → 解锁 T-007#B-001（README/提交/推送）；答 2 → 解锁 T-007#B-003。\n\n【已实测的事实】本地仓库存在、`git init` 完成、尚无 commit；本机已有 `git@github.com:flmaximwang/*` 的 SSH 凭据\n（Dream / Loomerto 都在用）。", "input": "", "output": "", "command": "", "done_when": ["答案以原话落进本块的 run；解锁的块被改成对应状态（推送 / 不推送）。"], "artifacts": [], "deps": [], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-001#B-002", "title": "docs/contract.md：文档树节点 schema 与「层」的定义", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】写死两件事，之后所有脚本与报告都按它读：\n\n① 节点 schema：每个节点带 `path` / `kind`（`pack|category|skill|section|reference|script|asset`）/\n`bytes` / `est_tokens` / `summary` / `summary_source`（frontmatter description | 首段首句 | 空）/\n`refs`（该节点正文里真实出现的引用目标）。\n② 「层」的定义：从 pack 入口到某个需求，**路上遇到的每个 fanout>1 的节点就是一层**；\n层的度量 = 该节点的选项数（fanout）+ 该层被选中后的成功率（T-005 给）。\n\n【命令】`python3 scripts/weave.py tree <pack 目录> --out <dir>` 产出的 `tree.json` 就是本 schema 的实例。\n\n【口径】summary 只允许来自文件自身内容，禁止手写；refs 只记正文里真实出现的路径/技能名（记行号）。", "input": "", "output": "", "command": "", "done_when": ["`docs/contract.md` 存在，含：schema 每个字段的来源（frontmatter / 正文 / 文件系统）、\n一份 tree.json 的最小示例（≥3 个节点、含一条引用边）、以及「层」的定义原文；\n用 `python3 -c` 读示例 JSON 能过 `json.loads`。"], "artifacts": [], "deps": [], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-001#B-003", "title": "caps 表：上限常量与它们的出处", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】把上限写成**一张常量表**（供 T-003 逐条判），每条都必须引 prior-art 的出处与口径：\n- 节点体积：`SKILL.md` 建议 < 5000 token（另报字节）；`description` ≤ 1024 字符（规范硬约束）。\n- fanout：**不设死值**；报分布 + 该层的校正随机成功率（Meta BoR 口径），阈值只在报告里给「实测最优点」。\n- 孤儿：任何文件必须被至少一个祖先点名（0 容忍）。\n- depth-to-needle：从入口到最深处文件的跳数，超 N 需给转指链。\n每条常量落到 `docs/contract.md` 的一张表里，附来源 URL 与口径（榜单规模 / 指标名）。", "input": "", "output": "", "command": "", "done_when": ["`docs/contract.md` 里出现该表；每一行的「来源」列都能点到 `docs/prior-art.md` 的对应小节；\n表中不含没有任何出处的自创数字。"], "artifacts": [], "deps": ["T-001#B-002"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}], "note": "", "exec": {}}, {"id": "T-002", "title": "构建 skill 文档树", "owner": "default", "status": "pending", "deps": [], "blocks": [{"id": "T-002#B-001", "title": "scripts/weave.py tree：把 pack 解析成节点图", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】纯 stdlib（无第三方依赖）的 `tree` 子命令：走一个 pack 目录 → 出 `tree.json` + `TREE.md`。\n- 解析 frontmatter：`name` / `description`（要为 `description: >-` 这类折叠块兜底，不能只用正则抓首行）。\n- 节点：pack → 类目目录 → 技能目录（有 SKILL.md）→ 正文标题 → 被点名的文件。\n- 边：`parent` / `ref`（正文里出现的相对路径）/ `mention`（正文里出现的同 pack 技能名）。\n- 跳数：从 pack 入口算每个节点的最短跳数（BFS，供 T-003 用）。\n\n【命令】\n```\npython3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --out /tmp/sw-usinghermes\n```", "input": "", "output": "", "command": "", "done_when": ["在 AgentSkill-UsingHermes 上跑出 `tree.json`：`json.loads` 能读；节点数 ≥ 该 pack 的 SKILL.md 数；\n随机抽 5 条 `ref` 边，逐条能在正文里找到那一行（行号对得上）；命令与输出贴进本块的 run。"], "artifacts": [], "deps": [], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-002#B-002", "title": "可重建、可 diff", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】同一 pack 连跑两次，产物逐字节相同（排序稳定、无时间戳）；\n改动 pack 里一个文件后，diff 只出现在相关节点及其祖先的 `bytes`/`est_tokens` 上。", "input": "", "output": "", "command": "", "done_when": ["① 两次运行的 `sha256` 相同（贴两条 sha）。② 改一个文件的 description 后重跑，`diff tree.json`\n只出现预期字段（贴 diff 原文）。"], "artifacts": [], "deps": ["T-002#B-001"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-002#B-003", "title": "节点摘要的来源可追溯", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】每个节点的 `summary` 必须带 `summary_source`（如 `SKILL.md:3 frontmatter.description`），\n空的要显式写 `null`（不许编）。", "input": "", "output": "", "command": "", "done_when": ["抽 3 个节点（1 个有 frontmatter、1 个只有正文、1 个空文件）打印 `path / summary / summary_source`，\n三条都能在源文件里定位到那一行。"], "artifacts": [], "deps": ["T-002#B-001"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}], "note": "", "exec": {}}, {"id": "T-003", "title": "分层披露审计：把每一层量出来", "owner": "default", "status": "pending", "deps": [], "blocks": [{"id": "T-003#B-001", "title": "每层的选择数（fanout 分布 + 选项清单）", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】对每个 fanout>1 的节点：报该层的选项数与选项清单；全局给 fanout 分布直方图，\n并标出超出该层实测最优点的层（最优点来自 T-005，未跑时留空不猜）。\n\n【命令】`python3 scripts/weave.py audit <pack> --section fanout`", "input": "", "output": "", "command": "", "done_when": ["在 AgentSkill-UsingHermes 上，`skills/` 这一层报到实测的条目数与分类目录数、以及每个类目下的\n技能数（贴命令输出）；直方图数据落 `<out>/fanout.json`。"], "artifacts": [], "deps": ["T-002#B-002"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-003#B-002", "title": "节点体积与规范建议值对照", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】逐节点报 `bytes` / `est_tokens`，对照 `SKILL.md` < 5000 token 与 `description` ≤ 1024 字符；\n超限的按超出比例排序输出清单。", "input": "", "output": "", "command": "", "done_when": ["贴出超限清单（至少「0 条」也要有一行实测：扫了 N 个 SKILL.md，超限 0 条）。"], "artifacts": [], "deps": ["T-002#B-002"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-003#B-003", "title": "孤儿文件与悬空引用", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】两个方向都查：\n① 孤儿：没有任何祖先节点点名过的文件（含 `references/` 里没被 SKILL.md 提到的、`assets/` 里没人用的）；\n② 悬空：正文点名了但路径不存在的引用（相对路径解析 + 同 pack 技能名解析）。", "input": "", "output": "", "command": "", "done_when": ["两类各给一份清单文件（可为空，但要有文件）；在 AgentSkill-UsingHermes 上给出真实条数。"], "artifacts": [], "deps": ["T-002#B-002"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-003#B-004", "title": "近重复 / 互相抢题的节点", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】同层节点两两比 description 与正文首段（纯 stdlib：difflib / token-shingle Jaccard），\n输出 top-N 相似对 + 相似度，标出「同层且相似度高」的对 —— 这是路由最容易错的形态\n（SkillRouter 在 80K 候选上实测：正文是必需信号，近重复是主因）。\n\n【命令】`python3 scripts/weave.py audit <pack> --section dup --top 20`", "input": "", "output": "", "command": "", "done_when": ["在 AgentSkill-UsingHermes 上给出 top-20 相似对清单（含相似度与两侧路径）；\n至少一对要人工抽验：把两侧 description 原文贴进 run，说明为什么算相似。"], "artifacts": [], "deps": ["T-002#B-002"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-003#B-005", "title": "成本报告：常驻成本 + 多出的调用数", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】报两组数（Workday 报告的口径：分层披露提升检索质量、轻微增加延迟）：\n① 常驻成本 = 全部 `description` 的字节/估算 token（每个 agent 每次会话都要付的那份）；\n② 索引/激活成本 = `SKILL.md` 总量与「按需读一个文件」多出的一次调用数估算。", "input": "", "output": "", "command": "", "done_when": ["在 AgentSkill-UsingHermes 上给出两组实测数字与算法说明（估算 token 的规则要写出来）。"], "artifacts": [], "deps": ["T-002#B-002"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}], "note": "", "exec": {}}, {"id": "T-004", "title": "优化：按度量的结果改结构", "owner": "default", "status": "pending", "deps": [], "blocks": [{"id": "T-004#B-001", "title": "四类动作的提案器（默认只出提案）", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】读 T-003 的报告，出**可执行的提案**（默认 `--dry-run`，只打印 diff 与影响面，不落盘）：\n- 拆：超过体积上限的节点 → 下沉到 `references/`，原位留一行转指；\n- 分：fanout 超最优点的一层 → 归入类目目录（并给出新路径清单）；\n- 并：同层近重复 → 合并方案（保留哪个、折进哪个、正文哪几段是重复的）；\n- 改写：description 缺「何时用」或缺触发词 → 给出改写稿（改完必须能重跑 T-005 证明更好）。\n`--apply` 才落盘，且落盘前对每个被改文件留 `.orig` 备份。", "input": "", "output": "", "command": "", "done_when": ["在 AgentSkill-UsingHermes 上跑 `--dry-run`：输出的每条提案带 `文件:行` 与 diff 形状；\n`--apply` 在一个**临时复制的 pack**上真跑一次，`git diff --stat` 与提案条数一致（贴输出）。"], "artifacts": [], "deps": [], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-004#B-002", "title": "改完自动重跑审计并出前后对照", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】`--apply` 之后自动重跑 T-003 全套，输出「前 → 后」对照表（fanout 分布、超限条数、\n孤儿数、近重复对数、常驻成本）。没有对照表 = 这次优化没有证据。", "input": "", "output": "", "command": "", "done_when": ["贴一份真实的前后对照表（在临时 pack 上做），每个数字都来自命令输出。"], "artifacts": [], "deps": ["T-004#B-001"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}], "note": "", "exec": {}}, {"id": "T-005", "title": "路由评测：框架无关、可校正随机", "owner": "default", "status": "pending", "deps": [], "blocks": [{"id": "T-005#B-001", "title": "判官输入生成器（候选只有 description）", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】输入 pack + 一份冻结的题面集 → 输出**一个纯文本文件** `judge-input.txt`：\n候选表（每行 `路径 | description 截断窗口`）+ 题面（编号）。任何 agent / 人都能拿它跑判官。\n同时输出 `judge-key.json`（每题的金标：归属节点 + 题型），**不进判官输入**。\n三类题：① 大池检索（该选谁）② 近邻混淆（两个相似节点里选对的）③ 诱饵（不该选任何一个）。", "input": "", "output": "", "command": "", "done_when": ["生成器在 AgentSkill-UsingHermes 上跑出两个文件；`judge-input.txt` 里不含金标字段\n（`grep` 验证）；候选条数 == 该 pack 节点数（实测数字）。"], "artifacts": [], "deps": [], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-005#B-002", "title": "打分器：逐题矩阵 + 分组 + 校正随机分", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】吃「判官输出 + 金标」出逐题矩阵，按三类题分组给分；并给**校正随机**分\n（Meta 的 BoR 口径：在该层 fanout 下，比随机选好多少），因为 fanout=30 的一层和 fanout=5 的一层\n的裸成功率不可直接比。", "input": "", "output": "", "command": "", "done_when": ["用 T-005#B-003 的真实判官输出打一遍分：逐题矩阵 + 三组分数 + 校正随机分都在报告里；\n口径（随机基线怎么算）写清。"], "artifacts": [], "deps": ["T-005#B-001"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}, {"id": "T-005#B-003", "title": "在真实 pack 上跑一轮并留档", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】用 `delegate_task` 发独立判官（不共享上下文），跑 AgentSkill-UsingHermes 一轮；\n判官输出落文件（批次摘要会截断长输出，必须落盘）。判官输出是**原件**，事后一个字都不改。", "input": "", "output": "", "command": "", "done_when": ["`<批次目录>/judge-*.txt` 存在且行数 == 题面数；打分结果落 `round-1-score.txt`；三处路径贴进 run。"], "artifacts": [], "deps": ["T-005#B-001"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:06+08:00", "runs": []}], "note": "", "exec": {}}, {"id": "T-006", "title": "在真实 pack 上验收", "owner": "default", "status": "pending", "deps": [], "blocks": [{"id": "T-006#B-001", "title": "首个 subject：AgentSkill-UsingHermes 完整审计报告", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】对该 pack 出完整报告：文档树 + 每层 fanout + 体积超限 + 孤儿/悬空 + 近重复 top-N +\n成本两组数 + 优化提案。基线（2026-10-11 实测）：`skills/` 第一层 69 个条目（52 个直接是技能 + 17 个类目）、\n全 pack 126 份 `SKILL.md`。", "input": "", "output": "", "command": "", "done_when": ["报告文件落 `<批次目录>/report-usinghermes.md`，每个数字带产生它的命令；报告里的命令能被别人重跑复现。"], "artifacts": [], "deps": ["T-003#B-005", "T-004#B-002"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:07+08:00", "runs": []}, {"id": "T-006#B-002", "title": "独立子代理复核（不许自己验自己）", "kind": "review", "status": "pending", "owner": "default", "doc": "【做什么】派一个与执行者不同的子代理，只读报告与 pack，按报告里的命令重跑，逐项核对数字；\n不一致的逐条列出。子代理**只用前台命令**（不许起后台进程）。", "input": "", "output": "", "command": "", "done_when": ["复核输出落文件，含「逐项 ✓/✗ 表 + 不一致明细」；有 ✗ 就回到对应块整改，不许改判据。"], "artifacts": [], "deps": [], "review_of": "T-006#B-001", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:07+08:00", "runs": []}, {"id": "T-006#B-003", "title": "第二个 pack 交叉验证（防过拟合）", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，\n证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。", "input": "", "output": "", "command": "", "done_when": ["同一套命令在第二个 pack 上跑通，报告落 `<批次目录>/report-<pack>.md`；\n两 pack 的 fanout 分布形状差异写进结论。"], "artifacts": [], "deps": ["T-003#B-001"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:07+08:00", "runs": []}], "note": "", "exec": {}}, {"id": "T-007", "title": "仓库与交付", "owner": "default", "status": "pending", "deps": [], "blocks": [{"id": "T-007#B-001", "title": "提交本仓库：README / docs / plans 一起进版本", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】按决策块 T-001#B-001 的答案建远端（或不建）并提交推送。\n本仓库自身守同一套规矩：`plans/skillweave/` 随仓库提交（`git add plans/`），README 给一行\n`file:///Users/maxim/Repositories/Repo/SkillWeave/plans/skillweave/plan.html` 与几条只读命令。", "input": "", "output": "", "command": "", "done_when": ["`git show --stat` 里能看到 `plans/skillweave/plan.json` 与 `plan.html`；若已建远端，\n`git log origin/main -1` 的 sha 与本地 HEAD 相同。"], "artifacts": [], "deps": ["T-001#B-001"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:07+08:00", "runs": []}, {"id": "T-007#B-002", "title": "本仓库自己的分层披露自检", "kind": "impl", "status": "pending", "owner": "default", "doc": "【做什么】本仓库也是 skill pack 的一种形态，给自己留一条自检：\n`SKILL.md` 薄入口 + `references/` 下沉 + 无孤儿文档 + 体积极限，超限 exit 1。", "input": "", "output": "", "command": "", "done_when": ["`python3 scripts/selfcheck.py`（或等价命令）在仓库根跑出 exit 0，并把输出贴进 run。"], "artifacts": [], "deps": ["T-002#B-001"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:07+08:00", "runs": []}, {"id": "T-007#B-003", "title": "交付形态：纯 CLI 仓库，还是同时可安装的 skill", "kind": "impl", "status": "blocked", "owner": "default", "doc": "【做什么】按 T-001#B-001 第 2 问的答案落地：\n- 只做 CLI：README 写清 `python3 scripts/weave.py ...` 的用法即可；\n- 同时做 skill：加 `skills/skillweave/SKILL.md`（第一层薄、细节下沉、`name` + `description` 合规），\n  任何 agent 拿到本仓库都能按 agentskills.io 规范识别它。", "input": "", "output": "", "command": "", "done_when": ["按答案落地后，`ls` 与 `head -20` 的输出贴进 run；若做了 skill，`SKILL.md` 的 description ≤1024 字符\n且含「做什么 + 何时用」。"], "artifacts": [], "deps": ["T-001#B-001"], "review_of": "", "feedback": "", "exec": {}, "status_since": "2026-10-11T13:42:07+08:00", "runs": []}], "note": "", "exec": {}}], "log": [{"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "created", "text": "建立 plan：SkillWeave · skill pack 文档树与分层披露"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "task", "text": "新增任务 T-001「契约与形状：先把「文档树」与「层」定义死」", "ref": "T-001"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-001#B-001「决策：本仓库的落点与远端」", "ref": "T-001#B-001"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-001#B-002「docs/contract.md：文档树节点 schema 与「层」的定义」", "ref": "T-001#B-002"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-001#B-003「caps 表：上限常量与它们的出处」", "ref": "T-001#B-003"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "task", "text": "新增任务 T-002「构建 skill 文档树」", "ref": "T-002"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-002#B-001「scripts/weave.py tree：把 pack 解析成节点图」", "ref": "T-002#B-001"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-002#B-002「可重建、可 diff」", "ref": "T-002#B-002"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-002#B-003「节点摘要的来源可追溯」", "ref": "T-002#B-003"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "task", "text": "新增任务 T-003「分层披露审计：把每一层量出来」", "ref": "T-003"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-003#B-001「每层的选择数（fanout 分布 + 选项清单）」", "ref": "T-003#B-001"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-003#B-002「节点体积与规范建议值对照」", "ref": "T-003#B-002"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-003#B-003「孤儿文件与悬空引用」", "ref": "T-003#B-003"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-003#B-004「近重复 / 互相抢题的节点」", "ref": "T-003#B-004"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-003#B-005「成本报告：常驻成本 + 多出的调用数」", "ref": "T-003#B-005"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "task", "text": "新增任务 T-004「优化：按度量的结果改结构」", "ref": "T-004"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-004#B-001「四类动作的提案器（默认只出提案）」", "ref": "T-004#B-001"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-004#B-002「改完自动重跑审计并出前后对照」", "ref": "T-004#B-002"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "task", "text": "新增任务 T-005「路由评测：框架无关、可校正随机」", "ref": "T-005"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-005#B-001「判官输入生成器（候选只有 description）」", "ref": "T-005#B-001"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-005#B-002「打分器：逐题矩阵 + 分组 + 校正随机分」", "ref": "T-005#B-002"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-005#B-003「在真实 pack 上跑一轮并留档」", "ref": "T-005#B-003"}, {"at": "2026-10-11T13:42:06+08:00", "actor": "agent", "kind": "task", "text": "新增任务 T-006「在真实 pack 上验收」", "ref": "T-006"}, {"at": "2026-10-11T13:42:07+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-006#B-001「首个 subject：AgentSkill-UsingHermes 完整审计报告」", "ref": "T-006#B-001"}, {"at": "2026-10-11T13:42:07+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-006#B-002「独立子代理复核（不许自己验自己）」", "ref": "T-006#B-002"}, {"at": "2026-10-11T13:42:07+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-006#B-003「第二个 pack 交叉验证（防过拟合）」", "ref": "T-006#B-003"}, {"at": "2026-10-11T13:42:07+08:00", "actor": "agent", "kind": "task", "text": "新增任务 T-007「仓库与交付」", "ref": "T-007"}, {"at": "2026-10-11T13:42:07+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-007#B-001「提交本仓库：README / docs / plans 一起进版本」", "ref": "T-007#B-001"}, {"at": "2026-10-11T13:42:07+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-007#B-002「本仓库自己的分层披露自检」", "ref": "T-007#B-002"}, {"at": "2026-10-11T13:42:07+08:00", "actor": "agent", "kind": "block", "text": "新增块 T-007#B-003「交付形态：纯 CLI 仓库，还是同时可安装的 skill」", "ref": "T-007#B-003"}], "rev": "f9aa72df73d5"};
+// 视图渲染失败时把原因显示出来，而不是留一片空白
+function boom(where, e){
+  const el = document.getElementById('graph') || document.body;
+  el.insertAdjacentHTML('afterbegin',
+    `<pre style="color:var(--blocked);white-space:pre-wrap;padding:8px">渲染失败 @${where}: ${e && (e.stack||e.message||e)}</pre>`);
+  console.error(where, e);
+}
+const view = (name, fn) => { try { fn(); } catch (e) { boom(name, e); } };
+// 图例顺序 = 一个块要走的流程：待批准(要人点头) → 等前置 → 待认领 → 已认领 → 进行中 → 待评审 → 已完成，旁支（已取消）放最后
+/* 状态色**只从共用主题取**（theme.css 里的 --blocked / --running / …）：
+   这里再写一遍十六进制，两个页面迟早各长一套颜色。键序 = 图例顺序 = 一个块的一生。 */
+const C = {blocked:'var(--blocked)',waiting:'var(--waiting)',ready:'var(--ready)',claimed:'var(--claimed)',
+           running:'var(--running)',review:'var(--review)',done:'var(--done)',cancelled:'var(--cancelled)'};
+const ZH = {blocked:'待批准',done:'已完成',running:'进行中',claimed:'已认领',
+            review:'待评审',ready:'待认领',waiting:'等前置',pending:'待排',
+            cancelled:'已取消'};
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* 块文档：``` 围起来的分成等宽 <pre>（保留空格，能画目录树/命令块），其余仍按 \n 换行 */
+const docHtml = d => String(d??'').split('```')
+  .map((s,i) => i%2
+     ? `<pre class="cb">${esc(s.replace(/^\n/,'').replace(/\n$/,''))}</pre>`
+     : (s.trim() ? `<p class="doc">${esc(s.replace(/^\n/,'').replace(/\n$/,'')).replace(/\n/g,'<br>')}</p>` : ''))
+  .join('');
+
+let BLOCKS = [], TASKS = new Map();
+PLAN.tasks.forEach(t => { TASKS.set(t.id, t); t.blocks.forEach(b => BLOCKS.push(b)); });
+const byId = id => BLOCKS.find(b => b.id === id);
+const taskOf = b => TASKS.get(b.id.split('#')[0]);
+// 返工次数 = 被打回几次。打回 = 从「待评审」走出去、且不是通过（review → claimed/running/blocked）。
+// 块本身没变、owner 也没变，所以它不是新节点：状态上就是回到「已认领」再重走一遍。
+// （老的 plan.json 里可能还留着 to === 'needs_changes' 的 run，一并算。）
+const reworkCount = b => (b.runs || []).filter(r =>
+  r.to === 'needs_changes' || (r.from === 'review' && r.to !== 'done')).length;
+
+// 块的实际前置 = 自身 deps ∪ 所属任务的任务级 deps 里的每一个块（与 plan.py 的 block_deps 一致）
+function depBlocks(b){
+  const out = new Set(b.deps || []);
+  if (b.review_of) out.add(b.review_of);
+  const t = taskOf(b);
+  ((t && t.deps) || []).forEach(tid => {
+    const dt = TASKS.get(tid); if (!dt) return;
+    dt.blocks.forEach(x => { if (x.status !== 'cancelled') out.add(x.id); });
+  });
+  return [...out].filter(id => byId(id));
+}
+function eff(b){
+  if (b.status !== 'pending') return b.status;
+  for (const d of depBlocks(b)){
+    const db = byId(d);
+    if (!db || db.status !== 'done') return 'waiting';
+  }
+  // 待认领 = 依赖就绪 **且没人接**；有 owner 的块是「已认领」（有人接了、还没开干）
+  return b.owner ? 'claimed' : 'ready';
+}
+// 画边用的前置：显式 deps + review_of + 任务级交接（只从本任务首块引到前置任务的收尾块）
+function edgeDeps(b){
+  const out = new Set(b.deps || []);
+  if (b.review_of) out.add(b.review_of);
+  const t = taskOf(b);
+  if (t){
+    const live = t.blocks.filter(x => x.status !== 'cancelled');
+    if (live.length && live[0].id === b.id){
+      (t.deps || []).forEach(tid => {
+        const dt = TASKS.get(tid); if (!dt) return;
+        const dl = dt.blocks.filter(x => x.status !== 'cancelled');
+        if (dl.length) out.add(dl[dl.length - 1].id);
+      });
+    }
+  }
+  return [...out].filter(id => byId(id));
+}
+function depth(visible){
+  // 只在"可见子图"里算深度：被隐藏（已完成）的前置当作已折叠，否则它们会把可见节点推到屏幕外
+  const D = {}, seen = new Set();
+  const go = id => {
+    if (id in D) return D[id];
+    const b = byId(id); if (!b || seen.has(id)) return 0;
+    seen.add(id);
+    let d = 0;
+    for (const dep of depBlocks(b)) if (!visible || visible.has(dep)) d = Math.max(d, go(dep)+1);
+    seen.delete(id);
+    return D[id] = d;
+  };
+  BLOCKS.forEach(b => go(b.id));
+  return D;
+}
+
+function header(){
+  const live = BLOCKS.filter(b => b.status !== 'cancelled');
+  const done = live.filter(b => b.status === 'done').length;
+  const pct = live.length ? Math.round(100*done/live.length) : 0;
+  document.getElementById('title').textContent = PLAN.title;
+  document.getElementById('goal').textContent = PLAN.goal || '';
+  document.getElementById('prog').textContent = `进度 ${done}/${live.length} 块 · ${pct}%`;
+  document.getElementById('status').textContent = `状态 ${PLAN.status}`;
+  document.getElementById('updated').textContent = (PLAN.updated_at||'').slice(0,16).replace('T',' ');
+  document.getElementById('who').textContent =
+    (PLAN.participants||[]).map(p => `${p.label}(${p.kind})`).join(' · ');
+  document.getElementById('slug').textContent = PLAN.slug;
+  document.getElementById('fill').style.width = pct + '%';
+  document.title = `PLAN · ${PLAN.title}`;
+}
+
+function nownext(){
+  const order = {blocked:0, review:1, running:2, claimed:3, ready:4};
+  const rows = BLOCKS.map(b => [eff(b), b]).filter(([e,b]) => e in order)
+    .sort((a,b) => (order[a[0]]-order[b[0]]) || a[1].id.localeCompare(b[1].id));
+  const el = document.getElementById('nownext');
+  if (!rows.length){ el.innerHTML = '<span class="sub">没有在途工作。</span>'; return; }
+  const CAP = 12, shown = rows.slice(0, CAP);
+  el.innerHTML = shown.map(([e,b]) => `
+    <div class="nowcard" data-id="${esc(b.id)}" style="border-left:4px solid ${C[e]}" title="点开看详情">
+      <b>${esc(b.title)}</b>
+      <span class="sub">${esc(b.id)} · ${ZH[e]||e} · @${esc(b.owner||'未指派')}${
+        (b.exec && b.exec.by) ? ` · 在做 @${esc(b.exec.by)}` : ''}</span>
+      ${b.feedback ? `<span class="sub" style="color:${C.blocked}">⚠ ${esc(b.feedback)}</span>`:''}
+    </div>`).join('')
+    + (rows.length > shown.length
+        ? `<div class="sub" style="padding:4px 0">…… 另有 ${rows.length - shown.length} 条同类块（多为同一个 owner 的待批准项）—— 去下面的任务图点节点看全部。</div>`
+        : '');
+  // 卡片本身也能点开详情（原来只能去任务图里点节点）
+  el.querySelectorAll('.nowcard').forEach(c =>
+    c.onclick = () => detail(byId(c.dataset.id), {reveal:true}));
+}
+
+function graph(){
+  const hideDone = document.getElementById('hidedone').checked;
+  const shown = BLOCKS.filter(b => !(hideDone && b.status === 'done'));
+  const visible = new Set(shown.map(b => b.id));
+  const H = 88, LAB = 24, GY = 26, PAD = 18;
+  const g = document.getElementById('graph');
+  [...g.querySelectorAll('.node,.lane')].forEach(n => n.remove());
+  const svg = document.getElementById('edges');
+  const pos = {};
+  const lanes = PLAN.tasks
+    .map(t => ({t, blocks: t.blocks.filter(b => visible.has(b.id))}))
+    .filter(l => l.blocks.length);
+
+  // 节点宽度与「一行几块」都按 #graph 的实际宽度算（窗口一改就重算，见文件末尾的 resize）：
+  // 先取宽度放得下的列数（列宽不低于 WMIN），再把剩余宽度摊到每列 —— 宽屏上块更宽、一行放得更多，
+  // 不再无故折到第二行；列数不超过「块最多的那条泳道」，多出来的列本来也是空的。
+  const mostBlocks = lanes.reduce((m, l) => Math.max(m, l.blocks.length), 1);
+  const avail = Math.max(180, g.clientWidth);
+  const WMIN = 216, WMAX = 380, GXMIN = 56, GAPCAP = 120;
+  const byWidth = Math.floor((avail - 2 * PAD + GXMIN) / (WMIN + GXMIN));
+  const PER = Math.max(1, Math.min(mostBlocks, byWidth));
+  const W = Math.round(Math.min(WMAX, Math.max(WMIN, (avail - 2 * PAD - (PER - 1) * GXMIN) / PER)));
+  // 宽度被 WMAX/WMIN 夹住后剩下的空间摊到列间距上（有上限，别把边拉成一条长线）
+  const GX = PER > 1
+    ? Math.min(GAPCAP, Math.max(GXMIN, Math.floor((avail - 2 * PAD - PER * W) / (PER - 1))))
+    : GXMIN;
+  let maxX = W + PAD, y = PAD;
+
+  lanes.forEach(l => {
+    const sts = l.blocks.map(eff);
+    let st = 'waiting';
+    if (sts.every(s => s === 'done')) st = 'done';
+    else if (sts.some(s => ['running','claimed','review'].includes(s))) st = 'running';
+    else if (sts.some(s => s === 'blocked')) st = 'blocked';
+    else if (sts.some(s => s === 'ready')) st = 'ready';
+    const lab = document.createElement('div');
+    lab.className = 'lane';
+    lab.style.cssText = `left:${PAD}px;top:${y}px;right:${PAD}px`;
+    lab.innerHTML = `<i style="background:${C[st]||C.waiting}"></i>
+      <b>${esc(l.t.id)} ${esc(l.t.title)}</b>
+      <span class="lz">${ZH[st]||st} · @${esc(l.t.owner || '—')}</span>`;
+    g.appendChild(lab);
+    const top = y + LAB;
+    // 一行最多 PER 块（PER 由上面的可用宽度算出），放不下的才折到下一行
+    let rowsN = 1;
+    l.blocks.forEach((b, j) => {
+      const row = Math.floor(j / PER), colIdx = j % PER;
+      rowsN = Math.max(rowsN, row + 1);
+      const x = PAD + colIdx * (W + GX);
+      const ny = top + row * (H + GY);
+      pos[b.id] = {x, y: ny};
+      const e = eff(b), rw = reworkCount(b), n = document.createElement('div');
+      n.className = 'node ' + e + (b.status === 'done' ? ' done' : '');
+      n.dataset.id = b.id;
+      n.style.cssText = `left:${x}px;top:${ny}px;width:${W}px;border-left-color:${C[e]||C.waiting}`;
+      // 「认领的人」与「在做的人」可能不是同一个（记录员认领、子代理在做）：
+      // 一样就写 @A ⚙，不一样写 @A→@B；完整线程路径放在 title 里（悬停可见）
+      const ex = b.exec || {};
+      const who = !ex.by ? esc(b.owner || '—')
+        : (ex.by === b.owner ? `${esc(b.owner || '—')} ⚙` : `${esc(b.owner || '—')}→${esc(ex.by)}`);
+      n.innerHTML = `<div class="id">${esc(b.id)} · ${esc(b.kind)}</div>
+        <div class="ttl">${esc(b.title)}</div>
+        <div class="own"><span>${ZH[e]||e}${rw ? ` ⟲${rw}` : ''}</span><span>@${who}</span></div>`;
+      if (ex.by){
+        n.title = `在做 @${ex.by}`
+          + (ex.delegation ? ` · 线程 ${ex.delegation}#${ex.task_index ?? 0}` : '')
+          + (ex.transcript ? `\n${ex.transcript}` : '');
+      }
+      n.onclick = () => detail(b, {reveal:false});
+      g.appendChild(n);
+      maxX = Math.max(maxX, x + W);
+    });
+    y = top + rowsN * (H + GY);
+  });
+
+  const maxY = y - GY + PAD;
+  svg.setAttribute('width', maxX + PAD); svg.setAttribute('height', maxY);
+  svg.setAttribute('viewBox', `0 0 ${maxX + PAD} ${maxY}`);
+  svg.style.width = (maxX + PAD) + 'px'; svg.style.height = maxY + 'px';
+  let paths = '';
+  BLOCKS.forEach(b => {
+    if (!pos[b.id]) return;
+    edgeDeps(b).forEach(d => {
+      if (!pos[d]) return;
+      const a = pos[d], z = pos[b.id];
+      const x1 = a.x + W, y1 = a.y + H/2, x2 = z.x, y2 = z.y + H/2;
+      paths += `<path d="M${x1},${y1} C${x1+40},${y1} ${x2-40},${y2} ${x2},${y2}"
+        fill="none" stroke="currentColor" stroke-opacity=".3" stroke-width="1.6"/>`;
+    });
+  });
+  svg.innerHTML = `<g style="color:var(--ink)">${paths}</g>`;
+  g.style.minHeight = (maxY + 10) + 'px';
+  if (CUR) markSel(CUR.id);            // 重画后恢复选中高亮
+}
+
+let CUR = null;                        // 当前在详情里看的块
+// 初始提示就是「清空后」的样子：直接取 DOM 里那份，别在 JS 里再抄一遍文案
+// （innerHTML 这里不是外部输入：取的就是本文件 <div id="detail"> 里那段静态提示，写回去也是同一段）
+const DETAIL_HINT = document.getElementById('detail').innerHTML;
+function markSel(bid){
+  document.querySelectorAll('.node,.nowcard').forEach(m =>
+    m.classList.toggle('sel', m.dataset.id === bid));
+}
+function clearDetail(){                // 只清内容：详情栏常驻，所以布局一点都没动（不要再重排画布）
+  document.getElementById('detail').innerHTML = DETAIL_HINT;
+  CUR = null; markSel(null);
+}
+function detail(b, opts){
+  if (!b) return;
+  CUR = b;
+  const e = eff(b), rw = reworkCount(b), t = TASKS.get(b.id.split('#')[0]);
+  const ex = b.exec || {};
+  document.getElementById('detail').innerHTML = `
+    <h3>${esc(b.title)}</h3>
+    <div class="kv"><span class="pill" style="background:${C[e]||C.waiting}">${ZH[e]||e}</span>
+      &nbsp;<code>${esc(b.id)}</code> · ${esc(b.kind)} · 认领 @${esc(b.owner||'未指派')}</div>
+    ${ex.by ? `<b>谁在做</b>
+      <div class="kv">@${esc(ex.by)}${ex.delegation ? ` · 线程 <code>${esc(ex.delegation)}#${ex.task_index ?? 0}</code>` : ''}${
+        ex.started ? ` · 起于 ${esc((ex.started||'').slice(0,16).replace('T',' '))}` : ''}</div>
+      ${ex.transcript ? `<div class="kv"><a href="file://${esc(ex.transcript)}">${esc(ex.transcript)}</a></div>` : ''}
+      ${ex.note ? `<div class="kv">${esc(ex.note)}</div>` : ''}` : ''}
+    ${b.doc ? docHtml(b.doc) : ''}
+    ${(b.done_when||[]).length ? `<b>完成判据</b><ul>${b.done_when.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>`:''}
+    ${(b.deps||[]).length ? `<b>依赖</b><div class="kv">${b.deps.map(esc).join(' · ')}</div>`:''}
+    ${b.review_of ? `<b>评审对象</b><div class="kv">${esc(b.review_of)}</div>`:''}
+    ${b.feedback ? `<b style="color:${C.blocked}">评审意见</b><div class="kv">${esc(b.feedback)}</div>`:''}
+    ${rw ? `<b>返工</b><div class="kv">⟲ 被打回 ${rw} 次（待评审 →（打回）已认领 →（重做）进行中 →（再送审）待评审，块还是原 owner 的，所以不产生新节点）</div>`:''}
+    ${(b.artifacts||[]).length ? `<b>产物</b><ul>${b.artifacts.map(a=>`<li><code>${esc(a)}</code></li>`).join('')}</ul>`:''}
+    ${t ? `<div class="kv">所属任务：${esc(t.id)} ${esc(t.title)}（${ZH[t.status]||t.status||''}）</div>`:''}
+    ${(b.runs||[]).length ? `<b>run 记录</b>${b.runs.slice().reverse().map(r=>
+        `<div class="run">${esc((r.at||'').slice(0,16).replace('T',' '))} ${esc(r.by||'')}
+         ${esc(r.from||'')}→${esc(r.to||'')}<br>${esc(r.note||'')}</div>`).join('')}`:''}
+  `;
+  markSel(b.id);
+  if (opts && opts.reveal){
+    const n = [...document.querySelectorAll('.node')].find(m => m.dataset.id === b.id);
+    if (n) n.scrollIntoView({block:'nearest', behavior:'smooth'});
+  }
+}
+
+function legend(){
+  // 已取消与等前置同色：图例里用「空心 + 虚线」方框区分，不靠颜色
+  document.getElementById('legend').innerHTML =
+    Object.entries(C).map(([k,v]) => k === 'cancelled'
+      ? `<span><i style="background:transparent;border:1.5px dashed ${v}"></i>${ZH[k]||k}</span>`
+      : `<span><i style="background:${v}"></i>${ZH[k]||k}</span>`).join('')
+    + `<span style="opacity:.85">节点右下 <b>@A→@B</b> = 认领的人 → 此刻在做的人（同一个只写 <b>@A ⚙</b>）；
+       悬停看子代理线程，详情栏里有转录文件的路径</span>`;
+}
+
+function journal(){
+  const el = document.getElementById('journal');
+  const logs = (PLAN.log||[]).slice().reverse();
+  el.innerHTML = logs.length ? logs.map(e =>
+      `<div><b>${esc(e.actor)}</b> [${esc(e.kind)}] ${esc(e.text)}
+       <span style="float:right">${esc((e.at||'').slice(5,16).replace('T',' '))}</span></div>`).join('')
+    : '<div>（空）</div>';
+}
+
+// ── 详情栏：常驻右侧（不是点开才出现，所以点节点不会改动页面布局）；一条分隔线同时改
+//    「详情栏宽」与「画布宽」（画布宽 = 窗口宽 − 详情栏宽，body 让出同样的 padding-right）
+//    必须放在下面 view('graph', …) 之前：先把宽度（含 localStorage 里记着的）定下来，
+//    否则首帧会按默认宽排一遍、再按记住的宽排第二遍（白白跳一次）
+const DWKEY = 'plan.detailw.' + (PLAN.slug || '');
+const DWMIN = 240, CANVASMIN = 360;    // 栏最小宽 / 画布最小宽
+let detailW = null;                    // null = 用 CSS 里的默认宽度（clamp，随窗口伸缩）
+let redrawRAF = 0;
+function scheduleRedraw(){             // 一帧内多次触发只重排一次
+  if (redrawRAF) return;
+  redrawRAF = requestAnimationFrame(() => { redrawRAF = 0; view('graph', graph); });
+}
+function setDetailW(px, redraw){
+  detailW = Math.max(DWMIN, Math.min(Math.round(px), Math.max(DWMIN, window.innerWidth - CANVASMIN)));
+  document.documentElement.style.setProperty('--detail-w', detailW + 'px');
+  if (redraw) scheduleRedraw();
+}
+try { const s = localStorage.getItem(DWKEY); if (s) setDetailW(parseFloat(s), false); } catch(e){}
+(function(){
+  const sp = document.getElementById('splitter');
+  const panel = document.getElementById('detailpanel');
+  let dragging = false;
+  const curW = () => (detailW != null ? detailW : panel.getBoundingClientRect().width);
+  sp.addEventListener('mousedown', ev => {
+    dragging = true; sp.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    ev.preventDefault();
+  });
+  window.addEventListener('mousemove', ev => {
+    if (dragging) setDetailW(window.innerWidth - ev.clientX, true);   // 分隔线跟着指针，画布跟着重排
+  });
+  window.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false; sp.classList.remove('dragging'); document.body.style.userSelect = '';
+    try { localStorage.setItem(DWKEY, String(detailW)); } catch(e){}
+    scheduleRedraw();
+  });
+  // 焦点在分隔线上时左右方向键微调（左 = 变宽）
+  sp.addEventListener('keydown', ev => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    ev.preventDefault();
+    setDetailW(curW() + (ev.key === 'ArrowLeft' ? 24 : -24), true);
+    try { localStorage.setItem(DWKEY, String(detailW)); } catch(e){}
+  });
+})();
+
+view('header', header); view('nownext', nownext); view('legend', legend);
+view('graph', graph); view('journal', journal);
+document.getElementById('detailclear').onclick = clearDetail;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') clearDetail(); });
+document.getElementById('hidedone').onchange = () => view('graph', graph);
+// 窗口尺寸变了：先把详情栏宽度夹进新窗口，再按新宽度重排；拖动窗口会连发 resize，用 rAF 合帧
+window.addEventListener('resize', () => {
+  if (detailW != null) setDetailW(detailW, false);
+  scheduleRedraw();
+});
+</script>
+</body>
+</html>
