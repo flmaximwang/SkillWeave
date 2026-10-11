@@ -1951,14 +1951,16 @@ def _apply_item(root, item, res, dj, waivers):
         plan_writes[f] = lines
         patch["files"].append({"file": f, "line": hit, "before": e.get("before", ""),
                                "after": e.get("after", "")})
+    dirs_ok = {os.path.dirname(item["path"])}                 # 允许落在该 skill 目录之下，不要求同目录
+    if item.get("owner") and item["owner"] != "(pack)":
+        dirs_ok.add(os.path.dirname(item["owner"]))
     if parts and edits:
         # 「把段落搬出去、原文留一行指针」：parts 是**新增文件**，不删原文，所以不做整篇守恒比对；
         # 搬走的段落是否守恒由段落级校验负责（见下面的 moved 校验）。
-        skill_dir = os.path.dirname(item["path"])
         for p, body in parts.items():
             p = p.lstrip("./")
-            if os.path.dirname(p) != skill_dir:
-                return False, f"搬出的 `{p}` 不在同 skill 目录 `{skill_dir}` 下", None
+            if not any(p == d or p.startswith(d + "/") for d in dirs_ok):
+                return False, f"搬出的 `{p}` 不落在 {sorted(dirs_ok)} 之下", None
             plan_writes[p] = body.split("\n")
             patch["parts"].append(p)
         moved = "".join(_content_key("\n".join(plan_writes[p])) for p in patch["parts"])
@@ -1966,11 +1968,10 @@ def _apply_item(root, item, res, dj, waivers):
             pass                      # 段落级守恒只在整篇拆分时强校验，这里只要求能写盘
     elif parts:
         orig = read_text(os.path.join(root, item["path"]))
-        skill_dir = os.path.dirname(item["path"])
         for p, body in parts.items():
             p = p.lstrip("./")
-            if os.path.dirname(p) != skill_dir:
-                return False, f"拆出的 `{p}` 不在同 skill 目录 `{skill_dir}` 下", None
+            if not any(p == d or p.startswith(d + "/") for d in dirs_ok):
+                return False, f"拆出的 `{p}` 不落在 {sorted(dirs_ok)} 之下", None
             plan_writes[p] = body.split("\n")
             patch["parts"].append(p)
         got = "".join(_content_key("\n".join(plan_writes[p])) for p in patch["parts"])
