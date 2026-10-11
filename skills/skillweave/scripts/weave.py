@@ -1016,7 +1016,7 @@ def main(argv=None):
     ap.add_argument("--state", default=None)
     ap.add_argument("--expect-fixed", nargs="*", default=[])
     ap.add_argument("--splits", default=None)
-    ap.add_argument("--batch-size", type=int, default=10)
+    ap.add_argument("--batch-size", type=int, default=25)
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -1733,27 +1733,34 @@ def _scan_fresh(root, tag="scan"):
         return json.load(f), tmp
 
 
-def _item_id(kind, path, line=0):
-    return f"{kind}-{hashlib.sha1(f'{path}:{line}'.encode()).hexdigest()[:8]}"
+def _item_id(kind, path):
+    """条目 id：**按 (kind, path)**，不带行号 —— 同一个文件里的多条悬空是一件事，
+    与 TODO.md 的行口径一致（悬空按文件聚合），也让 id 在行号漂移后保持稳定。"""
+    return f"{kind}-{hashlib.sha1(path.encode()).hexdigest()[:8]}"
 
 
 def _findings(dj, root):
     """把 disclosure.json 里的发现拉平成 {id: {...}}，id 稳定（kind + path:line 的短 hash）。"""
     F = {}
 
-    def add(kind, path, line, target, num, who):
-        F[_item_id(kind, path, line)] = {"id": _item_id(kind, path, line), "kind": kind,
-                                         "path": path, "line": line, "target": target,
-                                         "num": num, "owner": _owner_of(path, dj, root), "who": who}
+    def add(kind, path, num):
+        i = _item_id(kind, path)
+        F[i] = {"id": i, "kind": kind, "path": path, "num": num, "refs": [], "target": "",
+                "owner": _owner_of(path, dj, root), "who": "待模型"}
 
     for p, o in dj["over"]:
-        add("超限", p, 0, "", "; ".join(o), "待模型")
+        add("超限", p, "; ".join(o))
     for p in dj["orphans"]:
-        add("到不了根", p, 0, "", f"{dj['nodes'][p]['bytes']} B", "待模型")
-    for src, tgt, ln in dj["broken"]:
-        add("悬空", src, ln, tgt, "", "待模型")
+        add("到不了根", p, f"{dj['nodes'][p]['bytes']} B")
+    for src, tgt, ln in dj["broken"]:                     # 同一文件的多条悬空 = 一件事
+        it = F.get(_item_id("悬空", src)) or (add("悬空", src, "") or F[_item_id("悬空", src)])
+        it["refs"].append({"line": ln, "target": tgt})
+    for i in list(F):
+        if F[i]["kind"] == "悬空" and F[i]["refs"]:
+            F[i]["num"] = f"{len(F[i]['refs'])} 条引用"
     for r, a, b in dj.get("root_near_dup", []):
-        add("近重复", a, 0, b, f"相似度 {r}", "待模型")
+        add("近重复", a, f"相似度 {r}")
+        F[_item_id("近重复", a)]["target"] = b
     return F
 
 
@@ -1784,15 +1791,20 @@ def _facts_for(item, root, dj, files):
     lines = read_text(os.path.join(root, item["path"])).split("\n") if \
         os.path.isfile(os.path.join(root, item["path"])) else [""]
     if item["kind"] == "悬空":
-        base = os.path.basename(item["target"])
-        cands = sorted(p for p in files if os.path.basename(p) == base)
-        return {"候选目标（包内同名文件）": cands or ["（包内没有同名文件 —— 可能是包外文件，判豁免）"],
-                "该行原文": lines[item["line"] - 1].strip() if 0 < item["line"] <= len(lines) else "?"}
+        out = {}
+        for r in item["refs"]:
+            base = os.path.basename(r["target"])
+            cands = sorted(p for p in files if os.path.basename(p) == base)
+            out[f"第 {r['line']} 行 `{r['target']}`"] = cands or ["（包内没有同名文件 —— 可能是包外文件，判豁免）"]
+            out[f"第 {r['line']} 行原文"] = lines[r["line"] - 1].strip() if 0 < r["line"] <= len(lines) else "?"
+        return out
     if item["kind"] == "到不了根":
         sibs = sorted(p for p in dj["nodes"]
                       if os.path.dirname(p) == os.path.dirname(item["path"]) and p != item["path"])
         return {"同目录兄弟（谁被披露了照它办）": sibs or ["（没有兄弟）"],
                 "首行": next((l for l in lines if l.strip()), "")}
+    if item["kind"] == "近重复":
+        return {"与谁重": item["target"], "本文件 description 首句": next((l for l in lines if l.strip()), "")}
     if item["kind"] == "超限":
         hs = [l for l in lines if re.match(r"^##?\s", l)]
         return {"二级标题（拆分只能按主题切，标题只是线索）": hs[:20] or ["（没有二级标题）"],
@@ -1834,7 +1846,6 @@ def _prompt_for(batch, root, F, files, dj, base_rev, pack):
     for it in batch["items"]:
         f = _facts_for(it, root, dj, files)
         body.append(f"### `{it['id']}` · {it['kind']} · `{it['path']}`"
-                    + (f":{it['line']}" if it["line"] else "")
                     + (f" → `{it['target']}`" if it["target"] else "")
                     + (f"（{it['num']}）" if it["num"] else "") + "\n")
         for k, v in f.items():
@@ -1842,7 +1853,7 @@ def _prompt_for(batch, root, F, files, dj, base_rev, pack):
     return "\n".join(body) + "\n"
 
 
-def cmd_dispatch(root, out, batch_size=10):
+def cmd_dispatch(root, out, batch_size=25):   # batch_size = 每批最多几条（不是几个 skill）
     """派发前的事实补全 + 批次划分 + prompt 落盘 + 计数起点。产物：dispatch/{plan.json,state.json,batch-*.md}"""
     dj, _ = _scan_fresh(root, "dispatch")
     if dj is None:
@@ -1856,12 +1867,14 @@ def cmd_dispatch(root, out, batch_size=10):
     for it in todo.values():
         by_skill[it["owner"]].append(it)
     order = sorted(by_skill, key=lambda s: -len(by_skill[s]))
-    batches, cur = [], []
-    for sk in order:                                   # 按 skill 填批：每批 ≤ batch_size 个 skill
-        cur.append(sk)
-        if len(cur) == batch_size:
+    batches, cur, cur_n = [], [], 0
+    for sk in order:                # 按**条目数**填批（一个 skill 不拆成两批；每批 ≤10 个 skill）
+        n = len(by_skill[sk])
+        if cur and (cur_n + n > batch_size or len(cur) >= 10):
             batches.append(cur)
-            cur = []
+            cur, cur_n = [], 0
+        cur.append(sk)
+        cur_n += n
     if cur:
         batches.append(cur)
     base_rev = _rev(root)
@@ -1870,7 +1883,7 @@ def cmd_dispatch(root, out, batch_size=10):
     plan = {"pack": os.path.basename(root), "base_rev": base_rev, "batch_size": batch_size,
             "baseline": os.path.join(out, "disclosure.json"), "batches": []}
     for n, skills in enumerate(batches, 1):
-        items = sorted((it for sk in skills for it in by_skill[sk]), key=lambda x: (x["kind"], x["path"], x["line"]))
+        items = sorted((it for sk in skills for it in by_skill[sk]), key=lambda x: (x["kind"], x["path"]))
         b = {"id": f"B{n}", "skills": skills, "items": items}
         text = _prompt_for(b, root, F, files, dj, base_rev, os.path.basename(root))
         b["prompt"] = f"dispatch/batch-{n}.prompt.md"
@@ -1889,6 +1902,9 @@ def cmd_dispatch(root, out, batch_size=10):
     plan["todo"] = sum(len(b["items"]) for b in plan["batches"])
     with open(os.path.join(d, "plan.json"), "w", encoding="utf-8") as f:
         json.dump(plan, f, ensure_ascii=False, indent=2, sort_keys=True)
+    if plan["todo"] != sum(1 for i in todo.values()):
+        print("[dispatch] FAIL 条目数对不上（聚合口径漂了）")
+        return 1
     state = {"pack": plan["pack"], "base_rev": base_rev, "baseline": plan["baseline"],
              "attempts": {it["id"]: 0 for b in plan["batches"] for it in b["items"]},
              "prompt_hash": {b["id"]: b["prompt_sha256"] for b in plan["batches"]}}
@@ -1937,7 +1953,9 @@ def cmd_verify(root, state_path, expect_fixed, splits_path, out):
     missing = [i for i in expect_fixed if i in after]
     if missing:
         fails.append(f"该消的没消：{len(missing)} 条 —— " + "; ".join(f"{i}" for i in missing[:5]))
-    if set(base.get("external", [])) != set(dj.get("external", [])):
+    def _ext_key(lst):                     # external 是 [[src,target,line],…]（可重复引用），比成字符串集合
+        return sorted(json.dumps(x, ensure_ascii=False, sort_keys=True) for x in lst)
+    if _ext_key(base.get("external", [])) != _ext_key(dj.get("external", [])):
         fails.append("external 集合变了（说明有人动了包外引用的判断）")
     if splits_path:
         with open(splits_path, encoding="utf-8") as f:
@@ -1979,7 +1997,7 @@ def cmd_verify(root, state_path, expect_fixed, splits_path, out):
             f.write(f"\n## {time.strftime('%Y-%m-%d')} · 走完梯子仍未过（不是能力问题，是口径分歧）\n\n")
             for i in parked:
                 f.write(f"- `{i}` · {after[i]['kind']} · `{after[i]['path']}`"
-                        + (f":{after[i]['line']}" if after[i]["line"] else "")
+                        + f"（{after[i]['num']}）"
                         + f" · 尝试 {st['attempts'][i]} 次 —— 需要一条规则（豁免/该删/该合）才能自动过\n")
     for i in targets:
         if i not in after:
@@ -2356,7 +2374,8 @@ def self_test():
         with open(os.path.join(skilldir, "SKILL.md"), "w") as f:
             f.write("---\nname: demo\ndescription: >-\n  做一件事时用。\n  带触发词。\n---\n\n"
                     "# Demo\n\n见 `references/guide.md`，另见 `references/gone.md`。\n"
-                    "模板见 `templates/README.md`，随手写个 `run.py` 与 `fig.pdf`。\n\n"
+                    "模板见 `templates/README.md`，随手写个 `run.py` 与 `fig.pdf`。\n"
+                    "包外见 `../outside-repo/thing.md`。\n\n"
                     "```\n# 这是围栏里的假标题\npython `scripts/nothere.py`\n```\n\n## 小节\n")
         with open(os.path.join(skilldir, "references", "guide.md"), "w") as f:
             f.write("guide\n")
@@ -2448,6 +2467,8 @@ def self_test():
         dm = open(os.path.join(out8, "DISCLOSURE.md"), encoding="utf-8").read()
         assert "L1（1 份）" in dm and "口径：**层 = 披露深度**" in dm, dm[:200]
         assert dj["levels"].get("2"), "demo 的 references/guide.md 应该在 L2"    # guide.md 被点名
+        _d8 = json.load(open(os.path.join(out8, "disclosure.json"), encoding="utf-8"))
+        assert _d8["external"], "fixture 里放了一条包外引用，external 不该是空的"
         todo_md = os.path.join(out8, "TODO.md")
         assert os.path.isfile(todo_md), "缺 TODO.md"
         t0 = open(todo_md, encoding="utf-8").read()
@@ -2467,7 +2488,8 @@ def self_test():
         assert ids and len(ids) == len(set(ids)), "条目 id 必须唯一"
         pr = open(os.path.join(out9, "dispatch", "batch-1.prompt.md"), encoding="utf-8").read()
         assert "只产出提案" in pr and "不许开后台进程" in pr, pr[:200]
-        assert "候选目标" in pr or "二级标题" in pr, "prompt 里必须有事实补全段"
+        assert "## 条目与事实" in pr and ("包内没有同名文件" in pr or "候选" in pr or "二级标题" in pr), \
+            "prompt 里必须有事实补全段"
         assert os.path.isfile(os.path.join(out9, "dispatch", "state.json")), "缺 state.json"
         # 验收：干净 → PASS；注入一条新悬空 → FAIL，并给梯子
         st = os.path.join(out9, "dispatch", "state.json")
@@ -2501,7 +2523,7 @@ def self_test():
         assert cmd_collapse(pack, out6, apply_changes=True, description="演示：把 demo 收成一个入口。") == 0
         print("[self-test] ✅ 层（pack→类目→skill）/ 折叠 description / 孤儿 / 悬空 / "
               "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 / 提案器四类动作 / "
-              "layers↔audit 口径对拍 —— 全过")
+              "layers↔audit 口径对拍 / 派发划批 / 验收（集合级回归拦截 + 梯子）—— 全过")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
