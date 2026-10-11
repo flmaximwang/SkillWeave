@@ -2,14 +2,13 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 32/34 块（94%） · 状态 `active` · 更新于 2026-10-11 16:27
+**进度** 33/34 块（97%） · 状态 `active` · 更新于 2026-10-11 16:28
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
 - `T-004#B-004` **决策：L1 从 24 项再压到 ≤20 的路线** — 待批准 · @you
-- `T-008#B-004` **四类动作补齐实测：拆（落地）+ 改写（落地）** — 进行中 · @default
 
 ## 图
 
@@ -77,13 +76,11 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef blocked stroke-width:1px;
   class T-004_B-004 blocked;
-  classDef running stroke-width:1px;
-  class T-008_B-004 running;
 ```
 
 ## 任务
@@ -424,7 +421,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-001#B-001
     - run 2026-10-11 14:04 you blocked→done 定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。
 
-### T-008 SkillWeave skill 本体（可被任意 agent 安装） — 进行中
+### T-008 SkillWeave skill 本体（可被任意 agent 安装） — 已完成
 @default
 - [x] `T-008#B-001` **skills/skillweave/SKILL.md：第一层薄入口** _impl_ — 已完成 @default
     - 做什么：【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`
@@ -460,16 +457,17 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
     - 依赖：T-004#B-003
     - 产物：`reports/2026-10-11-usinghermes/report-usinghermes.md`
     - run 2026-10-11 16:18 default pending→done 端到端走完（全程在临时复制的 pack 上，原仓库未动）：① 真实 diff 不是提案 —— /tmp/pack-fix3 上 git diff --stat = 209 files changed（52 条 git mv + 1 对合并），逐条自检 ✓、路径集合级对账 ✓；② layers 前后四数（同一 HEAD b8298f4）：L1 条目 68→24 · 常驻 20,864→20,699 字符（6443→6298 token）· L2 超限 16→15 · L3 孤儿 104→101；③ 评测：round4 两个独立判官输出落盘各 15 行（14 题逐题一行 + DONE），打分 should_trigger 0.937 / should_not_trigger 1.0 / near_confusion 1.0；④ 判官输出行数与题面数对齐（14 题面 → 15 行含 DONE）。未做：正文下沉（split 14 条仍只是提案，需要模型判断哪段该沉）。
-- [ ] `T-008#B-004` **四类动作补齐实测：拆（落地）+ 改写（落地）** _impl_ — 进行中 @default
+- [x] `T-008#B-004` **四类动作补齐实测：拆（落地）+ 改写（落地）** _impl_ — 已完成 @default
     - 做什么：【为什么要做】四类动作里「并」「分」在 T-004/T-008#B-003 已真跑过；「拆」「改写」一直只停在提案 —— 一个声称支持四类动作的工具，两类没跑过就是没证据。
 【拆】对全 pack 最胖的 accountancy-workflow（751 行 / 21427 tok）做拆分：扫标题算每段 token → 按用到频率倒序选 14 个区块 → 逐行搬进 12 个 references/*.md、每处留一行转指。硬断言：行多重集守恒（原 636 = 正文 131 + 搬走 517 − 转指 12）。
 【改写】对三条同族（中行借记卡/中行信用卡/建行活期）加互斥条款与加粗的银行+卡种。
 【已知】改写让字符相似度反着走（0.581→0.662 升），判据只能是路由评测 —— 已把这条写进 references/rewrite.md。
     - 判据：① 拆分后该 skill est_tokens < 5000 且全 pack L2 超限数下降，行守恒断言通过；② 孤儿/悬空不上升；③ 第 5 轮盲判（题面冻结、2 个独立判官）输出落盘、行数对齐，分数与前一轮对比无退化
+    - 产物：`reports/2026-10-11-usinghermes/SPLIT-REWRITE.md`
+    - run 2026-10-11 16:28 default running→done 拆+改写两条动作落地：① 拆 accountancy-workflow 21,427→3,760 tok/172 行（行守恒 636=131+517−12），全 pack L2 超限 15→14，孤儿/悬空不升（101/46），L1 与常驻不变；② 改写三条同族 description（加互斥条款），difflib 反而升高（0.581→0.662）—— 证明相似度不能当验收，判据只有路由评测；③ 第 5 轮盲判（r5，同一批题面、2 独立判官、各 15 行）should_trigger 1.0 / should_not_trigger 1.0 / near_confusion 1.0，两个判官都在理由里直接引用了新加的互斥条款来区分 P11/P12/P14；④ 记了方法论：r4 的 P10 单处失手在 r5 消失（判官抽样噪声），单轮 ±1 题不算证据。四类动作现已全部真跑过。
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:28` **agent** [status] T-005#B-002: pending → done（score 子命令：逐题矩阵（P<n>/kind/gold/picks/✓✗）+ 按题型分组（should_trigger / should_not_trigger / near_confusion）+ 校正随机分 BoR=(acc-1/N)/(1-1/N)；假判官回放验证过（自检里也留了一条 judge→score 往返断言））
 - `2026-10-11 15:28` **agent** [exec] T-005#B-003: 登记线程 deleg_8d657a16#0 @default · 转录 /Users/maxim/.hermes/cache/delegation/live/deleg_8d657a16/task-0.log（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）
 - `2026-10-11 15:28` **agent** [status] T-005#B-003: pending → running（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）
 - `2026-10-11 15:29` **agent** [exec] T-005#B-003: 线程登记已清除（@default 收工）
@@ -489,6 +487,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 16:18` **agent** [status] T-006#B-002: running → done（独立复核（另一个子代理，只读报告+pack、照 §11 八条命令逐条重跑）结果：8/8 复现清单通过、退出码全对；并抓出本报告 **3 处真错**：① §4 引用分类我抄了旧快照（241/206/267 → 实测 240/203/255）② §8『dup 改后=11』实为 13（归位把 boc/ccb/boc-credit 三兄弟塞进同一层 → +2 对，合并 −1，净 +1，我漏报副作用）③ §8『改前』与被引的验收记录对不上（6443/104 vs 6311/101，两处不同快照）。三处已逐条整改，并新增 §8.1 记录。教训：复核者三个错全是我自己看不出来的 —— 自查不算查。复核者诚实标注未复现项：路由分数需判官模型、非确定性，只核对了原件与表格一致。）
 - `2026-10-11 16:18` **agent** [status] T-008#B-003: pending → done（端到端走完（全程在临时复制的 pack 上，原仓库未动）：① 真实 diff 不是提案 —— /tmp/pack-fix3 上 git diff --stat = 209 files changed（52 条 git mv + 1 对合并），逐条自检 ✓、路径集合级对账 ✓；② layers 前后四数（同一 HEAD b8298f4）：L1 条目 68→24 · 常驻 20,864→20,699 字符（6443→6298 token）· L2 超限 16→15 · L3 孤儿 104→101；③ 评测：round4 两个独立判官输出落盘各 15 行（14 题逐题一行 + DONE），打分 should_trigger 0.937 / should_not_trigger 1.0 / near_confusion 1.0；④ 判官输出行数与题面数对齐（14 题面 → 15 行含 DONE）。未做：正文下沉（split 14 条仍只是提案，需要模型判断哪段该沉）。）
 - `2026-10-11 16:27` **agent** [block] 新增块 T-008#B-004「四类动作补齐实测：拆（落地）+ 改写（落地）」
+- `2026-10-11 16:28` **agent** [status] T-008#B-004: running → done（拆+改写两条动作落地：① 拆 accountancy-workflow 21,427→3,760 tok/172 行（行守恒 636=131+517−12），全 pack L2 超限 15→14，孤儿/悬空不升（101/46），L1 与常驻不变；② 改写三条同族 description（加互斥条款），difflib 反而升高（0.581→0.662）—— 证明相似度不能当验收，判据只有路由评测；③ 第 5 轮盲判（r5，同一批题面、2 独立判官、各 15 行）should_trigger 1.0 / should_not_trigger 1.0 / near_confusion 1.0，两个判官都在理由里直接引用了新加的互斥条款来区分 P11/P12/P14；④ 记了方法论：r4 的 P10 单处失手在 r5 消失（判官抽样噪声），单轮 ±1 题不算证据。四类动作现已全部真跑过。）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
