@@ -2088,6 +2088,13 @@ def _revert_item(root, pfile, item_id):
         lines = read_text(fp).split("\n")
         if "after" in e and e["after"] is None:      # 这一行是被删掉的：按原行号插回
             lines.insert(max(0, int(e["line"]) - 1), e["before"])
+        elif "\n" in (e.get("after") or ""):         # 多行替换：找到首行，整块换回原来的那一行
+            block = e["after"].split("\n")
+            at = _find_anchor(lines, block[0], e["line"])
+            if at is None:
+                print(f"[apply] ⛔ 回退不了 `{e['file']}`:{e['line']} —— 多行块的首行找不到")
+                return 1
+            lines[at - 1:at - 1 + len(block)] = e["before"].split("\n")
         else:
             at = _find_anchor(lines, e["after"], e["line"])
             if at is None:
