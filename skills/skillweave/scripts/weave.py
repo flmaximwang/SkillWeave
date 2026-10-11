@@ -1057,10 +1057,11 @@ def main(argv=None):
         return cmd_dispatch(root, out, batch_size=a.batch_size)
     if a.cmd == "verify":
         root = os.path.abspath(a.pack.rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
         if not a.state:
             print("[verify] 需要 --state <dispatch/state.json>（计数在那份文件里，不在谁记忆里）")
             return 2
+        # RUN.md / PARKED.md 落在 state 旁边（dispatch/），不落临时目录 —— 无人值守跑完要能直接读到
+        out = a.out or os.path.dirname(os.path.abspath(a.state))
         return cmd_verify(root, a.state, a.expect_fixed, a.splits, out)
     if a.cmd == "prepare":
         root = os.path.abspath(a.pack.rstrip("/"))
@@ -1881,7 +1882,7 @@ def cmd_dispatch(root, out, batch_size=25):   # batch_size = 每批最多几条�
     d = os.path.join(out, "dispatch")
     os.makedirs(d, exist_ok=True)
     plan = {"pack": os.path.basename(root), "base_rev": base_rev, "batch_size": batch_size,
-            "baseline": os.path.join(out, "disclosure.json"), "batches": []}
+            "baseline": os.path.join(d, "baseline.json"), "batches": []}
     for n, skills in enumerate(batches, 1):
         items = sorted((it for sk in skills for it in by_skill[sk]), key=lambda x: (x["kind"], x["path"]))
         b = {"id": f"B{n}", "skills": skills, "items": items}
@@ -1902,6 +1903,8 @@ def cmd_dispatch(root, out, batch_size=25):   # batch_size = 每批最多几条�
     plan["todo"] = sum(len(b["items"]) for b in plan["batches"])
     with open(os.path.join(d, "plan.json"), "w", encoding="utf-8") as f:
         json.dump(plan, f, ensure_ascii=False, indent=2, sort_keys=True)
+    with open(plan["baseline"], "w", encoding="utf-8") as f:     # 基线进 pack：可提交、可对账，别指临时目录
+        json.dump(dj, f, ensure_ascii=False, indent=2, sort_keys=True)
     if plan["todo"] != sum(1 for i in todo.values()):
         print("[dispatch] FAIL 条目数对不上（聚合口径漂了）")
         return 1
