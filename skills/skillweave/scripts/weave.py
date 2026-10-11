@@ -18,6 +18,7 @@ import collections
 import difflib
 import fnmatch
 import time
+import sys
 import hashlib
 import json
 import math
@@ -1940,6 +1941,8 @@ def _apply_item(root, item, res, dj, waivers):
         hit = _find_anchor(lines, e.get("before", ""), int(e.get("line", 0)))
         if hit is None:
             return False, f"锚点对不上 `{f}`:{e.get('line')} —— 待改文本在该行 ±3 内找不到", None
+        if isinstance(e.get("after"), str) and "\n" in e["after"]:
+            return False, f"`after` 只能是单行（要改多行就拆成多条 edit，或把整段搬到新文件）", None
         del_hits = plan_deletes.setdefault(f, set())
         if "after" in e and e["after"] is None:
             del_hits.add(hit)                       # `after: null` = 删掉这一行
@@ -2088,13 +2091,6 @@ def _revert_item(root, pfile, item_id):
         lines = read_text(fp).split("\n")
         if "after" in e and e["after"] is None:      # 这一行是被删掉的：按原行号插回
             lines.insert(max(0, int(e["line"]) - 1), e["before"])
-        elif "\n" in (e.get("after") or ""):         # 多行替换：找到首行，整块换回原来的那一行
-            block = e["after"].split("\n")
-            at = _find_anchor(lines, block[0], e["line"])
-            if at is None:
-                print(f"[apply] ⛔ 回退不了 `{e['file']}`:{e['line']} —— 多行块的首行找不到")
-                return 1
-            lines[at - 1:at - 1 + len(block)] = e["before"].split("\n")
         else:
             at = _find_anchor(lines, e["after"], e["line"])
             if at is None:
@@ -2915,21 +2911,30 @@ def self_test():
         mv2 = {"batch": "B1", "results": [
             {"id": broken["id"], "verdict": "fixed",
              "edits": [{"file": broken["path"], "line": bl, "before": keep_line,
-                        "after": "## 指针\n这一段搬到了 `references/moved2.md`。"},
+                        "after": "## 指针 → 见 `references/moved2.md`"},
                        {"file": broken["path"], "line": bl + 1, "before": blines2[bl], "after": None}],
              "parts": {os.path.join(os.path.dirname(broken["path"]) or ".", "moved2.md"): "搬走的正文\n"}}]}
         mv2p = os.path.join(tmp, "prop-move2.json")
         with open(mv2p, "w", encoding="utf-8") as f:
             json.dump(mv2, f, ensure_ascii=False)
+        _orig_text = read_text(bfull)                  # 回退的判据用「逐字节还原」，比逐行断言更硬
         _before_n = len(read_text(bfull).split("\n"))
         assert cmd_apply(pack, [mv2p], st, os.path.join(out9, "dispatch")) == 0, "删行 + 多行替换该落盘"
         _after = read_text(bfull).split("\n")
-        assert "## 指针" in _after, "多行替换没生效"
-        assert len(_after) == _before_n, "删一行 + 多插一行，总行数该不变"
+        assert "## 指针 → 见 `references/moved2.md`" in _after, "指针行没写进去"
+        assert len(_after) == _before_n - 1, "删了一行，总行数该少 1"
         assert cmd_apply(pack, [], st, os.path.join(out9, "dispatch"), revert_id=broken["id"]) == 0, \
-            "该能回退删行 + 多行替换"
-        assert keep_line in read_text(bfull), "回退该把被替换的行还原"
-        assert blines2[bl] in read_text(bfull), "回退该把被删掉的行插回来"
+            "该能回退（删行 + 指针替换）"
+        assert read_text(bfull) == _orig_text, "回退该把文件逐字节还原：\n" + "\n".join(
+            difflib.unified_diff(_orig_text.split("\n"), read_text(bfull).split("\n"), lineterm=""))
+
+        ml = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "fixed",
+             "edits": [{"file": broken["path"], "line": bl, "before": old_line, "after": "两行\n内容"}]}]}
+        mlp = os.path.join(tmp, "prop-multiline.json")
+        with open(mlp, "w", encoding="utf-8") as f:
+            json.dump(ml, f, ensure_ascii=False)
+        assert cmd_apply(pack, [mlp], st, os.path.join(out9, "dispatch")) == 1, "多行 after 该被拒"
 
         # 只写豁免、没有 edits 的提案：要能落盘、写进 waivers、让条目离开待办
         _wp = os.path.join(pack, ".skillweave", "waivers.txt")
