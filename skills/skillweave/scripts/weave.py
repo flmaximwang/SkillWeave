@@ -1908,9 +1908,23 @@ def cmd_dispatch(root, out, batch_size=25):   # batch_size = 每批最多几条�
     if plan["todo"] != sum(1 for i in todo.values()):
         print("[dispatch] FAIL 条目数对不上（聚合口径漂了）")
         return 1
+    # **不许打转**：计数从旧 state 继承（重派不许把账清零）；同一批 prompt 没换过就拒绝重派
+    st_path = os.path.join(d, "state.json")
+    prev = json.load(open(st_path, encoding="utf-8")) if os.path.isfile(st_path) else None
+    if prev:
+        for b in plan["batches"]:
+            ids = [it["id"] for it in b["items"]]
+            n = sum(prev.get("attempts", {}).get(i, 0) for i in ids)
+            if n and prev.get("prompt_hash", {}).get(b["id"]) == b["prompt_sha256"]:
+                print(f"[dispatch] 拒绝重派 {b['id']}：prompt 与上次一模一样（hash {b['prompt_sha256']}）——"
+                      f"相同输入 = 相同输出。按梯子改输入（R1 加证据 / R2 减粒度 / R3 喂事实 / R4 换执行者）再派。")
+                return 3
+    attempts = {it["id"]: 0 for b in plan["batches"] for it in b["items"]}
+    if prev:
+        attempts.update({k: v for k, v in prev.get("attempts", {}).items() if k in attempts})
     state = {"pack": plan["pack"], "base_rev": base_rev, "baseline": plan["baseline"],
-             "attempts": {it["id"]: 0 for b in plan["batches"] for it in b["items"]},
-             "prompt_hash": {b["id"]: b["prompt_sha256"] for b in plan["batches"]}}
+             "attempts": attempts, "prompt_hash": {b["id"]: b["prompt_sha256"] for b in plan["batches"]},
+             "history": (prev or {}).get("history", [])}
     with open(os.path.join(d, "state.json"), "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
     print(f"[dispatch] {len(plan['batches'])} 批 · {plan['todo']} 条 · 基线 rev {base_rev}")
@@ -2494,8 +2508,19 @@ def self_test():
         assert "## 条目与事实" in pr and ("包内没有同名文件" in pr or "候选" in pr or "二级标题" in pr), \
             "prompt 里必须有事实补全段"
         assert os.path.isfile(os.path.join(out9, "dispatch", "state.json")), "缺 state.json"
-        # 验收：干净 → PASS；注入一条新悬空 → FAIL，并给梯子
         st = os.path.join(out9, "dispatch", "state.json")
+        before_att = json.load(open(st, encoding="utf-8"))["attempts"]
+        assert cmd_dispatch(pack, out9, batch_size=10) == 0, "重派（无尝试记录）应被允许"
+        after_att = json.load(open(st, encoding="utf-8"))["attempts"]
+        assert set(after_att) == set(before_att), "重派不许把条目账改掉"
+        # 不许打转：某批已有尝试且 prompt 未变 → 再派必须被拒（退 3）
+        stj = json.load(open(st, encoding="utf-8"))
+        b1 = json.load(open(os.path.join(out9, "dispatch", "plan.json"), encoding="utf-8"))["batches"][0]
+        stj["attempts"][b1["items"][0]["id"]] = 1
+        with open(st, "w", encoding="utf-8") as f:
+            json.dump(stj, f, ensure_ascii=False)
+        assert cmd_dispatch(pack, out9, batch_size=10) == 3, "prompt 没换就重派，必须被拒（相同输入=相同输出）"
+        # 验收：干净 → PASS；注入一条新悬空 → FAIL，并给梯子
         assert cmd_verify(pack, st, [], None, out9) == 0, "没改动的 pack、没声称修过任何东西 → 应 PASS"
         try:
             p2 = os.path.join(pack, "第二只", "SKILL.md")
