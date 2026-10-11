@@ -1000,7 +1000,7 @@ def cmd_score(key_path, judge_paths, out):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
     ap.add_argument("cmd", nargs="?",
-                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize", "collapse", "prepare"])
+                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize", "collapse", "prepare", "disclosure"])
     ap.add_argument("--prompts", default=None)
     ap.add_argument("--key", default=None)
     ap.add_argument("--judge", nargs="*", default=[])
@@ -1040,6 +1040,10 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or root          # 默认落回 pack 自己：可视化是给仓库看的产物
         return cmd_visualize(root, out)
+    if a.cmd == "disclosure":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        return cmd_disclosure(root, out)
     if a.cmd == "prepare":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
@@ -1417,9 +1421,9 @@ def umbrella_body(dirs, byid):
 
 def island_index_md(name, isl, byid):
     """一个岛的 INDEX.md：成员逐条带 description（这是第三次点击看到的东西）。"""
-    return "\n".join([f"# {name}", ""] +
-                     [f"- **{byid[i]['name']}** — {byid[i]['description']}\n  `references/{name}/"
-                      f"{os.path.basename(i.rstrip('/'))}/SKILL.md`" for i in isl]) + "\n"
+    return "\n".join([f"# {name}", ""] +          # 指针按 INDEX.md **自己所在目录**写（它就在 references/<岛>/ 下）
+                     [f"- **{byid[i]['name']}** — {byid[i]['description']}\n  "
+                      f"`{os.path.basename(i.rstrip('/'))}/SKILL.md`" for i in isl]) + "\n"
 
 
 def _rev(root):
@@ -1526,6 +1530,213 @@ def _leaves(node):
         out += _leaves(c)
     return out
 
+
+
+
+# ---------------------------------------------------------------- 披露链递归（层 = 披露深度）
+
+CAP_DESC_CHARS = 1024
+CAP_BODY_TOKENS = 5000
+CAP_BODY_LINES = 500
+CAP_FILE_BYTES = 20000
+TEXT_LIKE = {".md", ".markdown", ".txt", ".py", ".sh", ".bash", ".js", ".ts", ".json",
+             ".yaml", ".yml", ".csv", ".tsv", ".toml", ".ini", ".cfg", ".html", ".svg"}
+
+
+def _doc_nodes(skills, root):
+    """节点 = pack 里的每份文档。**根 = 每个 skill 的 `SKILL.md`**（多入口 = K 个根；单入口 = 1 个）。"""
+    nodes = {}
+    for s in skills:
+        sk = s["id"] + "SKILL.md"
+        nodes[sk] = {"path": sk, "kind": "instructions", "skill": s["id"], "root": True,
+                     "bytes": s["bytes"], "tok": s["est_tokens"], "lines": s["body_lines"],
+                     "desc_chars": s["description_chars"], "name": s["name"]}
+        for f in s["files"]:
+            if f["kind"] == "instructions" and f["path"] == "SKILL.md":
+                continue                      # 这个 skill 自己的 SKILL.md 已经是根节点，别被覆盖
+            n = {"path": s["id"] + f["path"], "kind": f["kind"], "skill": s["id"],
+                 "root": False, "bytes": f["bytes"], "tok": None, "lines": None,
+                 "desc_chars": None, "name": os.path.basename(f["path"])}
+            if f["kind"] == "instructions":   # 嵌套的 SKILL.md（单入口形状下就住在 references/<岛>/ 里）
+                t = read_text(os.path.join(root, n["path"]))
+                meta, body, _ = parse_frontmatter(t)
+                n["tok"], n["lines"] = est_tokens(t), len(body.split("\n"))
+                n["desc_chars"] = len((meta.get("description") or "").strip())
+                n["name"] = meta.get("name") or n["name"]
+            nodes[n["path"]] = n
+    return nodes
+
+
+def _doc_edges(root, nodes, broken, external):
+    """边 = 披露：一份文档正文里**真实点到**的另一份（先按该文件所在目录、再按 pack 根解析）。
+    口径与 `analyze_skill` 一致：URL、围栏里的路径、没有目录部分的裸文件名都不算披露。"""
+    out = {}
+    for p, n in sorted(nodes.items()):
+        if os.path.splitext(p)[1].lower() not in TEXT_LIKE:
+            continue                          # 二进制/图片只报体积，不解析
+        text = read_text(os.path.join(root, p))
+        fenced = fence_lines(text)
+        for target, line in extract_declared_refs(text, p):
+            t = target.lstrip("./")
+            bare = "/" not in t and t != "SKILL.md"
+            if bare or line in fenced:
+                continue
+            skill_dir = os.path.join(root, n["skill"])
+            for cand in (os.path.normpath(os.path.join(root, os.path.dirname(p), t)),
+                         os.path.normpath(os.path.join(skill_dir, t)),
+                         os.path.normpath(os.path.join(root, t))):
+                if not cand.startswith(root):
+                    continue                  # 指出 pack 外的，不算本 pack 的披露
+                rel = os.path.relpath(cand, root)
+                if rel in nodes:
+                    out.setdefault(p, {})[rel] = line
+                    break
+                if os.path.exists(cand):
+                    out.setdefault(p, {})[rel] = line
+                    break
+            else:
+                # 与 `analyze_skill` 同一口径：非本 skill 的 L1 目录（references/scripts/assets/templates）
+                # 或往包外走的（`../`），算 **external**（正文里提到的外部文件），不是悬空。
+                if t.startswith(("../", "/")) or not t.startswith(("references/", "scripts/",
+                                                                   "assets/", "templates/")):
+                    external.append((p, t, line))
+                else:
+                    broken.append((p, t, line))
+    return out
+
+
+def cmd_disclosure(root, out):
+    """**第二步**：以每个根文档为起点，把披露链递归展开到 L1..Ln，并逐文档体检 → `DISCLOSURE.md`。
+
+    层 = **披露深度**（L1 = 根文档；L2 = L1 直接披露的；Ln+1 由 Ln 披露），不是文件类型那套。
+    体检判据取 `docs/contract.md` §4 的 caps，按文档类型分派；跨文档查孤儿（没人披露）与悬空（披露了不存在）。"""
+    skills, skipped = [], []
+    tree = walk_dir(root, root, "", tracked_set(root), skipped, skills)
+    if tree is None:
+        print("[disclosure] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
+        return 1
+    nodes = _doc_nodes(skills, root)
+    broken, external = [], []
+    edges = _doc_edges(root, nodes, broken, external)
+    roots = sorted(p for p, n in nodes.items() if n["root"])
+
+    depth, frontier = {}, list(roots)
+    for p in roots:
+        depth[p] = 1
+    while frontier:
+        nxt = []
+        for p in frontier:
+            for q in sorted(edges.get(p, {})):
+                if q not in depth:
+                    depth[q] = depth[p] + 1
+                    nxt.append(q)
+        frontier = nxt
+    for p in nodes:                            # 没被任何根披露到的文档 = 到不了 → 记 None
+        depth.setdefault(p, None)
+    indeg = collections.Counter()
+    for p, ts in edges.items():
+        for q in ts:
+            indeg[q] += 1
+
+    def cap_of(n):
+        if n["root"] or n["kind"] == "instructions":
+            over = []
+            if n["tok"] > CAP_BODY_TOKENS:
+                over.append(f"正文 {n['tok']} tok > {CAP_BODY_TOKENS}")
+            if n["lines"] > CAP_BODY_LINES:
+                over.append(f"正文 {n['lines']} 行 > {CAP_BODY_LINES}")
+            if (n["desc_chars"] or 0) > CAP_DESC_CHARS:
+                over.append(f"description {n['desc_chars']} 字符 > {CAP_DESC_CHARS}")
+            return over
+        if n["kind"] in ("binary",):
+            return []
+        if n["bytes"] > CAP_FILE_BYTES:
+            return [f"{n['bytes']} B > {CAP_FILE_BYTES} B"]
+        return []
+
+    over_all, orphan_all = [], []
+    for p, n in sorted(nodes.items()):
+        n["over"] = cap_of(n)
+        n["orphan"] = (not n["root"]) and indeg.get(p, 0) == 0
+        n["depth"] = depth[p]
+        if n["over"]:
+            over_all.append((p, n["over"]))
+        if n["orphan"]:
+            orphan_all.append(p)
+
+    lv = collections.defaultdict(list)
+    for p, n in nodes.items():
+        lv[n["depth"]].append(p)
+    levels = sorted(lv, key=lambda x: (x is None, x))
+    # 根选择层（L1）的近重复：Agent 靠 description 选根，所以这一层单独查「同层抢题」
+    dup = []
+    descs = {p: (nodes[p].get("name") or "") + " " + (next((s["description"] for s in skills
+             if s["id"] == nodes[p]["skill"]), "")) for p in roots}
+    for i, a in enumerate(roots):
+        for b in roots[i + 1:]:
+            r = difflib.SequenceMatcher(None, descs[a], descs[b]).ratio()
+            if r >= 0.5:
+                dup.append((round(r, 3), a, b))
+
+    L = [f"# 披露链 · {os.path.basename(root)}", "",
+         "口径：**层 = 披露深度**（L1 = 根文档 `SKILL.md`；L2 = L1 正文直接点到的文档；Ln+1 由 Ln 披露）。"
+         "不是「按文件类型分三级」那套。", "",
+         f"- 根：**{len(roots)} 个**（每个 skill 的 `SKILL.md` 是一个根；1 个 = 单入口形状）",
+         f"- 文档节点：**{len(nodes)} 份** · 层数：**{len([x for x in levels if x is not None])}**",
+         f"- 超限：**{len(over_all)}** 份 · 孤儿（没人披露）：**{len(orphan_all)}** · "
+         f"悬空引用：**{len(broken)}** 条 · 外部引用（不算披露）：**{len(external)}** 条",
+         f"- 根选择层近重复（Jaccard≥0.5·靠 description 选根才算）：**{len(dup)}** 对", ""]
+    for d in levels:
+        if d is None:
+            L += ["## 到不了的文档（没有任何根披露到它们）", ""]
+        else:
+            L += [f"## L{d}（{len(lv[d])} 份）", ""]
+        L += ["| 文档 | fanout（披露几项） | 体积 | 判定 |", "|---|---|---|---|"]
+        for p in sorted(lv[d]):
+            n = nodes[p]
+            size = (f"{n['tok']} tok / {n['lines']} 行" if n["tok"] is not None else f"{n['bytes']} B")
+            bad = []
+            if n["over"]:
+                bad.append("⚠️ 超限 " + "; ".join(n["over"]))
+            if n["orphan"]:
+                bad.append("⚠️ 孤儿")
+            if any(b[0] == p for b in broken):
+                bad.append("❌ 有悬空引用")
+            if n["root"]:
+                bad.append("根")
+            L.append(f"| `{p}` | {len(edges.get(p, {}))} | {size} | {' · '.join(bad) or '✅'} |")
+        L.append("")
+    if dup:
+        L += ["### 根选择层近重复", ""] + [f"- {r} `{a}` ↔ `{b}`" for r, a, b in sorted(dup, reverse=True)] + [""]
+    if broken:
+        L += ["### 悬空引用", ""] + [f"- `{p}:{ln}` → `{t}`（不存在）" for p, t, ln in broken] + [""]
+    if over_all:
+        L += ["### 超限清单（带超多少）", ""] + [f"- `{p}` — " + "; ".join(o) for p, o in over_all] + [""]
+    L += ["## 口径", "",
+          "- 披露 = 正文里真实点到的另一份文档（先按该文件所在目录、再按 pack 根解析）；"
+          "URL、围栏里的路径、没有目录部分的裸文件名都不算。",
+          f"- caps（出处 `docs/contract.md` §4）：正文 <{CAP_BODY_TOKENS} tok / ≤{CAP_BODY_LINES} 行 · "
+          f"description ≤{CAP_DESC_CHARS} 字符 · 单份文件 ≤{CAP_FILE_BYTES} B。",
+          "- 每个文档在表里恰好出现一次（由命令自己核对：节点数 == 表行数）。", ""]
+
+    os.makedirs(out, exist_ok=True)
+    md = os.path.join(out, "DISCLOSURE.md")
+    rows = sum(len(lv[d]) for d in levels)
+    with open(md, "w", encoding="utf-8") as f:
+        f.write("\n".join(L))
+    with open(os.path.join(out, "disclosure.json"), "w", encoding="utf-8") as f:
+        json.dump({"roots": roots, "levels": {str(k): sorted(v) for k, v in lv.items()},
+                   "nodes": {p: {k: v for k, v in n.items()} for p, n in nodes.items()},
+                   "edges": {p: ts for p, ts in edges.items()}, "broken": broken, "external": external,
+                   "over": over_all, "orphans": orphan_all, "root_near_dup": dup},
+                  f, ensure_ascii=False, indent=1, sort_keys=True)
+    assert rows == len(nodes), f"对账失败：表行数 {rows} != 节点数 {len(nodes)}"
+    print(f"[disclosure] 根 {len(roots)} 个 · 层 " +
+          " → ".join(f"L{d}={len(lv[d])}" if d is not None else f"到不了={len(lv[d])}" for d in levels) +
+          f" · 文档 {len(nodes)} 份（表行数 {rows} 对账 ✅）· 超限 {len(over_all)} · 孤儿 {len(orphan_all)} · "
+          f"悬空 {len(broken)} · 外部 {len(external)}")
+    print(f"[disclosure] 出: {md}")
+    return 0
 
 
 def _clone_copy(pack, dest):
@@ -1806,6 +2017,15 @@ def self_test():
         htv = open(os.path.join(out5, "TREE.html"), encoding="utf-8").read()
         assert "notes/demo/" in mdv and "demo" in htv, (mdv[:200], htv[:200])
         assert htv.count("<circle") == 1, htv.count("<circle")
+        # 第二步 disclosure：层 = 披露深度；每个文档恰好出现一次；超限带「超多少」
+        out8 = os.path.join(tmp, "o8")
+        assert cmd_disclosure(pack, out8) == 0
+        dj = json.load(open(os.path.join(out8, "disclosure.json")))
+        assert len(dj["roots"]) == 1, dj["roots"]                       # fixture 只有一个 skill → 1 个根
+        assert str(1) in dj["levels"] and dj["levels"]["1"] == dj["roots"], dj["levels"]
+        dm = open(os.path.join(out8, "DISCLOSURE.md"), encoding="utf-8").read()
+        assert "L1（1 份）" in dm and "口径：**层 = 披露深度**" in dm, dm[:200]
+        assert dj["levels"].get("2"), "demo 的 references/guide.md 应该在 L2"    # guide.md 被点名
         # 第一步 prepare：非 git 的输入 → 副本由 git 管、原目录不被碰、BASELINE.md 出两种形状的账
         out7 = os.path.join(tmp, "o7")
         dest7 = os.path.join(tmp, "ws", "pack")

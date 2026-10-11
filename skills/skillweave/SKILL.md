@@ -36,7 +36,7 @@ license: MIT
 | **L2 第二级** | 被选中那个 skill 的 **`SKILL.md` 正文** | 触发时载入 | 正文 token/行数、它转指出去多少个兄弟 |
 | **L3 第三级** | 该 skill 的 `references/` `scripts/` `assets/` | 按需读 | 孤儿文件、悬空引用、最大文件 |
 
-## 命令（六条：四条只读 + 两条生成/改结构）
+## 命令（七条：四条只读 + 三条生成/改结构）
 
 ```bash
 SW=<本 skill 的 scripts/weave.py 绝对路径>     # 装好后：<skills 目录>/skillweave/scripts/weave.py
@@ -49,6 +49,7 @@ python3 "$SW" checks "$PACK" --out /tmp/sw     # 七条检查（含硬编码路�
 python3 "$SW" propose "$PACK" --out /tmp/sw    # 四类动作的提案：**默认 dry-run，不改盘**
 python3 "$SW" visualize "$PACK"                 # 生成物落回 pack：TREE.md + TREE.html（三级披露的文本版与可视化）
 python3 "$SW" collapse  "$PACK" --out /tmp/sw   # 可选方案：塌成「L1 = 1 个 skill 入口」的账 + 伞体 + git mv 清单（dry-run）
+python3 "$SW" disclosure "$PACK" --out /tmp/sw            # 第二步：披露链递归 + 逐文档体检 → DISCLOSURE.md
 python3 "$SW" prepare "$PACK" --dest /tmp/pw/ws --out /tmp/pw   # 第一步：拿一份可回滚、可对账的工作副本（原目录只读）
 python3 "$SW" collapse  "$PACK" --out /tmp/sw --apply --entry-dir using-hermes \
         --description "…"                       # 真塌：搬目录 + 写伞体与各岛 INDEX.md；**没 --description 直接拒绝**
@@ -62,6 +63,12 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 `visualize` 默认把两份产物写在 pack 根（`--out` 可改）：`TREE.md`（L1 菜单 → L2 正文 → L3 按需，逐 skill 数字）
 与 `TREE.html`（自包含、离线可开；互指图画成圆环 + 弦，节点带编号 + 框内图例）。两份都是**生成物，不要手改**。
 互指图的边 = 「某个 skill 的任何文本文件里点到另一个 skill 的**目录名**」；岛 = 该图的连通分量。
+
+`disclosure` 是**第二步**：层 = **披露深度**（L1 = 根文档 `SKILL.md`；L2 = L1 直接披露的；Lₙ₊₁ 由 Lₙ 披露），
+不是「按文件类型分三级」那套。它把每个根文档的披露链递归展开（深度 / fanout / 体积），并**对每一份文档**跑它那类 cap
+（正文 <5000 tok 与行数三档 · description ≤1024 字符 · 资源文件 ≤20000 B），跨文档查孤儿（没人披露）、悬空（披露了不存在的）、
+根选择层近重复。产物 `DISCLOSURE.md` + `disclosure.json`；命令行自检「表行数 == 节点数」（每个文档恰好出现一次）。
+**根的数量 = 形状**：多入口 = K 个根（每个 skill 的 `SKILL.md`）；单入口 = 1 个根。
 
 `prepare` 是**第一步**（可以把它当成整条流程的入口）：`cp -Rc` 拷一份副本 → **在副本里确保由 git 管**
 （拷贝的是仓库就摘掉所有 remote —— 误推当场失败 —— 再把当前状态提交成起点；输入没有 git 就 `git init` +
