@@ -337,8 +337,8 @@
    "y": 170,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-008#B-003\n端到端：agent + CLI 走完一个真实 pack\n\n`claimed` · @default\n\n【做什么】照装好的 skill 走一遍完整流程（在**临时复制的** pack 上做，不动原仓库）：\n`layers` 出 L1/L2/L3 → 按 `references/` 的四类动作改 → 重跑 `layers` 出前后对照 → 跑 T-005 一轮评测证明路由不退化。"
+   "color": "4",
+   "text": "### T-008#B-003\n端到端：agent + CLI 走完一个真实 pack\n\n`done` · @default\n\n【做什么】照装好的 skill 走一遍完整流程（在**临时复制的** pack 上做，不动原仓库）：\n`layers` 出 L1/L2/L3 → 按 `references/` 的四类动作改 → 重跑 `layers` 出前后对照 → 跑 T-005 一轮评测证明路由不退化。"
   }
  ],
  "edges": [
