@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-12T00:32:13+08:00",
+  "updated_at": "2026-10-12T01:18:44+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -920,6 +920,27 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-12T00:32:13+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-013",
+          "title": "D 阶段落盘器 apply：锚点 + 白名单 + 拆分守恒 + 逐条 patch + 单条回退",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "D 阶段落盘器 apply 落地。规格照 docs/flow.md 第三节 D，四条校验加逐条记录：\n\n① 锚点：待改文本必须落在声明行 ±3 内且逐字相同，不做模糊替换。\n② 白名单：只允许改「本条目自己的文件 + 披露它的父文档 + 该 skill 的入口 SKILL.md」；拆分出来的新文件\n   必须落在同 skill 目录下。\n③ 拆分守恒：去掉空行与标题行后的字符序列必须与原文一致，只搬移不重写。\n④ 豁免规则白名单：verdict=waived 或 reason_code=external 时写一条 waivers 规则，规则必须命中本条目自己的文件；\n   reason_code=obsolete 不自动通过，落 PARKED.md。\n⑤ 逐条 patch 记录写进 dispatch/patches.json，回退粒度是单条：apply <pack> --revert <条目 id>。\n\n实测：自检加了 5 条断言，包含合法提案落盘、回退整行还原、锚点不符拒绝、越界改动拒绝、拆分不守恒拒绝且不留半个改动。\n副本上的端到端：拿真 UsingHermes 的副本跑 prepare → disclosure → dispatch → apply → verify，\n选中一个 3 条引用的悬空条目并全部改对，悬空 130 → 127，verify PASS；回退该条后回到 130，verify PASS。\n\n同时改掉 verify 的旧文案：失败不再说整批回滚，改成保留通过的条目、只对未通过的条目改输入后继续修，\n只有无法修正的条目才回退它自己那一条。flow.md 与 SKILL.md 已同步为六阶段都有实现。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "四条校验生效；patches.json 逐条记录；--revert 可单条回退；自检与副本端到端都过"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-12T01:18:44+08:00",
           "runs": []
         }
       ],
@@ -2195,7 +2216,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-012「派发/验收落地：dispatch（事实补全+划批）+ verify（四判据+梯子+重派守卫）」",
       "ref": "T-004#B-012"
+    },
+    {
+      "at": "2026-10-12T01:18:44+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-013「D 阶段落盘器 apply：锚点 + 白名单 + 拆分守恒 + 逐条 patch + 单条回退」",
+      "ref": "T-004#B-013"
     }
   ],
-  "rev": "e06e30c4fb99"
+  "rev": "649804befd28"
 }
