@@ -1,0 +1,24 @@
+{
+  "hits": {
+    "binary": [],
+    "bom": [],
+    "broken_refs": [],
+    "embedded_secret": [],
+    "hardcoded_path": [
+      "skills/run-a-sec-saxs-pipeline-end-to-end/SKILL.md:63",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/scripts/crop-video-normalized.py:36",
+      "skills/run-a-tube-saxs-pipeline-end-to-end/SKILL.md:74",
+      "skills/write-saxs-results-readme/SKILL.md:61"
+    ],
+    "name_mismatch": [],
+    "token_budget": [
+      "skills/compare-model-curve-with-existing-fits/SKILL.md  est_tokens=9657",
+      "skills/embed-a-model-in-bead-and-density-models/SKILL.md  est_tokens=10200",
+      "skills/rerun-a-pipeline-batch-and-verify-outputs/SKILL.md  est_tokens=5459",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/SKILL.md  est_tokens=17104",
+      "skills/run-a-tube-saxs-pipeline-end-to-end/SKILL.md  est_tokens=7823"
+    ]
+  },
+  "pack": "AgentSkill-DoingSAXS",
+  "skills": 9
+}

@@ -1,0 +1,93 @@
+{
+  "L1": {
+    "first_layer_categories": 0,
+    "first_layer_entries": 1,
+    "first_layer_loose_skills": 1,
+    "menu_entries": [
+      "skills/doing-saxs/"
+    ],
+    "over_1024_chars": [],
+    "resident_chars": 384,
+    "resident_est_tokens": 258,
+    "skills": 1,
+    "skills_root": "skills/"
+  },
+  "L2": {
+    "counts_totals": {
+      "code_blocks": 1,
+      "long_paragraphs": 0,
+      "sections": 7,
+      "todos": 0
+    },
+    "counts_worst": [
+      {
+        "code_blocks": 1,
+        "id": "skills/doing-saxs/",
+        "long_paragraphs": 0,
+        "sections": 7,
+        "todos": 0
+      }
+    ],
+    "max_many": [
+      {
+        "est_tokens": 1578,
+        "id": "skills/doing-saxs/",
+        "lines": 55
+      }
+    ],
+    "over_limit": [],
+    "over_token": [],
+    "sibling_mentions_max": [
+      {
+        "id": "skills/doing-saxs/",
+        "mentions": 0
+      }
+    ]
+  },
+  "L3": {
+    "broken": 0,
+    "bytes": 910125,
+    "files": 60,
+    "largest": [
+      {
+        "bytes": 92527,
+        "kind": "readme",
+        "orphan": false,
+        "path": "scripts/readme_common.py",
+        "sha256": "b551bcf7d68e4c9b5da26057438f306235daeae4f466e7626e317d52f08eab7c"
+      },
+      {
+        "bytes": 72436,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/run-raw-sec-pipeline.py",
+        "sha256": "06c806234c0b6a71587f9314c96632e68cab5dc1181a44aa8bdceba5164f7d32"
+      },
+      {
+        "bytes": 58082,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/run-a-sec-saxs-pipeline-end-to-end.md",
+        "sha256": "a8f6b3aa11e18e0cf7a608bb51b5b68dd10736b5e094db6e72569eb4bc4e20c1"
+      },
+      {
+        "bytes": 52709,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/run-raw-tube-pipeline.py",
+        "sha256": "a2594c5808631e15231383a4e1f7f333aafe0a85e1452721c9442df2478188d2"
+      },
+      {
+        "bytes": 47719,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/sec_peaks.py",
+        "sha256": "6e211795757ff7f8b339228bd3494736a9283ab8504c3de8f44faa7a8fe47801"
+      }
+    ],
+    "orphans": 0
+  },
+  "member_mode": "git-tracked",
+  "pack": "AgentSkill-DoingSAXS-1entry",
+  "untracked_skill_dirs": []
+}

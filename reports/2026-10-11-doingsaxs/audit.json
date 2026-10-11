@@ -1,0 +1,271 @@
+{
+  "cost": {
+    "l2_est_tokens_all": 64352,
+    "l2_est_tokens_median": 5459,
+    "l3_bytes": 692406,
+    "l3_files": 51,
+    "resident_chars": 2545,
+    "resident_est_tokens": 1451
+  },
+  "dup": {
+    "pairs_over_050": 0,
+    "pairs_top": [
+      {
+        "a": "skills/run-a-sec-saxs-pipeline-end-to-end/",
+        "b": "skills/run-a-tube-saxs-pipeline-end-to-end/",
+        "layer": "skills/",
+        "score": 0.451,
+        "sim_desc": 0.451,
+        "sim_summary": 0.24
+      },
+      {
+        "a": "skills/run-a-tube-saxs-pipeline-end-to-end/",
+        "b": "skills/write-saxs-results-readme/",
+        "layer": "skills/",
+        "score": 0.43,
+        "sim_desc": 0.43,
+        "sim_summary": 0.105
+      },
+      {
+        "a": "skills/run-a-sec-saxs-pipeline-end-to-end/",
+        "b": "skills/write-saxs-results-readme/",
+        "layer": "skills/",
+        "score": 0.365,
+        "sim_desc": 0.365,
+        "sim_summary": 0.08
+      },
+      {
+        "a": "skills/compare-model-curve-with-existing-fits/",
+        "b": "skills/embed-a-model-in-bead-and-density-models/",
+        "layer": "skills/",
+        "score": 0.292,
+        "sim_desc": 0.292,
+        "sim_summary": 0.115
+      },
+      {
+        "a": "skills/compare-model-curve-with-existing-fits/",
+        "b": "skills/run-a-sec-saxs-pipeline-end-to-end/",
+        "layer": "skills/",
+        "score": 0.193,
+        "sim_desc": 0.193,
+        "sim_summary": 0.13
+      },
+      {
+        "a": "skills/rerun-a-pipeline-batch-and-verify-outputs/",
+        "b": "skills/triage-saxs-batch-quality/",
+        "layer": "skills/",
+        "score": 0.185,
+        "sim_desc": 0.185,
+        "sim_summary": 0.185
+      },
+      {
+        "a": "skills/embed-a-model-in-bead-and-density-models/",
+        "b": "skills/write-saxs-results-readme/",
+        "layer": "skills/",
+        "score": 0.173,
+        "sim_desc": 0.173,
+        "sim_summary": 0.07
+      },
+      {
+        "a": "skills/assess-saxs-raw-data-quality/",
+        "b": "skills/organize-batch-saxs-dataset/",
+        "layer": "skills/",
+        "score": 0.145,
+        "sim_desc": 0.145,
+        "sim_summary": 0.145
+      },
+      {
+        "a": "skills/embed-a-model-in-bead-and-density-models/",
+        "b": "skills/run-a-tube-saxs-pipeline-end-to-end/",
+        "layer": "skills/",
+        "score": 0.139,
+        "sim_desc": 0.139,
+        "sim_summary": 0.11
+      },
+      {
+        "a": "skills/organize-batch-saxs-dataset/",
+        "b": "skills/triage-saxs-batch-quality/",
+        "layer": "skills/",
+        "score": 0.136,
+        "sim_desc": 0.136,
+        "sim_summary": 0.136
+      },
+      {
+        "a": "skills/embed-a-model-in-bead-and-density-models/",
+        "b": "skills/run-a-sec-saxs-pipeline-end-to-end/",
+        "layer": "skills/",
+        "score": 0.135,
+        "sim_desc": 0.11,
+        "sim_summary": 0.135
+      },
+      {
+        "a": "skills/compare-model-curve-with-existing-fits/",
+        "b": "skills/run-a-tube-saxs-pipeline-end-to-end/",
+        "layer": "skills/",
+        "score": 0.13,
+        "sim_desc": 0.13,
+        "sim_summary": 0.09
+      },
+      {
+        "a": "skills/assess-saxs-raw-data-quality/",
+        "b": "skills/triage-saxs-batch-quality/",
+        "layer": "skills/",
+        "score": 0.128,
+        "sim_desc": 0.128,
+        "sim_summary": 0.128
+      },
+      {
+        "a": "skills/organize-batch-saxs-dataset/",
+        "b": "skills/rerun-a-pipeline-batch-and-verify-outputs/",
+        "layer": "skills/",
+        "score": 0.123,
+        "sim_desc": 0.123,
+        "sim_summary": 0.123
+      },
+      {
+        "a": "skills/compare-model-curve-with-existing-fits/",
+        "b": "skills/write-saxs-results-readme/",
+        "layer": "skills/",
+        "score": 0.114,
+        "sim_desc": 0.114,
+        "sim_summary": 0.05
+      },
+      {
+        "a": "skills/assess-saxs-raw-data-quality/",
+        "b": "skills/compare-model-curve-with-existing-fits/",
+        "layer": "skills/",
+        "score": 0.107,
+        "sim_desc": 0.058,
+        "sim_summary": 0.107
+      },
+      {
+        "a": "skills/run-a-tube-saxs-pipeline-end-to-end/",
+        "b": "skills/triage-saxs-batch-quality/",
+        "layer": "skills/",
+        "score": 0.107,
+        "sim_desc": 0.044,
+        "sim_summary": 0.107
+      },
+      {
+        "a": "skills/assess-saxs-raw-data-quality/",
+        "b": "skills/run-a-sec-saxs-pipeline-end-to-end/",
+        "layer": "skills/",
+        "score": 0.095,
+        "sim_desc": 0.014,
+        "sim_summary": 0.095
+      },
+      {
+        "a": "skills/triage-saxs-batch-quality/",
+        "b": "skills/write-saxs-results-readme/",
+        "layer": "skills/",
+        "score": 0.089,
+        "sim_desc": 0.04,
+        "sim_summary": 0.089
+      },
+      {
+        "a": "skills/rerun-a-pipeline-batch-and-verify-outputs/",
+        "b": "skills/write-saxs-results-readme/",
+        "layer": "skills/",
+        "score": 0.087,
+        "sim_desc": 0.036,
+        "sim_summary": 0.087
+      }
+    ],
+    "pairs_total": 36
+  },
+  "orphan": {
+    "broken": [],
+    "orphans": [
+      "skills/assess-saxs-raw-data-quality/test-prompts.json",
+      "skills/compare-model-curve-with-existing-fits/test-prompts.json",
+      "skills/compare-model-curve-with-existing-fits/test-results.md",
+      "skills/embed-a-model-in-bead-and-density-models/test-prompts.json",
+      "skills/embed-a-model-in-bead-and-density-models/test-results.md",
+      "skills/organize-batch-saxs-dataset/test-prompts.json",
+      "skills/rerun-a-pipeline-batch-and-verify-outputs/test-prompts.json",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/test-prompts.json",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/test-results.md",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/references/bl19u2-header-normalization.md",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/scripts/crop-video-normalized.py",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/scripts/emit-bl19u2-header-txt.py",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/scripts/find-sec-peaks.py",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/scripts/run-raw-sec-pipeline.py",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/scripts/sec_gradient.py",
+      "skills/run-a-sec-saxs-pipeline-end-to-end/scripts/sec_peaks.py",
+      "skills/run-a-tube-saxs-pipeline-end-to-end/test-prompts.json",
+      "skills/run-a-tube-saxs-pipeline-end-to-end/scripts/plot-tube-overview.py",
+      "skills/run-a-tube-saxs-pipeline-end-to-end/scripts/run-raw-tube-pipeline.py",
+      "skills/run-a-tube-saxs-pipeline-end-to-end/scripts/summarize-tube-run.py",
+      "skills/triage-saxs-batch-quality/test-prompts.json",
+      "skills/write-saxs-results-readme/test-prompts.json",
+      "skills/write-saxs-results-readme/test-results.md"
+    ]
+  },
+  "pack": "AgentSkill-DoingSAXS",
+  "size": [
+    {
+      "est_tokens": 17104,
+      "id": "skills/run-a-sec-saxs-pipeline-end-to-end/",
+      "line_mode": "over-500",
+      "lines": 623,
+      "over_token": true
+    },
+    {
+      "est_tokens": 10200,
+      "id": "skills/embed-a-model-in-bead-and-density-models/",
+      "line_mode": "loose",
+      "lines": 299,
+      "over_token": true
+    },
+    {
+      "est_tokens": 9657,
+      "id": "skills/compare-model-curve-with-existing-fits/",
+      "line_mode": "loose",
+      "lines": 268,
+      "over_token": true
+    },
+    {
+      "est_tokens": 7823,
+      "id": "skills/run-a-tube-saxs-pipeline-end-to-end/",
+      "line_mode": "loose",
+      "lines": 272,
+      "over_token": true
+    },
+    {
+      "est_tokens": 5459,
+      "id": "skills/rerun-a-pipeline-batch-and-verify-outputs/",
+      "line_mode": "lenient",
+      "lines": 145,
+      "over_token": true
+    },
+    {
+      "est_tokens": 4472,
+      "id": "skills/write-saxs-results-readme/",
+      "line_mode": "loose",
+      "lines": 177,
+      "over_token": false
+    },
+    {
+      "est_tokens": 3816,
+      "id": "skills/assess-saxs-raw-data-quality/",
+      "line_mode": "lenient",
+      "lines": 148,
+      "over_token": false
+    },
+    {
+      "est_tokens": 2972,
+      "id": "skills/triage-saxs-batch-quality/",
+      "line_mode": "loose",
+      "lines": 152,
+      "over_token": false
+    },
+    {
+      "est_tokens": 2849,
+      "id": "skills/organize-batch-saxs-dataset/",
+      "line_mode": "lenient",
+      "lines": 90,
+      "over_token": false
+    }
+  ],
+  "skills": 9
+}
