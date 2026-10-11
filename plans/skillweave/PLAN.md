@@ -2,14 +2,13 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 30/33 块（91%） · 状态 `active` · 更新于 2026-10-11 16:15
+**进度** 31/33 块（94%） · 状态 `active` · 更新于 2026-10-11 16:18
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
 - `T-004#B-004` **决策：L1 从 24 项再压到 ≤20 的路线** — 待批准 · @you
-- `T-006#B-002` **独立子代理复核（不许自己验自己）** — 进行中 · @default · 在做 @default
 - `T-008#B-003` **端到端：agent + CLI 走完一个真实 pack** — 已认领 · @default
 
 ## 图
@@ -77,13 +76,11 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef blocked stroke-width:1px;
   class T-004_B-004 blocked;
-  classDef running stroke-width:1px;
-  class T-006_B-002 running;
   classDef claimed stroke-width:1px;
   class T-008_B-003 claimed;
 ```
@@ -370,7 +367,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - run 2026-10-11 15:28 default pending→running 已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改
     - run 2026-10-11 15:29 default running→done 2 个独立判官各 15 行输出（wc -l 15/15，原件不改）。126 候选 / 14 题：should_trigger 14/14 全对 · should_not_trigger 5/6 · near_confusion 6/8。**全部 3 处错误都落在 audit 抓到的那个 1.00 相似对上**（P13 两票都投 tushare-data；P10 判官 B 投到 tushare=gold）—— 独立盲判把结构度量确认为唯一错源。校正随机分 BoR：should_trigger 1.00 · should_not_trigger 0.832 · near_confusion 0.748
 
-### T-006 在真实 pack 上验收 — 进行中
+### T-006 在真实 pack 上验收 — 已完成
 @default
 - [x] `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** _impl_ — 已完成 @default
     - 做什么：【做什么】对该 pack 出完整报告：文档树 + 每层 fanout + 体积超限 + 孤儿/悬空 + 近重复 top-N +
@@ -381,13 +378,14 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-004#B-002
     - 产物：`reports/2026-10-11-usinghermes/report-usinghermes.md`
     - run 2026-10-11 16:12 default pending→done 完整报告落地（基准 b8298f4）：入口层 68 项、常驻 6443 token、L2 超限 16（token 单口径 14）、L3 468 文件/6.86MB、孤儿 104、悬空 46、同层 1621 对里 12 对>0.5（top 1.00 为 tushare 那对）、checks 命中 116、提案 27 条。每个数字都带产生它的命令，§11 是 8 条复现清单（命令→该看到什么），供 T-006#B-002 的复核子代理逐条重跑。
-- [ ] `T-006#B-002` **独立子代理复核（不许自己验自己）** _review_ — 进行中 @default
+- [x] `T-006#B-002` **独立子代理复核（不许自己验自己）** _review_ — 已完成 @default
     - 做什么：【做什么】派一个与执行者不同的子代理，只读报告与 pack，按报告里的命令重跑，逐项核对数字；
 不一致的逐条列出。子代理**只用前台命令**（不许起后台进程）。
     - 判据：复核输出落文件，含「逐项 ✓/✗ 表 + 不一致明细」；有 ✗ 就回到对应块整改，不许改判据。
     - 依赖：T-006#B-001（任务级）
-    - 在做：@default
+    - 产物：`reports/2026-10-11-usinghermes/round4/verify-report.md`
     - run 2026-10-11 16:12 default pending→running 已派独立子代理复核（只读报告+pack，按 §11 逐条重跑，输出 round4/verify-report.md）
+    - run 2026-10-11 16:18 default running→done 独立复核（另一个子代理，只读报告+pack、照 §11 八条命令逐条重跑）结果：8/8 复现清单通过、退出码全对；并抓出本报告 **3 处真错**：① §4 引用分类我抄了旧快照（241/206/267 → 实测 240/203/255）② §8『dup 改后=11』实为 13（归位把 boc/ccb/boc-credit 三兄弟塞进同一层 → +2 对，合并 −1，净 +1，我漏报副作用）③ §8『改前』与被引的验收记录对不上（6443/104 vs 6311/101，两处不同快照）。三处已逐条整改，并新增 §8.1 记录。教训：复核者三个错全是我自己看不出来的 —— 自查不算查。复核者诚实标注未复现项：路由分数需判官模型、非确定性，只核对了原件与表格一致。
 - [x] `T-006#B-003` **第二个 pack 交叉验证（防过拟合）** _impl_ — 已完成 @default
     - 做什么：【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，
 证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。
@@ -462,8 +460,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:17` **agent** [status] T-008#B-002: pending → done（四份 references 齐全且都被 SKILL.md 点名（孤儿 0）：split（切分界线/该下沉标准/转指写法/前后对照三数）· group（两轴判据/类目命名 3-8 个/四个验收数）· merge（五项取证→真重复合并非重复写界限→dup 段必须消失）· rewrite（57 字符窗口/触发词优先/排除条款位置/分组+校正随机重测））
-- `2026-10-11 15:17` **agent** [status] T-007#B-002: pending → done（本仓库的分层披露自检可用 `python3 scripts/weave.py layers .` + `checks .` 自查（自托管跑通，上面两组数字即证据））
 - `2026-10-11 15:18` **agent** [status] T-008#B-001: done → done（更正上一条 run：当时写「grep profile|lock|hermes 0 命中」是错的 —— references/group.md 里有 2 处把某 skill 名当反面例子（含框架名）。已改成中性例子并重跑：grep 0 命中，checks rc=0。判据本身不变）
 - `2026-10-11 15:28` **agent** [status] T-005#B-001: pending → done（judge 子命令：候选=126 个技能 description 前 57 字符；题面 14 条（冻结在 prompts-r1.json）；金标单独落 judge-key.json，自检断言 gold 字段/金标行不泄进判官输入（grep 0 命中）；金标全部在候选表内已验证）
 - `2026-10-11 15:28` **agent** [status] T-005#B-002: pending → done（score 子命令：逐题矩阵（P<n>/kind/gold/picks/✓✗）+ 按题型分组（should_trigger / should_not_trigger / near_confusion）+ 校正随机分 BoR=(acc-1/N)/(1-1/N)；假判官回放验证过（自检里也留了一条 judge→score 往返断言））
@@ -482,6 +478,8 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 16:12` **agent** [status] T-006#B-001: pending → done（完整报告落地（基准 b8298f4）：入口层 68 项、常驻 6443 token、L2 超限 16（token 单口径 14）、L3 468 文件/6.86MB、孤儿 104、悬空 46、同层 1621 对里 12 对>0.5（top 1.00 为 tushare 那对）、checks 命中 116、提案 27 条。每个数字都带产生它的命令，§11 是 8 条复现清单（命令→该看到什么），供 T-006#B-002 的复核子代理逐条重跑。）
 - `2026-10-11 16:12` **agent** [status] T-006#B-002: pending → running（已派独立子代理复核（只读报告+pack，按 §11 逐条重跑，输出 round4/verify-report.md））
 - `2026-10-11 16:15` **default** [summary] 文档与 CLI 对齐：README 补 audit/checks/propose 与当前实测数字（旧数字是 126/69/6694/239/301，已换成 b8298f4 的 125/68/6443/104/46）；skill 正文补 propose 与七条检查；contract 两处改：① L2 两个闸口径（over_limit 16 vs over_token 14）② 入口层判定换成新规则（旧的『第一个直接含 skill 的目录』在分组后会错抓类目）
+- `2026-10-11 16:18` **agent** [exec] T-006#B-002: 线程登记已清除（@default 收工）
+- `2026-10-11 16:18` **agent** [status] T-006#B-002: running → done（独立复核（另一个子代理，只读报告+pack、照 §11 八条命令逐条重跑）结果：8/8 复现清单通过、退出码全对；并抓出本报告 **3 处真错**：① §4 引用分类我抄了旧快照（241/206/267 → 实测 240/203/255）② §8『dup 改后=11』实为 13（归位把 boc/ccb/boc-credit 三兄弟塞进同一层 → +2 对，合并 −1，净 +1，我漏报副作用）③ §8『改前』与被引的验收记录对不上（6443/104 vs 6311/101，两处不同快照）。三处已逐条整改，并新增 §8.1 记录。教训：复核者三个错全是我自己看不出来的 —— 自查不算查。复核者诚实标注未复现项：路由分数需判官模型、非确定性，只核对了原件与表格一致。）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
