@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T16:37:28+08:00",
+  "updated_at": "2026-10-11T17:58:48+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -1252,6 +1252,27 @@
           "exec": {},
           "status_since": "2026-10-11T16:37:28+08:00",
           "runs": []
+        },
+        {
+          "id": "T-008#B-006",
+          "title": "清理后包：新基线 + 5 个超限 skill 下沉（worktree 隔离）",
+          "kind": "impl",
+          "status": "running",
+          "owner": "default",
+          "doc": "【背景】用户除杂完成（UsingHermes 125→39 技能，入口层 68→28 项，常驻 6443→3310 token）。\n附加要求：新开 worktree 测试无误后合并到 main；完成时确认所有 worktree 已合并并清理。\n【做法】worktree = ~/Documents/AgentSkill-wt/AgentSkill-UsingHermes-skillweave，分支 skillweave/cleanup-audit，基于 a7dd123。\n全部测量与改动都在 worktree 里做，主 clone 未动；按用户规矩不在 worktree 里切 main，合并回主 clone 做。\n【已做】① 新基线（tree/layers/audit/checks/propose）落 reports/2026-10-11-usinghermes/post-cleanup/，含 BASELINE.md；\n② 旧题面因 11 条金标路径已被迁走而失效 —— 按新 39 个技能重出题面 prompts-cleaned.json（r6 起为新系列），r6 盲判已发；\n③ 5 个 L2 超限 skill 正文下沉到 references/（每条都过行守恒断言），全包 L2 超限 5→0、孤儿 26→26；worktree commit 0de1ca9。\n【待做】r6 判官回来后打分；无退化则回主 clone merge + push；然后移除两个 worktree（本任务 + 早先的 cheatsheet）并确认分支已清。\n【未做且不擅自做】L1 仍 28 项：不建议再塞类目（用户刚把包拉平），建议把上限 20 当参考线；\n8 对同层相似 + 1 对疑似真重复（autonomous-ai-agents/hermes-skill-card-maintenance ↔ maintain-hermes-skill-cards）只报不改。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "① r6 两个判官输出落盘、行数对齐、分数无退化；\n② worktree 的改动已 merge 进主 clone 的 main 并 push；\n③ 两个 worktree 都已移除、分支已删，git worktree list 只剩主 clone。"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T17:58:48+08:00",
+          "runs": []
         }
       ],
       "note": "",
@@ -1894,7 +1915,14 @@
       "kind": "block",
       "text": "新增块 T-008#B-005「skill 可安装性：一次真实安装 + 装后独立运行」",
       "ref": "T-008#B-005"
+    },
+    {
+      "at": "2026-10-11T17:58:48+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "新增块 T-008#B-006「清理后包：新基线 + 5 个超限 skill 下沉（worktree 隔离）」",
+      "ref": "T-008#B-006"
     }
   ],
-  "rev": "702501d62d6f"
+  "rev": "112da173a99b"
 }

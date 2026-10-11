@@ -2,13 +2,14 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 34/35 块（97%） · 状态 `active` · 更新于 2026-10-11 16:37
+**进度** 34/36 块（94%） · 状态 `active` · 更新于 2026-10-11 17:58
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
 - `T-004#B-004` **决策：L1 从 24 项再压到 ≤20 的路线** — 待批准 · @you
+- `T-008#B-006` **清理后包：新基线 + 5 个超限 skill 下沉（worktree 隔离）** — 进行中 · @default
 
 ## 图
 
@@ -50,6 +51,7 @@ flowchart LR
   T-008_B-003["B-003 端到端：agent + CLI 走完一个真实 pack"]
   T-008_B-004["B-004 四类动作补齐实测：拆（落地）+ 改写（落地）"]
   T-008_B-005["B-005 skill 可安装性：一次真实安装 + 装后独立运行"]
+  T-008_B-006["B-006 清理后包：新基线 + 5 个超限 skill 下沉（worktree 隔离）"]
   T-001_B-002 --> T-001_B-003
   T-002_B-001 --> T-002_B-002
   T-002_B-001 --> T-002_B-003
@@ -82,6 +84,8 @@ flowchart LR
   class T-002_B-005 cancelled;
   classDef blocked stroke-width:1px;
   class T-004_B-004 blocked;
+  classDef running stroke-width:1px;
+  class T-008_B-006 running;
 ```
 
 ## 任务
@@ -422,7 +426,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-001#B-001
     - run 2026-10-11 14:04 you blocked→done 定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。
 
-### T-008 SkillWeave skill 本体（可被任意 agent 安装） — 已完成
+### T-008 SkillWeave skill 本体（可被任意 agent 安装） — 进行中
 @default
 - [x] `T-008#B-001` **skills/skillweave/SKILL.md：第一层薄入口** _impl_ — 已完成 @default
     - 做什么：【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`
@@ -479,10 +483,23 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 用装好的那一份跑 --self-test 全过、layers/audit 正常；依赖检查 import 全在标准库内（python 3.9.6）。
 【残留】仍有一条 MEDIUM execution（唯一那个 git() 出口）—— 允许安装，但记在这里。
 【产物】沙箱里装好的那一份：/Users/maxim/.hermes/cache/scratch/hh-skillweave-2/skills/skill-tooling/skillweave
+- [ ] `T-008#B-006` **清理后包：新基线 + 5 个超限 skill 下沉（worktree 隔离）** _impl_ — 进行中 @default
+    - 做什么：【背景】用户除杂完成（UsingHermes 125→39 技能，入口层 68→28 项，常驻 6443→3310 token）。
+附加要求：新开 worktree 测试无误后合并到 main；完成时确认所有 worktree 已合并并清理。
+【做法】worktree = ~/Documents/AgentSkill-wt/AgentSkill-UsingHermes-skillweave，分支 skillweave/cleanup-audit，基于 a7dd123。
+全部测量与改动都在 worktree 里做，主 clone 未动；按用户规矩不在 worktree 里切 main，合并回主 clone 做。
+【已做】① 新基线（tree/layers/audit/checks/propose）落 reports/2026-10-11-usinghermes/post-cleanup/，含 BASELINE.md；
+② 旧题面因 11 条金标路径已被迁走而失效 —— 按新 39 个技能重出题面 prompts-cleaned.json（r6 起为新系列），r6 盲判已发；
+③ 5 个 L2 超限 skill 正文下沉到 references/（每条都过行守恒断言），全包 L2 超限 5→0、孤儿 26→26；worktree commit 0de1ca9。
+【待做】r6 判官回来后打分；无退化则回主 clone merge + push；然后移除两个 worktree（本任务 + 早先的 cheatsheet）并确认分支已清。
+【未做且不擅自做】L1 仍 28 项：不建议再塞类目（用户刚把包拉平），建议把上限 20 当参考线；
+8 对同层相似 + 1 对疑似真重复（autonomous-ai-agents/hermes-skill-card-maintenance ↔ maintain-hermes-skill-cards）只报不改。
+    - 判据：① r6 两个判官输出落盘、行数对齐、分数无退化；
+② worktree 的改动已 merge 进主 clone 的 main 并 push；
+③ 两个 worktree 都已移除、分支已删，git worktree list 只剩主 clone。
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:28` **agent** [status] T-005#B-003: pending → running（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）
 - `2026-10-11 15:29` **agent** [exec] T-005#B-003: 线程登记已清除（@default 收工）
 - `2026-10-11 15:29` **agent** [status] T-005#B-003: running → done（2 个独立判官各 15 行输出（wc -l 15/15，原件不改）。126 候选 / 14 题：should_trigger 14/14 全对 · should_not_trigger 5/6 · near_confusion 6/8。**全部 3 处错误都落在 audit 抓到的那个 1.00 相似对上**（P13 两票都投 tushare-data；P10 判官 B 投到 tushare=gold）—— 独立盲判把结构度量确认为唯一错源。校正随机分 BoR：should_trigger 1.00 · should_not_trigger 0.832 · near_confusion 0.748）
 - `2026-10-11 15:29` **agent** [status] T-006#B-003: pending → done（第二/第三个 pack 交叉验证：Dream（2 技能、无类目）与 AgentSkill-SoftwareDev（30 散技能一个类目）都跑过 tree/layers（Dream L1 2 项 ✅；SoftwareDev L1 30 项 ❌，形状差异已被同一套命令量出来））
@@ -502,6 +519,7 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 - `2026-10-11 16:27` **agent** [block] 新增块 T-008#B-004「四类动作补齐实测：拆（落地）+ 改写（落地）」
 - `2026-10-11 16:28` **agent** [status] T-008#B-004: running → done（拆+改写两条动作落地：① 拆 accountancy-workflow 21,427→3,760 tok/172 行（行守恒 636=131+517−12），全 pack L2 超限 15→14，孤儿/悬空不升（101/46），L1 与常驻不变；② 改写三条同族 description（加互斥条款），difflib 反而升高（0.581→0.662）—— 证明相似度不能当验收，判据只有路由评测；③ 第 5 轮盲判（r5，同一批题面、2 独立判官、各 15 行）should_trigger 1.0 / should_not_trigger 1.0 / near_confusion 1.0，两个判官都在理由里直接引用了新加的互斥条款来区分 P11/P12/P14；④ 记了方法论：r4 的 P10 单处失手在 r5 消失（判官抽样噪声），单轮 ±1 题不算证据。四类动作现已全部真跑过。）
 - `2026-10-11 16:37` **agent** [block] 新增块 T-008#B-005「skill 可安装性：一次真实安装 + 装后独立运行」
+- `2026-10-11 17:58` **agent** [block] 新增块 T-008#B-006「清理后包：新基线 + 5 个超限 skill 下沉（worktree 隔离）」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
