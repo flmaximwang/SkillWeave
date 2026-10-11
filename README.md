@@ -73,7 +73,7 @@ AgentSkill-SoftwareDev  L1 技能=30  入口层 30 项（无类目）· ≈900 t
 
 | 已有 | 它管什么 | 本仓库补什么 |
 |---|---|---|
-| `Dream` 的 `check-disclosure.py` | **入口层条目数**与**单个** `SKILL.md` 的规模（行/字节/文档字节/被点名的兄弟数） | 整棵**文档树**、L1/L2/L3 三级度量、同层抢题、路由可测、按度量重构并重测 |
+| `Dream` 的 `check-disclosure.py` | **入口层条目数**与**单个** `SKILL.md` 的规模（行/字节/文档字节/被点名的兄弟数） | 整棵**文档树**、**披露链递归**（层=披露深度，L1..Ln）与逐文档体检、同层抢题、路由可测、按度量重构并重测 |
 | `agent-skill-analysis`（MIT·npm） | 单个 skill 目录 → 结构化 JSON（frontmatter/outline/files/refs/orphans/digest） | **pack 层**：多 skill 的母树、L1 菜单、跨 skill 抢题 |
 | `skill-tools`（Apache-2.0·npm） | per-skill 校验/lint/打分 + BM25 检索式路由 | **判官式**路由评测（逐题金标 + 校正随机分）、重测闭环 |
 | Hermes 的 `load-external-skill-index` / `skill-routing-blind-test` | Hermes 里的索引成本与盲测口径 | 去掉框架依赖，输入只认 pack 目录 |
