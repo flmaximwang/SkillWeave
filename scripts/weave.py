@@ -172,6 +172,8 @@ def analyze_skill(path, rel):
         "refs": [], "mentions": [], "files": [], "headings": [], "children": [],
     }
     desc = (meta.get("description") or "").strip()
+    node["description"] = desc
+    node["description_chars"] = len(desc)
     if desc:
         node["summary"] = desc.split("\n")[0][:200]
         node["summary_source"] = f"{rel}SKILL.md frontmatter.description"
@@ -339,9 +341,113 @@ def fanout_report(root):
     return rows
 
 
+# ---------------------------------------------------------------- 三级披露（L1/L2/L3）
+
+def skills_root(tree):
+    """找到「装技能的那一层」：自上而下第一个**直接**含 skill 的目录节点。
+    pack 第一级披露的选项数就取它的直接子项数（= Agent 第一次选择看到的菜单）。"""
+    node = tree
+    while node["kind"] != "pack":
+        node = node["children"][0]
+    while True:
+        if any(c["kind"] == "skill" for c in node["children"]):
+            return node
+        nxt = [c for c in node["children"] if c["kind"] in ("category",) or any(
+            d["kind"] in ("skill", "category") for d in c["children"])]
+        if not nxt:
+            return node
+        node = nxt[0]
+
+
+def cmd_layers(root, out):
+    """三级披露度量：L1 = pack 层（所有 skill 的 name+description，常驻）·
+    L2 = 每个 skill 的 SKILL.md 正文（触发时载入）· L3 = references/scripts/assets（按需）。"""
+    skills, skipped = [], []
+    tracked = tracked_set(root)
+    tree = walk_dir(root, "", tracked, skipped, skills)
+    if tree is None:
+        print("[layers] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
+        return 1
+    tree["pack"] = {"name": os.path.basename(root),
+                    "member_mode": "git-tracked" if tracked is not None else "all"}
+    sr = skills_root(tree)
+    entries = sr["children"]
+    loose = [c for c in entries if c["kind"] == "skill"]
+    cats = [c for c in entries if c["kind"] == "category"]
+    l1_chars = sum(s["description_chars"] for s in skills)
+    l1_text = "\n".join(s["description"] for s in skills)
+    os.makedirs(out, exist_ok=True)
+
+    over_l2 = [s for s in skills if s["est_tokens"] > 5000 or s["body_lines"] > 500]
+    l3_files = [f for s in skills for f in s["files"] if f["kind"] != "instructions"]
+    orphans = [(s["id"], o) for s in skills for o in s["orphans"]]
+    broken = [(s["id"], b) for s in skills for b in s["broken"]]
+    big_l3 = sorted([f for s in skills for f in s["files"]
+                     if f["kind"] != "instructions"], key=lambda f: -f["bytes"])[:5]
+
+    rep = {
+        "pack": os.path.basename(root),
+        "member_mode": tree["pack"]["member_mode"],
+        "untracked_skill_dirs": skipped,
+        "L1": {"skills": len(skills), "skills_root": sr["id"] or "<pack>/",
+               "first_layer_entries": len(entries),
+               "first_layer_loose_skills": len(loose), "first_layer_categories": len(cats),
+               "menu_entries": [c["id"] for c in entries],
+               "resident_chars": l1_chars, "resident_est_tokens": est_tokens(l1_text),
+               "over_1024_chars": [s["id"] for s in skills if s["description_chars"] > 1024]},
+        "L2": {"over_limit": [{"id": s["id"], "est_tokens": s["est_tokens"], "lines": s["body_lines"]}
+                              for s in sorted(over_l2, key=lambda s: -s["est_tokens"])],
+               "max_many": sorted([{"id": s["id"], "est_tokens": s["est_tokens"], "lines": s["body_lines"]}
+                                   for s in skills], key=lambda r: -r["est_tokens"])[:5],
+               "sibling_mentions_max": sorted([{"id": s["id"], "mentions": len(s["mentions"])}
+                                               for s in skills], key=lambda r: -r["mentions"])[:5]},
+        "L3": {"files": len(l3_files), "bytes": sum(f["bytes"] for f in l3_files),
+               "orphans": len(orphans), "broken": len(broken),
+               "largest": big_l3},
+    }
+    with open(os.path.join(out, "layers.json"), "w", encoding="utf-8") as f:
+        json.dump(rep, f, ensure_ascii=False, indent=2, sort_keys=True)
+
+    L = [f"# 三级披露 · {os.path.basename(root)}", ""]
+    L.append(f"**L1（第一级 · 常驻菜单）** 技能 {len(skills)} 个 · 入口层 `{sr['id'] or '<pack>/'}` 摆出 "
+             f"**{len(entries)} 项**（散技能 {len(loose)} + 类目 {len(cats)}）· "
+             f"常驻 {l1_chars} 字符 ≈ {est_tokens(l1_text)} token")
+    if len(entries) > MAX_FIRST_LAYER:
+        L.append(f"  ❌ 第一层条目 {len(entries)} > 上限 {MAX_FIRST_LAYER}（口径见 docs/contract.md §4）")
+    if rep["L1"]["over_1024_chars"]:
+        L.append(f"  ❌ description 超 1024 字符: {rep['L1']['over_1024_chars']}")
+    L.append("")
+    L.append(f"**L2（第二级 · 触发后载入 `SKILL.md` 正文）** 超限 {len(over_l2)} 个"
+             f"（>5000 est_token 或 >500 行）")
+    for r in rep["L2"]["max_many"]:
+        L.append(f"  {r['est_tokens']:>6} tok {r['lines']:>4} 行  {r['id']}")
+    L.append("")
+    L.append(f"**L3（第三级 · 按需读）** 文件 {len(l3_files)} 个 / {rep['L3']['bytes']} B · "
+             f"孤儿 {len(orphans)} · 悬空引用 {len(broken)}")
+    for f in big_l3:
+        L.append(f"  {f['bytes']:>8} B  {f['path']}")
+    L.append("")
+    with open(os.path.join(out, "LAYERS.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(L))
+
+    print(f"[layers] pack={os.path.basename(root)} 成员口径={tree['pack']['member_mode']}"
+          f"（未跟踪 skill 形目录 {len(skipped)} 个{': ' + ', '.join(skipped[:3]) if skipped else ''}）")
+    print(f"[layers] L1 技能={len(skills)} · 入口层 `{sr['id'] or '<pack>/'}` 摆出 {len(entries)} 项"
+          f"（散技能 {len(loose)} + 类目 {len(cats)}）· 常驻 {l1_chars} 字符 ≈ {est_tokens(l1_text)} token"
+          f" · {'❌ 超上限 ' + str(MAX_FIRST_LAYER) if len(entries) > MAX_FIRST_LAYER else '✅ 在上限内'}")
+    print(f"[layers] L2 正文超限={len(over_l2)} 个 · 最大: "
+          + "; ".join(f"{r['id']}={r['est_tokens']}tok/{r['lines']}行" for r in rep['L2']['max_many'][:3]))
+    print(f"[layers] L3 文件={len(l3_files)} 孤儿={len(orphans)} 悬空={len(broken)}")
+    print(f"[layers] 出: {os.path.join(out, 'LAYERS.md')}")
+    return 0
+
+
+MAX_FIRST_LAYER = 20   # 出处：Dream 的 check-disclosure.py `MAX_FIRST_LAYER_SKILLS`；口径见 docs/contract.md §4
+
+
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="SkillWeave·文档树")
-    ap.add_argument("cmd", nargs="?", choices=["tree"])
+    ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
+    ap.add_argument("cmd", nargs="?", choices=["tree", "layers"])
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -351,6 +457,10 @@ def main(argv=None):
     if not a.cmd or not a.pack:
         ap.print_usage()
         return 2
+    if a.cmd == "layers":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        return cmd_layers(root, out)
     root = os.path.abspath(a.pack.rstrip("/"))
     if not os.path.isdir(root):
         print(f"[tree] FAIL 目录不存在: {root}")

@@ -1,41 +1,84 @@
 # SkillWeave
 
-分析一个 **skill pack**（任意 agent 框架的 `SKILL.md` 目录树），构建可导航的**文档树**，并据此优化**分层披露**
-结构 —— 让每一层在它自己的选择数下，Agent 仍能一次选对内容。
+分析一个 **skill pack**，构建它的**文档树**，并据此优化**分层披露**结构 —— 让每一级摆出的选项数，
+都还在「能一次选对」的范围内。
 
-- **输入** = 一个 skill pack 目录，契约就是 [agentskills.io 规范](https://agentskills.io/specification)：
-  `SKILL.md`（frontmatter `name` ≤64 / `description` ≤1024）+ 可选 `scripts/` `references/` `assets/`。
-- **不依赖任何 agent 框架**：仓库里没有 profile、安装器、lock 文件、内置技能表这些概念。
-  任何 agent（或人）拿到这批文件就能跑。
-- **开发计划（唯一真相）**：`plans/skillweave/`（`plan.json` 机器模型 · `PLAN.md` 摘要 · `plan.html` 看板）。
+## 输入是什么（先把定义说死）
 
-## 要解决的问题
+- **一个 skill pack = 一个仓库/目录，里面含 1 个或多个 skill。** 不是单个 `SKILL.md`。
+- **输入 = 一整套含 `SKILL.md` 的文件夹树**（整个 pack 目录）。工具自己走这棵树，认出哪些目录是 skill、
+  哪些是类目、哪些是资源；一个 pack 里可以有任意多个 skill，也可以有类目层（`skills/<类目>/<skill>/`）。
+- 契约就是 [agentskills.io 规范](https://agentskills.io/specification)：
+  `<skill 名>/SKILL.md`（frontmatter `name` ≤64 字符 / `description` ≤1024 字符）+ 可选
+  `scripts/` `references/` `assets/`。工具**不依赖任何 agent 框架**：没有 profile、没有安装器、
+  没有 lock 文件、没有内置技能表这些概念。
+- pack 在 git 仓库里时，只算 **git 跟踪**的文件为成员；目录里躺着的未跟踪垃圾（例如别人跑批留下的 `~/`
+  树）单列出来，**不混进任何度量**。
 
-分层披露（progressive disclosure）的失败形态不是「文件太大」，而是**某一层摆出的选项太多**：
-Agent 站在那一层选不对，就再也到不了正确的细节。本仓库把这件事变成**可量的量**再动手：
+## 三级披露（要处理的核心问题）
 
-1. **构建文档树** —— 把 pack 解析成节点图（pack → 类目 → 技能 → 章节 → 引用文件），每个节点带自己的
-   摘要与代价（字节/token），边 = 正文里的真实引用。
-2. **量每一层** —— 每层的选择数（fanout）分布、每个节点的体积上限、孤儿文件（没有任何祖先点名它）、
-   从入口到每个文件要跳几跳、以及**互相抢题的近重复节点**（同一层里两个长得太像的 description）。
-3. **优化** —— 拆（大节点下沉到 `references/` 并留转指）、并（同级近重复合并）、分（同级选项归入类目
-   压低 fanout）、改写（description 的触发词），每一步都给 diff 与判据，改完重跑第 2 步。
-4. **路由可测** —— pack 级、框架无关的盲测：候选只有各节点的 description，判官只能读那一份文件，
-   金标逐题给定；分数按**校正随机的口径**报，因为「这一层有 30 个选项」和「有 5 个」的成功率不可直接比。
+| 级 | 是什么 | 谁在付代价 | 本仓库量的东西 |
+|---|---|---|---|
+| **L1 · 第一级** | **整个 pack 里所有 skill 的 `name` + `description`** —— Agent 第一次做选择时看到的菜单 | 常驻上下文（每会话都付） | **入口层摆出几项**（散技能 + 类目）、常驻字符/估算 token、是否超过第一层上限、有没有 `description` 超 1024 字符 |
+| **L2 · 第二级** | 某个 skill 被选中后载入的 **`SKILL.md` 正文** | 触发时载入 | 正文估算 token / 行数（对照 <5000 token、50/150/500 行三档）、它点名了多少个同 pack 兄弟 |
+| **L3 · 第三级** | 该 skill 的 `references/` `scripts/` `assets/` | 按需读 | 文件数与体积、最大文件、**孤儿文件**、**悬空引用** |
+
+> **第一级披露的问题就是这个仓库存在的理由**：pack 一大，第一级菜单就长 —— 本机实测
+> `AgentSkill-UsingHermes` 的入口层摆出 **69 项**（散技能 52 + 类目 17），Agent 在这一级选错就再也到不了
+> 正确的细节。工具要能**量**它，并给出**收敛**方案：把散技能归入类目（一级选择拆成两级）、合并近重复项、
+> 改写 `description` 的触发词。
+
+## 现在能跑的东西
+
+```bash
+# 文档树：pack → 类目 → skill → 章节/文件；出 tree.json（机器读）+ TREE.md（人读）
+python3 scripts/weave.py tree   <pack 目录> [--out DIR]
+
+# 三级披露：L1 菜单与常驻成本 + L2 正文规模 + L3 孤儿与悬空；出 layers.json + LAYERS.md
+python3 scripts/weave.py layers <pack 目录> [--out DIR]
+
+# 自检（自带 fixture，不碰真实数据）
+python3 scripts/weave.py --self-test
+```
+
+实测（2026-10-11）：
+
+```
+AgentSkill-UsingHermes  L1 技能=126 入口层摆出 69 项（散 52 + 类目 17）常驻 21302 字符 ≈ 6694 token ❌超上限20
+                        L2 超限 17 个（最大 21427 tok / 747 行）  L3 文件 470 · 孤儿 239 · 悬空 301
+Dream                   L1 技能=2   入口层 2 项 · 常驻 ≈268 token ✅              L3 悬空 15
+AgentSkill-SoftwareDev  L1 技能=30  入口层 30 项（无类目）· ≈900 token ❌超上限20  L2 超限 9 个
+```
 
 ## 与已有工具的关系
 
 | 已有 | 它管什么 | 本仓库补什么 |
 |---|---|---|
-| `Dream` 的 `check-disclosure.py` | **一个** `SKILL.md` 自己的第一层：行数/字节/文档字节/被点名的同 pack 兄弟数 | **pack 层与层间**：每层的选项数、文档树形状、路由是否测得出来 |
-| Hermes 的 `load-external-skill-index` / `skill-routing-blind-test` | Hermes 里的索引成本与路由盲测口径 | 去掉框架依赖，输入只认 pack 目录 |
+| `Dream` 的 `check-disclosure.py` | **入口层条目数**与**单个** `SKILL.md` 的规模（行/字节/文档字节/被点名的兄弟数） | 整棵**文档树**、L1/L2/L3 三级度量、同层抢题、路由可测、按度量重构并重测 |
+| `agent-skill-analysis`（MIT·npm） | 单个 skill 目录 → 结构化 JSON（frontmatter/outline/files/refs/orphans/digest） | **pack 层**：多 skill 的母树、L1 菜单、跨 skill 抢题 |
+| `skill-tools`（Apache-2.0·npm） | per-skill 校验/lint/打分 + BM25 检索式路由 | **判官式**路由评测（逐题金标 + 校正随机分）、重测闭环 |
+| Hermes 的 `load-external-skill-index` / `skill-routing-blind-test` | Hermes 里的索引成本与盲测口径 | 去掉框架依赖，输入只认 pack 目录 |
 
 ## 形状（硬约束）
 
-- 第一层（`SKILL.md`）只放：边界 · 方法 · 每步一行转指；细节下沉 `references/`，每份都被点名（无孤儿文档）。
-- 长度上限是**可自检的常量**，超限即拆。
+- 第一层只放：定义 · 方法 · 每步一行转指；细节下沉 `docs/`，每份都被点名（无孤儿文档）。
+- 上限是**可自检的常量**，超限即报（`--self-test` 与 `layers` 都会判）。
 - 判据只求真命令与实测输出：改完必须能重跑出一份新的度量，不许写「应该好了」。
 
-## 依据（读过的外部工作）
+## 依据与契约
 
-见 [`docs/prior-art.md`](docs/prior-art.md)：它列了每一项实测数字与本仓库据此做的决定。
+- [`docs/contract.md`](docs/contract.md) —— 节点 schema、三级披露定义、每层要量的量、caps 表（每条带出处）。
+- [`docs/prior-art.md`](docs/prior-art.md) —— 外部实测结论（分层披露值多少、只看 description 会掉多少分、
+  层深该怎么评）。
+- [`docs/similar-work.md`](docs/similar-work.md) —— **同类公开项目实勘**：已有的做到哪一步、本仓库还剩什么。
+- `reports/` —— 在真实 pack 上跑出来的度量留档。
+
+## 开发计划（唯一真相，随仓库提交）
+
+`plans/skillweave/`：`plan.json`（机器模型）· `PLAN.md`（摘要）· `plan.html`（看板，`file://` 直接打开）。
+计划由 [loomerto](https://github.com/flmaximwang/Loomerto) 管理，**只经 CLI 改**：
+
+```bash
+loomerto --plans-root plans current skillweave     # 现在该谁动
+loomerto --plans-root plans check   skillweave     # 图质量
+```
