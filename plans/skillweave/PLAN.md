@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 42/43 块（98%） · 状态 `active` · 更新于 2026-10-12 00:16
+**进度** 43/44 块（98%） · 状态 `active` · 更新于 2026-10-12 00:32
 
 **参与方** 本人(human)
 
@@ -43,6 +43,7 @@ flowchart LR
   T-004_B-009["B-009 PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md"]
   T-004_B-010["B-010 第二步收口：TODO.md 待办清单 + 包内免检表 + 根选择层单列（L0）"]
   T-004_B-011["B-011 第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」"]
+  T-004_B-012["B-012 派发/验收落地：dispatch（事实补全+划批）+ verify（四判据+梯子+重派守卫）"]
   T-005_B-001["B-001 判官输入生成器（候选只有 description）"]
   T-005_B-002["B-002 打分器：逐题矩阵 + 分组 + 校正随机分"]
   T-005_B-003["B-003 在真实 pack 上跑一轮并留档"]
@@ -85,7 +86,7 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-004_B-004,T-004_B-005,T-004_B-006,T-004_B-007,T-004_B-008,T-004_B-009,T-004_B-010,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005,T-008_B-006 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-004_B-004,T-004_B-005,T-004_B-006,T-004_B-007,T-004_B-008,T-004_B-009,T-004_B-010,T-004_B-012,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005,T-008_B-006 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef claimed stroke-width:1px;
@@ -453,6 +454,25 @@ assets 里的 png/交互 HTML、test-prompts.json、test-results.md）。产物 
 ⑤ **验收（主会话）**：重跑 disclosure → 该 skill 的条目消失 · 无新增 · 拆过的行守恒 · diff 每条追得到 TODO 编号。
    子代理不开后台进程，前台跑完即结束。
     - 判据：23 个 skill 处理完；重跑 disclosure 无新增；diff 每条追得到编号
+- [x] `T-004#B-012` **派发/验收落地：dispatch（事实补全+划批）+ verify（四判据+梯子+重派守卫）** _impl_ — 已完成 @default
+    - 做什么：派发与验收的机械部分落地（用户「尝试落地吧」）：
+
+① `weave.py dispatch <pack> [--batch-size 25]` —— 派发前**事实补全** + 划批 + 落 prompt + 计数起点。
+   单位 = skill 子树（文件归属 = 最长前缀的 SKILL.md）；断言批次间文件集合两两不相交。
+   事实补全：悬空 → 包内同名候选（实测 `scripts/lock-provenance.py` 在包内有候选 = 路径写错，
+   可修；包内无同名文件 = 判豁免）· 到不了根 → 同目录里被披露过的兄弟 · 超限 → 行数 + 二级标题。
+   产物：dispatch/{plan.json, state.json, baseline.json}（prompt 与 baseline 是生成物，gitignore）。
+② `weave.py verify <pack> --state … --expect-fixed <id…> [--splits]` —— 闸 1 四条判据：该消的消了 ·
+   无新增（集合级，不是比计数）· external 集合不变 · 拆分守恒（去空行去标题后字符序列相等 + 每个新文件都被披露）。
+   失败 = 整批回滚 + 按梯子 R1 给证据 → R2 减粒度 → R3 喂事实 → R4 换执行者 → R5 落 PARKED.md；回归项也计账。
+③ **不许打转**：attempts 重派时继承（不许清零）；某批已有尝试且 prompt_sha256 未变 → 拒绝派发（退 3）。
+   跑完读 dispatch/RUN.md 与 PARKED.md（就写在 state 旁边）。
+
+UsingHermes 实测：**4 批 · 77 条**（B1 2 skill/23 条 · B2 4/24 · B3 10/23 · B4 7/7）· 基线 rev 3395bb7 · verify PASS。
+撞出并修掉三个真 bug：① 条目口径漂了（dispatch 按引用拆 = 140 条 ≠ TODO.md 的 77 条）→ 改成按 (kind,path) 聚合；
+② 批次失衡（B1 119 条 / B3 3 条）→ 改成按条目数平衡；③ external 是列表套列表，set() 直接 TypeError（真包第一次跑 verify 就炸）。
+自检从 12 条断言加到 **22 条**（含「新增悬空必须 FAIL」「FAIL 时写出 R1 指令」「prompt 没换就重派退 3」）。
+    - 判据：dispatch 出 plan/state/baseline；verify 集合级判据 + 回归拦截 + 梯子；prompt 未换拒重派；self-test 全过
 
 ### T-005 路由评测：框架无关、可校正随机 — 已完成
 @default
@@ -619,7 +639,6 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 
 ## 日志（近 20 条）
 
-- `2026-10-11 16:12` **agent** [status] T-006#B-001: pending → done（完整报告落地（基准 b8298f4）：入口层 68 项、常驻 6443 token、L2 超限 16（token 单口径 14）、L3 468 文件/6.86MB、孤儿 104、悬空 46、同层 1621 对里 12 对>0.5（top 1.00 为 tushare 那对）、checks 命中 116、提案 27 条。每个数字都带产生它的命令，§11 是 8 条复现清单（命令→该看到什么），供 T-006#B-002 的复核子代理逐条重跑。）
 - `2026-10-11 16:12` **agent** [status] T-006#B-002: pending → running（已派独立子代理复核（只读报告+pack，按 §11 逐条重跑，输出 round4/verify-report.md））
 - `2026-10-11 16:15` **default** [summary] 文档与 CLI 对齐：README 补 audit/checks/propose 与当前实测数字（旧数字是 126/69/6694/239/301，已换成 b8298f4 的 125/68/6443/104/46）；skill 正文补 propose 与七条检查；contract 两处改：① L2 两个闸口径（over_limit 16 vs over_token 14）② 入口层判定换成新规则（旧的『第一个直接含 skill 的目录』在分组后会错抓类目）
 - `2026-10-11 16:18` **agent** [exec] T-006#B-002: 线程登记已清除（@default 收工）
@@ -639,6 +658,7 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 - `2026-10-11 23:44` **default** [block] 新增块 T-004#B-009「PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md」
 - `2026-10-12 00:08` **default** [block] 新增块 T-004#B-010「第二步收口：TODO.md 待办清单 + 包内免检表 + 根选择层单列（L0）」
 - `2026-10-12 00:16` **default** [block] 新增块 T-004#B-011「第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」」
+- `2026-10-12 00:32` **default** [block] 新增块 T-004#B-012「派发/验收落地：dispatch（事实补全+划批）+ verify（四判据+梯子+重派守卫）」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

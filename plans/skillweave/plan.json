@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-12T00:16:25+08:00",
+  "updated_at": "2026-10-12T00:32:13+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -899,6 +899,27 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-12T00:16:25+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-012",
+          "title": "派发/验收落地：dispatch（事实补全+划批）+ verify（四判据+梯子+重派守卫）",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "派发与验收的机械部分落地（用户「尝试落地吧」）：\n\n① `weave.py dispatch <pack> [--batch-size 25]` —— 派发前**事实补全** + 划批 + 落 prompt + 计数起点。\n   单位 = skill 子树（文件归属 = 最长前缀的 SKILL.md）；断言批次间文件集合两两不相交。\n   事实补全：悬空 → 包内同名候选（实测 `scripts/lock-provenance.py` 在包内有候选 = 路径写错，\n   可修；包内无同名文件 = 判豁免）· 到不了根 → 同目录里被披露过的兄弟 · 超限 → 行数 + 二级标题。\n   产物：dispatch/{plan.json, state.json, baseline.json}（prompt 与 baseline 是生成物，gitignore）。\n② `weave.py verify <pack> --state … --expect-fixed <id…> [--splits]` —— 闸 1 四条判据：该消的消了 ·\n   无新增（集合级，不是比计数）· external 集合不变 · 拆分守恒（去空行去标题后字符序列相等 + 每个新文件都被披露）。\n   失败 = 整批回滚 + 按梯子 R1 给证据 → R2 减粒度 → R3 喂事实 → R4 换执行者 → R5 落 PARKED.md；回归项也计账。\n③ **不许打转**：attempts 重派时继承（不许清零）；某批已有尝试且 prompt_sha256 未变 → 拒绝派发（退 3）。\n   跑完读 dispatch/RUN.md 与 PARKED.md（就写在 state 旁边）。\n\nUsingHermes 实测：**4 批 · 77 条**（B1 2 skill/23 条 · B2 4/24 · B3 10/23 · B4 7/7）· 基线 rev 3395bb7 · verify PASS。\n撞出并修掉三个真 bug：① 条目口径漂了（dispatch 按引用拆 = 140 条 ≠ TODO.md 的 77 条）→ 改成按 (kind,path) 聚合；\n② 批次失衡（B1 119 条 / B3 3 条）→ 改成按条目数平衡；③ external 是列表套列表，set() 直接 TypeError（真包第一次跑 verify 就炸）。\n自检从 12 条断言加到 **22 条**（含「新增悬空必须 FAIL」「FAIL 时写出 R1 指令」「prompt 没换就重派退 3」）。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "dispatch 出 plan/state/baseline；verify 集合级判据 + 回归拦截 + 梯子；prompt 未换拒重派；self-test 全过"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-12T00:32:13+08:00",
           "runs": []
         }
       ],
@@ -2167,7 +2188,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-011「第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」」",
       "ref": "T-004#B-011"
+    },
+    {
+      "at": "2026-10-12T00:32:13+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-012「派发/验收落地：dispatch（事实补全+划批）+ verify（四判据+梯子+重派守卫）」",
+      "ref": "T-004#B-012"
     }
   ],
-  "rev": "2f4199619675"
+  "rev": "e06e30c4fb99"
 }
