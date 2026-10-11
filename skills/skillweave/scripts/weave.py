@@ -1915,7 +1915,8 @@ def _apply_item(root, item, res, dj, waivers):
         return True, "obsolete：不自动通过，记 PARKED", None
     edits = res.get("edits") or []
     parts = res.get("parts") or {}
-    if not edits and not parts:
+    waived_only = res.get("verdict") == "waived" or res.get("reason_code") == "external"
+    if not edits and not parts and not waived_only:
         return False, "既没有 edits 也没有 parts", None
     allowed = _allowed_files(item, dj)
     # 逐文件先在内存里算好改动，全部通过才写盘
@@ -2195,7 +2196,9 @@ def cmd_verify(root, state_path, expect_fixed, splits_path, out):
     if dj is None:
         print("[verify] FAIL 扫不动这个 pack")
         return 1
-    before, after = _findings(base, root), _findings(dj, root)
+    _wv = _read_waivers(root)                    # 已记豁免的条目算已解决，不再出现在待办与对账里
+    before = {i: f for i, f in _findings(base, root).items() if not _waived(f["path"], _wv)}
+    after = {i: f for i, f in _findings(dj, root).items() if not _waived(f["path"], _wv)}
     fails = []
     new = sorted(set(after) - set(before))
     if new:
@@ -2790,6 +2793,31 @@ def self_test():
             json.dump(sp, f, ensure_ascii=False)
         assert cmd_apply(pack, [sppath], st, os.path.join(out9, "dispatch")) == 1, "拆分不守恒必须失败"
         assert orig == read_text(bfull), "失败的提案不许留下半个改动"
+        # 只写豁免、没有 edits 的提案：要能落盘、写进 waivers、让条目离开待办
+        _wp = os.path.join(pack, ".skillweave", "waivers.txt")
+        _bk = read_text(_wp) if os.path.isfile(_wp) else None      # 测完要还原，否则后面的对账会漂
+        wprop = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "waived", "reason_code": "external",
+             "reason": "这个引用在说包外的文件"}]}
+        wpath = os.path.join(tmp, "prop-waive.json")
+        with open(wpath, "w", encoding="utf-8") as f:
+            json.dump(wprop, f, ensure_ascii=False)
+        assert cmd_apply(pack, [wpath], st, os.path.join(out9, "dispatch")) == 0, "只写豁免的提案也该落盘"
+        wf = open(os.path.join(pack, ".skillweave", "waivers.txt"), encoding="utf-8").read()
+        assert broken["path"] in wf, "豁免规则没写进 waivers.txt"
+        _fw = os.path.join(out9, "waive-todo")
+        assert cmd_disclosure(pack, _fw) == 0
+        assert broken["id"] not in open(os.path.join(_fw, "TODO.md"), encoding="utf-8").read(), \
+            "豁免后该条目不该还在待办里"
+        _wv = _read_waivers(pack)
+        _bf = {i: f for i, f in _findings(json.load(open(os.path.join(out9, "dispatch",
+              "baseline.json"), encoding="utf-8")), pack).items() if not _waived(f["path"], _wv)}
+        assert broken["id"] not in _bf, "豁免的条目不该再被当成待解决"
+        if _bk is None:
+            os.remove(_wp)
+        else:
+            with open(_wp, "w", encoding="utf-8") as f:
+                f.write(_bk)
         before_att = json.load(open(st, encoding="utf-8"))["attempts"]
         assert cmd_dispatch(pack, out9, batch_size=10) == 0, "重派（无尝试记录）应被允许"
         after_att = json.load(open(st, encoding="utf-8"))["attempts"]
