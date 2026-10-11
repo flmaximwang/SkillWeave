@@ -1000,7 +1000,7 @@ def cmd_score(key_path, judge_paths, out):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
     ap.add_argument("cmd", nargs="?",
-                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize", "collapse"])
+                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize", "collapse", "prepare"])
     ap.add_argument("--prompts", default=None)
     ap.add_argument("--key", default=None)
     ap.add_argument("--judge", nargs="*", default=[])
@@ -1008,6 +1008,8 @@ def main(argv=None):
     ap.add_argument("--apply-group", default=None)
     ap.add_argument("--description", default=None)
     ap.add_argument("--entry-dir", default=None)
+    ap.add_argument("--dest", default=None)
+    ap.add_argument("--shape", default=None)
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -1038,6 +1040,10 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or root          # 默认落回 pack 自己：可视化是给仓库看的产物
         return cmd_visualize(root, out)
+    if a.cmd == "prepare":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        return cmd_prepare(root, out, dest=a.dest, shape=a.shape, description=a.description)
     if a.cmd == "collapse":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
@@ -1521,6 +1527,121 @@ def _leaves(node):
     return out
 
 
+
+def _clone_copy(pack, dest):
+    """拷贝一份副本。macOS 走 APFS clonefile（`cp -Rc`，秒级、几乎不占额外空间），不支持就退回 `cp -R`。"""
+    r = subprocess.run(["cp", "-Rc", pack, dest], capture_output=True, text=True)
+    if r.returncode == 0:
+        return "cp -Rc（clonefile）"
+    subprocess.run(["cp", "-R", pack, dest], check=True, capture_output=True)
+    return "cp -R（本机不支持 clonefile，整份拷）"
+
+
+def _ensure_git_copy(dest, log):
+    """副本必须由 git 管起来 —— 输入目录有没有 git 都不影响这一步。
+    · 副本自带 `.git`（拷的是个仓库）：**先摘掉所有 remote**（误推当场失败），再把当前状态提交成起点；
+    · 副本没有 git：`git init` + 一行 `.gitignore` + 初始 commit。"""
+    fresh = False
+    if git(dest, "rev-parse", "--git-dir") is not None and git(dest, "rev-parse", "--git-dir").returncode == 0:
+        remotes = [r.strip() for r in (git(dest, "remote") or type("x", (), {"stdout": ""})()).stdout.split() if r.strip()]
+        for r in remotes:
+            git(dest, "remote", "remove", r)
+        log.append(f"副本自带 git：已摘掉 {len(remotes)} 个 remote（{', '.join(remotes) or '无'}），误推会当场失败")
+    else:
+        git(dest, "init", "-q")
+        with open(os.path.join(dest, ".gitignore"), "w", encoding="utf-8") as f:
+            f.write(".DS_Store\n")
+        log.append("副本原本没有 git：已 `git init` + 一行 .gitignore（挡 .DS_Store）")
+        fresh = True
+    st = git(dest, "status", "--porcelain")
+    dirty = len((st.stdout or "").split("\n")) - 1 if st is not None and st.returncode == 0 else 0
+    git(dest, "add", "-A")
+    if dirty:
+        git(dest, "-c", "user.name=planweave", "-c", "user.email=planweave@local",
+            "commit", "-q", "-m", "planweave: 工作副本起点（原样拷贝，未改内容）")
+    rev = _rev(dest)
+    log.append(f"起点 commit `{rev}`；" + ("全部文件已作为起点提交" if fresh else
+                ("工作区干净" if dirty == 0 else f"原样带 {dirty} 项未提交改动，已一并记为起点")))
+    return rev
+
+
+def cmd_prepare(pack, out, dest=None, shape=None, description=None):
+    """第一步：把「一整个目录的 skill」变成一份**可回滚、可对账**的工作副本。
+
+    ① clonefile 拷贝（原目录只读，不碰）；② 副本里确保由 git 管（自带 git 就摘 remote + 记起点，
+    没有就 `git init` + `.gitignore` + 初始 commit）；③ 量副本、推导 L1（互指图的连通分量 = 岛）；
+    ④ 出 `BASELINE.md`：副本路径 · 副本 rev · 推导的 L1 · **两种形状（单入口/多入口）同口径的账** ·
+    待用户选定的形状。
+
+    形状必须用户定：`--shape single|multi` 用来记下选择；不填就留 ⏳ 待选。
+    """
+    pack = os.path.abspath(pack.rstrip("/"))
+    if not os.path.isdir(pack):
+        print(f"[prepare] FAIL 目录不存在: {pack}")
+        return 1
+    if shape not in (None, "single", "multi"):
+        print("[prepare] FAIL --shape 只能是 single 或 multi")
+        return 2
+    name = os.path.basename(pack)
+    dest = os.path.abspath(dest or os.path.join(tempfile.gettempdir(), "planweave-" + name))
+    if os.path.exists(dest):
+        print(f"[prepare] FAIL 副本已存在，不覆盖: {dest}（换 --dest 或先删掉它）")
+        return 2
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    how = _clone_copy(pack, dest)
+    log = [f"副本：`{dest}`（{how}）· 原目录只读，未动"]
+    rev = _ensure_git_copy(dest, log)
+
+    skills, skipped = [], []
+    tree = walk_dir(dest, dest, "", tracked_set(dest), skipped, skills)
+    if tree is None:
+        print("[prepare] FAIL 副本里没有任何 skill（找不到 SKILL.md）")
+        return 1
+    add_mentions(dest, skills)
+    edges = cross_skill_edges(dest, skills)
+    islands = islands_of(skills, edges)
+    dirs = island_dirs(_default_entry_dir(dest), skills, islands)
+    byid = {s["id"]: s for s in skills}
+    resident = est_tokens("\n".join(s["description"] for s in skills))
+    body_tok = est_tokens("\n".join(umbrella_body(dirs, byid)))
+    idx_tok = sum(est_tokens(island_index_md(n, i, byid)) for n, i in dirs)
+
+    L = [f"# BASELINE · {name}（PlanWeave 第一步的产物）", "",
+         f"生成：`weave.py prepare`。**这份文件是后面每一步的对账基准。**", "",
+         "## 工作副本", ""] + [f"- {x}" for x in log] + [
+         f"- 成员口径：{'git 跟踪' if tracked_set(dest) is not None else '非 git 目录，全部算成员'}"
+         f"（未跟踪的 skill 形目录 {len(skipped)} 个）", "",
+         "## 输入是什么", "",
+         f"- **{len(skills)} 个 skill** · 入口层摆出 **{len(first_layer_entries(tree))} 项**"
+         f" · 常驻菜单 {resident} tok（{len(skills)} 条 description）",
+         "- 推导的 L1（= 互指图的连通分量，不是人分的类）：**%d 个岛**" % len(islands), ""]
+    for n, (dn, isl) in enumerate(dirs, 1):
+        L.append(f"  {n}. `{dn}` — {len(isl)} 个：{', '.join(byid[i]['name'] for i in isl[:8])}"
+                 f"{' …' if len(isl) > 8 else ''}")
+    L += ["", "## 两种形状，同口径的账（请选一个）", "",
+          f"**A 单入口**：推导的 L1 降为 L2，L1 = 1 条 description。",
+          f"  常驻 {resident} → **{est_tokens(description or '')} tok**（那条 description 还没定；由 agent 起草、你确认）· "
+          f"第一次点击 1 项 · 第二次点击 {len(dirs)} 项（伞体 {body_tok} tok）· "
+          f"第三次点击 {len(skills)} 项（各岛 INDEX 合计 {idx_tok} tok）· "
+          f"**独立可装 {len(skills)} → 1**",
+          f"**B 多入口**：直接用推导的 L1。",
+          f"  常驻 {resident} tok 不变 · 第一次点击 {len(first_layer_entries(tree))} 项"
+          f"（或按岛重排成 {len(dirs)} 项）· 独立可装仍是 {len(skills)}",
+          "",
+          f"## 形状：{'**' + ('A 单入口' if shape == 'single' else 'B 多入口') + '**（已定）' if shape else '⏳ 待用户选'}",
+          "",
+          "定了形状再进第二步（改结构）。形状没定之前，不动副本里的任何文件。", ""]
+    os.makedirs(out, exist_ok=True)
+    md = os.path.join(out, "BASELINE.md")
+    with open(md, "w", encoding="utf-8") as f:
+        f.write("\n".join(L))
+    print(f"[prepare] 副本 {dest} · rev {rev} · skill {len(skills)} · 入口层 {len(first_layer_entries(tree))} 项 "
+          f"· 推导的 L1 = {len(dirs)} 个岛 · 常驻 {resident} tok")
+    print(f"[prepare] 形状：{'A 单入口' if shape == 'single' else ('B 多入口' if shape == 'multi' else '⏳ 待用户选')}")
+    print(f"[prepare] 出: {md}")
+    return 0
+
+
 def first_layer_entries(tree):
     """入口层摆出几项（tree 口径，与 layers 一致）。"""
     return [c["id"] for c in skills_root(tree)["children"] if c["kind"] in ("skill", "category")]
@@ -1685,6 +1806,16 @@ def self_test():
         htv = open(os.path.join(out5, "TREE.html"), encoding="utf-8").read()
         assert "notes/demo/" in mdv and "demo" in htv, (mdv[:200], htv[:200])
         assert htv.count("<circle") == 1, htv.count("<circle")
+        # 第一步 prepare：非 git 的输入 → 副本由 git 管、原目录不被碰、BASELINE.md 出两种形状的账
+        out7 = os.path.join(tmp, "o7")
+        dest7 = os.path.join(tmp, "ws", "pack")
+        assert cmd_prepare(pack, out7, dest=dest7) == 0
+        assert os.path.isdir(os.path.join(dest7, ".git")), "副本没有被 git 管"
+        assert git(dest7, "log", "--oneline").stdout.strip(), "副本没有起点 commit"
+        assert not os.path.exists(os.path.join(pack, ".git")), "原目录被动了"
+        base = open(os.path.join(out7, "BASELINE.md"), encoding="utf-8").read()
+        assert "A 单入口" in base and "B 多入口" in base and "待用户选" in base, base[:200]
+        assert cmd_prepare(pack, out7, dest=dest7) == 2, "副本已存在时必须拒绝覆盖"
         # 单入口方案：干跑必须算出 L1=1；--apply 不给 description 必须拒绝（不许生成半成品）
         out6 = os.path.join(tmp, "o6")
         assert cmd_collapse(pack, out6) == 0

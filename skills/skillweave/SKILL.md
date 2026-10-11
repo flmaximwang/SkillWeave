@@ -49,6 +49,7 @@ python3 "$SW" checks "$PACK" --out /tmp/sw     # 七条检查（含硬编码路�
 python3 "$SW" propose "$PACK" --out /tmp/sw    # 四类动作的提案：**默认 dry-run，不改盘**
 python3 "$SW" visualize "$PACK"                 # 生成物落回 pack：TREE.md + TREE.html（三级披露的文本版与可视化）
 python3 "$SW" collapse  "$PACK" --out /tmp/sw   # 可选方案：塌成「L1 = 1 个 skill 入口」的账 + 伞体 + git mv 清单（dry-run）
+python3 "$SW" prepare "$PACK" --dest /tmp/pw/ws --out /tmp/pw   # 第一步：拿一份可回滚、可对账的工作副本（原目录只读）
 python3 "$SW" collapse  "$PACK" --out /tmp/sw --apply --entry-dir using-hermes \
         --description "…"                       # 真塌：搬目录 + 写伞体与各岛 INDEX.md；**没 --description 直接拒绝**
 python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json   # 只执行机械那部分
@@ -61,6 +62,12 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 `visualize` 默认把两份产物写在 pack 根（`--out` 可改）：`TREE.md`（L1 菜单 → L2 正文 → L3 按需，逐 skill 数字）
 与 `TREE.html`（自包含、离线可开；互指图画成圆环 + 弦，节点带编号 + 框内图例）。两份都是**生成物，不要手改**。
 互指图的边 = 「某个 skill 的任何文本文件里点到另一个 skill 的**目录名**」；岛 = 该图的连通分量。
+
+`prepare` 是**第一步**（可以把它当成整条流程的入口）：`cp -Rc` 拷一份副本 → **在副本里确保由 git 管**
+（拷贝的是仓库就摘掉所有 remote —— 误推当场失败 —— 再把当前状态提交成起点；输入没有 git 就 `git init` +
+一行 `.gitignore` + 初始 commit）→ 量副本、推导 L1（互指岛的岛）→ 出 `BASELINE.md`：副本路径与 rev、
+推导的 L1、**单入口/多入口两种形状同口径的账**、以及待用户选定的形状。**原目录只读、绝不碰**；
+形状没定之前不动副本里任何文件。`--shape single|multi` 用来记下用户的选择。
 
 `collapse` 是**可选**的第二种形状（默认不做）：**L1 = 1 个 skill 入口 → L2 = 13 个岛 → L3 = 39 篇正文**。
 分工照旧：搬目录、生成伞体与各岛 `INDEX.md` 是机械动作，工具做；**那一条 `description` 必须你写**——
