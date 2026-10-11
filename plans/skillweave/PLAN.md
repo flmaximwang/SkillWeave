@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 44/45 块（98%） · 状态 `active` · 更新于 2026-10-12 01:18
+**进度** 45/46 块（98%） · 状态 `active` · 更新于 2026-10-12 01:57
 
 **参与方** 本人(human)
 
@@ -45,6 +45,7 @@ flowchart LR
   T-004_B-011["B-011 第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」"]
   T-004_B-012["B-012 派发/验收落地：dispatch（事实补全+划批）+ verify（四判据+梯子+重派守卫）"]
   T-004_B-013["B-013 D 阶段落盘器 apply：锚点 + 白名单 + 拆分守恒 + 逐条 patch + 单条回退"]
+  T-004_B-014["B-014 在 Loomerto 上跑完整轮并合并：prepare 走 worktree + A→E 全通 + skill 本体更新与重装"]
   T-005_B-001["B-001 判官输入生成器（候选只有 description）"]
   T-005_B-002["B-002 打分器：逐题矩阵 + 分组 + 校正随机分"]
   T-005_B-003["B-003 在真实 pack 上跑一轮并留档"]
@@ -87,7 +88,7 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-004_B-004,T-004_B-005,T-004_B-006,T-004_B-007,T-004_B-008,T-004_B-009,T-004_B-010,T-004_B-012,T-004_B-013,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005,T-008_B-006 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-004_B-004,T-004_B-005,T-004_B-006,T-004_B-007,T-004_B-008,T-004_B-009,T-004_B-010,T-004_B-012,T-004_B-013,T-004_B-014,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005,T-008_B-006 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef claimed stroke-width:1px;
@@ -492,6 +493,22 @@ UsingHermes 实测：**4 批 · 77 条**（B1 2 skill/23 条 · B2 4/24 · B3 10
 同时改掉 verify 的旧文案：失败不再说整批回滚，改成保留通过的条目、只对未通过的条目改输入后继续修，
 只有无法修正的条目才回退它自己那一条。flow.md 与 SKILL.md 已同步为六阶段都有实现。
     - 判据：四条校验生效；patches.json 逐条记录；--revert 可单条回退；自检与副本端到端都过
+- [x] `T-004#B-014` **在 Loomerto 上跑完整轮并合并：prepare 走 worktree + A→E 全通 + skill 本体更新与重装** _impl_ — 已完成 @default
+    - 做什么：在 Loomerto 上跑完整轮并合并（用户指定：跑完合并、不找他审批）。全程在 worktree 里做，main 由主 clone 合并。
+
+① 规则落地：prepare 现在是两条路 —— 输入原本在 git 仓库里就**开 worktree**（分支 skillweave/<name>，
+    基于当前 HEAD），不是 git 才 copy + git init。自检钉住两条路。
+② 一轮跑下来：prepare --shape single（形状由用户选）→ collapse --apply（我起草伞的 description，
+    6 项常驻 348 tok 降到 1 条）→ disclosure → dispatch → apply → verify **PASS** → 合并 main。
+    Loomerto 的账：根 1 → L2 1 → L3 6 → L4 21；常驻 348 tok → 1 条 description；悬空 0、到不了根 0。
+③ 待办 10 条处理 8 条：2 条悬空改完整路径（薄壳在 loomerto-plan 下）、4 条测试留档记豁免、
+   2 个 SKILL.md 按主题搬段落（19664 tok 与 8036 tok 都降到阈值内）、搬出去的 173 行坑清单再拆两份。
+   剩 2 条超上限约 12% 的脚本记 PARKED（拆 python 模块要另起一轮判断）。
+④ 这轮撞出并修掉 5 个工具 bug：只写豁免的提案被 early check 拒 · verify 不认豁免 · 删空行按内容锚点会误删 ·
+   多行替换的回退不可靠（改成 after 限单行）· 拆分件不删原件 · 路径解析两处缺口（中文文件名、嵌套 skill 的相对根）。
+⑤ 按项目经验更新 skill 本体（换掉旧的三级披露表与「七条命令」，补循环顺序与踩过的坑），推送到
+   github.com/flmaximwang/SkillWeave，用 skills-manager 重装到 hermes-default 并回读哈希一致。
+    - 判据：Loomerto main 已合并推送；verify PASS；skill 本体已更新推送并经 skills-manager 重装回读一致
 
 ### T-005 路由评测：框架无关、可校正随机 — 已完成
 @default
@@ -658,7 +675,6 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 
 ## 日志（近 20 条）
 
-- `2026-10-11 16:15` **default** [summary] 文档与 CLI 对齐：README 补 audit/checks/propose 与当前实测数字（旧数字是 126/69/6694/239/301，已换成 b8298f4 的 125/68/6443/104/46）；skill 正文补 propose 与七条检查；contract 两处改：① L2 两个闸口径（over_limit 16 vs over_token 14）② 入口层判定换成新规则（旧的『第一个直接含 skill 的目录』在分组后会错抓类目）
 - `2026-10-11 16:18` **agent** [exec] T-006#B-002: 线程登记已清除（@default 收工）
 - `2026-10-11 16:18` **agent** [status] T-006#B-002: running → done（独立复核（另一个子代理，只读报告+pack、照 §11 八条命令逐条重跑）结果：8/8 复现清单通过、退出码全对；并抓出本报告 **3 处真错**：① §4 引用分类我抄了旧快照（241/206/267 → 实测 240/203/255）② §8『dup 改后=11』实为 13（归位把 boc/ccb/boc-credit 三兄弟塞进同一层 → +2 对，合并 −1，净 +1，我漏报副作用）③ §8『改前』与被引的验收记录对不上（6443/104 vs 6311/101，两处不同快照）。三处已逐条整改，并新增 §8.1 记录。教训：复核者三个错全是我自己看不出来的 —— 自查不算查。复核者诚实标注未复现项：路由分数需判官模型、非确定性，只核对了原件与表格一致。）
 - `2026-10-11 16:18` **agent** [status] T-008#B-003: pending → done（端到端走完（全程在临时复制的 pack 上，原仓库未动）：① 真实 diff 不是提案 —— /tmp/pack-fix3 上 git diff --stat = 209 files changed（52 条 git mv + 1 对合并），逐条自检 ✓、路径集合级对账 ✓；② layers 前后四数（同一 HEAD b8298f4）：L1 条目 68→24 · 常驻 20,864→20,699 字符（6443→6298 token）· L2 超限 16→15 · L3 孤儿 104→101；③ 评测：round4 两个独立判官输出落盘各 15 行（14 题逐题一行 + DONE），打分 should_trigger 0.937 / should_not_trigger 1.0 / near_confusion 1.0；④ 判官输出行数与题面数对齐（14 题面 → 15 行含 DONE）。未做：正文下沉（split 14 条仍只是提案，需要模型判断哪段该沉）。）
@@ -678,6 +694,7 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 - `2026-10-12 00:16` **default** [block] 新增块 T-004#B-011「第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」」
 - `2026-10-12 00:32` **default** [block] 新增块 T-004#B-012「派发/验收落地：dispatch（事实补全+划批）+ verify（四判据+梯子+重派守卫）」
 - `2026-10-12 01:18` **default** [block] 新增块 T-004#B-013「D 阶段落盘器 apply：锚点 + 白名单 + 拆分守恒 + 逐条 patch + 单条回退」
+- `2026-10-12 01:57` **default** [block] 新增块 T-004#B-014「在 Loomerto 上跑完整轮并合并：prepare 走 worktree + A→E 全通 + skill 本体更新与重装」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

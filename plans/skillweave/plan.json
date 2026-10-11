@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-12T01:18:44+08:00",
+  "updated_at": "2026-10-12T01:57:21+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -941,6 +941,27 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-12T01:18:44+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-014",
+          "title": "在 Loomerto 上跑完整轮并合并：prepare 走 worktree + A→E 全通 + skill 本体更新与重装",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "在 Loomerto 上跑完整轮并合并（用户指定：跑完合并、不找他审批）。全程在 worktree 里做，main 由主 clone 合并。\n\n① 规则落地：prepare 现在是两条路 —— 输入原本在 git 仓库里就**开 worktree**（分支 skillweave/<name>，\n    基于当前 HEAD），不是 git 才 copy + git init。自检钉住两条路。\n② 一轮跑下来：prepare --shape single（形状由用户选）→ collapse --apply（我起草伞的 description，\n    6 项常驻 348 tok 降到 1 条）→ disclosure → dispatch → apply → verify **PASS** → 合并 main。\n    Loomerto 的账：根 1 → L2 1 → L3 6 → L4 21；常驻 348 tok → 1 条 description；悬空 0、到不了根 0。\n③ 待办 10 条处理 8 条：2 条悬空改完整路径（薄壳在 loomerto-plan 下）、4 条测试留档记豁免、\n   2 个 SKILL.md 按主题搬段落（19664 tok 与 8036 tok 都降到阈值内）、搬出去的 173 行坑清单再拆两份。\n   剩 2 条超上限约 12% 的脚本记 PARKED（拆 python 模块要另起一轮判断）。\n④ 这轮撞出并修掉 5 个工具 bug：只写豁免的提案被 early check 拒 · verify 不认豁免 · 删空行按内容锚点会误删 ·\n   多行替换的回退不可靠（改成 after 限单行）· 拆分件不删原件 · 路径解析两处缺口（中文文件名、嵌套 skill 的相对根）。\n⑤ 按项目经验更新 skill 本体（换掉旧的三级披露表与「七条命令」，补循环顺序与踩过的坑），推送到\n   github.com/flmaximwang/SkillWeave，用 skills-manager 重装到 hermes-default 并回读哈希一致。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "Loomerto main 已合并推送；verify PASS；skill 本体已更新推送并经 skills-manager 重装回读一致"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-12T01:57:21+08:00",
           "runs": []
         }
       ],
@@ -2223,7 +2244,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-013「D 阶段落盘器 apply：锚点 + 白名单 + 拆分守恒 + 逐条 patch + 单条回退」",
       "ref": "T-004#B-013"
+    },
+    {
+      "at": "2026-10-12T01:57:21+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-014「在 Loomerto 上跑完整轮并合并：prepare 走 worktree + A→E 全通 + skill 本体更新与重装」",
+      "ref": "T-004#B-014"
     }
   ],
-  "rev": "649804befd28"
+  "rev": "86b0fadcee8d"
 }
