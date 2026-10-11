@@ -123,11 +123,11 @@ F 验收与交付：跑盲判，通过则合回真包
 | A | `--shape single\|multi` | 形状 |
 | B | `prepare` 生成副本与基线，`disclosure` 构建文档树并输出体检表，`tree` 与 `visualize` 输出其它视图 | `BASELINE.md` · `disclosure.json` · `DISCLOSURE.md` · `TREE.md` |
 | C | `disclosure` 的输出 `TODO.md`，分组判断可用 `propose`，默认 dry-run | `TODO.md` |
-| D | `collapse` 用于单入口，`propose --apply-group` 用于多入口，文档级改动的落盘器 `apply` 尚未实现 | 一批改动 + 提案记录 |
+| D | `collapse` 用于单入口，`propose --apply-group` 用于多入口，文档级改动用 `apply` | 一批改动 + 逐条 patch 记录 |
 | E | `verify` | 新树 + `RUN.md` + `PARKED.md` |
 | F | `judge` 与 `score`，合回用 `git merge --ff-only` | 评测分数 + 合回 |
 
-未实现的只有一处：D 阶段中文档级改动的落盘器 `apply`。A、B、C、E、F 都已有实现。
+六个阶段都已有实现：A 定形状用 `--shape`，B 用 `prepare` 与 `disclosure` 与 `tree` 与 `visualize`，C 用 `disclosure` 输出的 `TODO.md` 与 `propose`，D 用 `collapse` 与 `propose --apply-group` 与 `apply`，E 用 `verify`，F 用 `judge` 与 `score`。
 
 ## 七、与旧编号的对照
 

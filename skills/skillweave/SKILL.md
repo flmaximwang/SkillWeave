@@ -80,7 +80,12 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 
 **派发**：`weave.py dispatch <pack>` 划批（单位 = skill 子树，≤10 个/批）+ 事实补全 + 落 `dispatch/*.prompt.md`；
 **验收**：`weave.py verify <pack> --state dispatch/state.json --expect-fixed <id…>` —— 集合级对账 + 拆分守恒 +
-回归拦截 + 梯子记账，失败就整批回滚重派（不许用相同 prompt 重派）。
+回归拦截 + 梯子记账。失败不回滚整批：通过的条目保留，未通过的条目改输入后回 `apply` 继续修。
+
+**落盘**：`weave.py apply <pack> --proposals <提案 json…>` —— 逐条校验并落盘：锚点在该行 ±3 内逐字相同、
+改动只落在「本条目自己的文件 + 披露它的父文档 + 该 skill 的入口 SKILL.md」、拆分前后内容守恒、
+豁免规则只命中本条目自己的文件；`obsolete` 不自动通过，落 `PARKED.md`。每落一条都写进 `dispatch/patches.json`，
+所以回退粒度是单条：`weave.py apply <pack> --revert <条目 id>`。
 
 **免检表放在包里**：`<pack>/.skillweave/waivers.txt`，一行一条 `<glob>` + 两个以上空格 + 理由。命中的不进待办、
 只在 TODO.md 的「已豁免」栏记一行 —— 「哪张 png 是给人看的」「哪个 json 是测试留档」是**包主的判断**，不是通用真理，

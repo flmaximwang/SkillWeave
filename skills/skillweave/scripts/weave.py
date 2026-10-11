@@ -1003,7 +1003,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
     ap.add_argument("cmd", nargs="?",
                     choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize",
-                             "collapse", "prepare", "disclosure", "dispatch", "verify"])
+                             "collapse", "prepare", "disclosure", "dispatch", "verify", "apply"])
     ap.add_argument("--prompts", default=None)
     ap.add_argument("--key", default=None)
     ap.add_argument("--judge", nargs="*", default=[])
@@ -1017,6 +1017,8 @@ def main(argv=None):
     ap.add_argument("--expect-fixed", nargs="*", default=[])
     ap.add_argument("--splits", default=None)
     ap.add_argument("--batch-size", type=int, default=25)
+    ap.add_argument("--proposals", nargs="*", default=[])
+    ap.add_argument("--revert", default=None)
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -1055,6 +1057,13 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or root
         return cmd_dispatch(root, out, batch_size=a.batch_size)
+    if a.cmd == "apply":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(root, "dispatch")
+        if not a.revert and not a.proposals:
+            print("[apply] 需要 --proposals <提案 json…>，或用 --revert <条目 id> 回退一条")
+            return 2
+        return cmd_apply(root, a.proposals, a.state, out, revert_id=a.revert)
     if a.cmd == "verify":
         root = os.path.abspath(a.pack.rstrip("/"))
         if not a.state:
@@ -1854,6 +1863,230 @@ def _prompt_for(batch, root, F, files, dj, base_rev, pack):
     return "\n".join(body) + "\n"
 
 
+
+# ────────────────────────── D 阶段落盘器 ──────────────────────────
+# 规格见 docs/flow.md 第三节 D：
+#   · 锚点校验：待改文本必须落在声明行 ±3 行内，逐字相同；不做模糊替换。
+#   · 白名单：只允许改「本条目自己的文件」「披露它的父文档」「该 skill 的入口 SKILL.md」，
+#     拆分产生的新文件必须落在同 skill 目录下。
+#   · 拆分守恒：去掉空行与标题行后的字符序列必须与原文一致，只搬移不重写。
+#   · 豁免规则白名单：新增的 waivers 规则只允许命中本条目自己的文件，不许顺带命中别的 skill。
+#   · 逐条 patch 记录：写在 dispatch/patches.json，回退粒度 = 单条。
+#   · obsolete 不自动通过，落 PARKED.md；parked 原样记录不改盘。
+
+APPLY_FAILS = []
+
+
+def _plan_items(out):
+    """从 dispatch/plan.json 读条目表，返回 {id: item}。"""
+    p = os.path.join(out, "plan.json")        # out = 那个 dispatch 目录
+    if not os.path.isfile(p):
+        return None
+    with open(p, encoding="utf-8") as f:
+        plan = json.load(f)
+    return {it["id"]: it for b in plan["batches"] for it in b["items"]}
+
+
+def _allowed_files(item, dj):
+    """本条目允许改动的文件集合：它自己 + 披露它的父文档 + 该 skill 的入口 SKILL.md。"""
+    allowed = {item["path"]}
+    for src, ts in dj.get("edges", {}).items():
+        if item["path"] in ts:
+            allowed.add(src)
+    if item["owner"] and item["owner"] != "(pack)":
+        allowed.add(item["owner"])
+    return allowed
+
+
+def _find_anchor(lines, want, at):
+    """在 at 的 ±3 行内找与 want 逐字相同的行，返回行号（1 起）或 None。"""
+    w = want.strip()
+    for i in range(max(0, at - 4), min(len(lines), at + 3)):
+        if lines[i].strip() == w:
+            return i + 1
+    return None
+
+
+def _apply_item(root, item, res, dj, waivers):
+    """校验并落盘一条提案。返回 (ok, note, patch)。任一步不通过就整条不动。"""
+    if res.get("verdict") == "parked":
+        return True, "parked：由提案方标记为不处理", None
+    if res.get("reason_code") == "obsolete":
+        return True, "obsolete：不自动通过，记 PARKED", None
+    edits = res.get("edits") or []
+    parts = res.get("parts") or {}
+    if not edits and not parts:
+        return False, "既没有 edits 也没有 parts", None
+    allowed = _allowed_files(item, dj)
+    # 逐文件先在内存里算好改动，全部通过才写盘
+    plan_writes = {}
+    patch = {"id": item["id"], "kind": item["kind"], "files": [], "parts": [], "removed": [],
+             "waiver_rule": None, "reason_code": res.get("reason_code", ""),
+             "reason": res.get("reason", "")}
+    for e in edits:
+        f = (e.get("file") or "").lstrip("./")
+        if f not in allowed:
+            return False, f"越界改动 `{f}`，本条目只允许改 {sorted(allowed)}", None
+        fp = os.path.join(root, f)
+        if not os.path.isfile(fp):
+            return False, f"文件不存在 `{f}`", None
+        lines = plan_writes.get(f, read_text(fp).split("\n"))
+        hit = _find_anchor(lines, e.get("before", ""), int(e.get("line", 0)))
+        if hit is None:
+            return False, f"锚点对不上 `{f}`:{e.get('line')} —— 待改文本在该行 ±3 内找不到", None
+        lines[hit - 1] = e.get("after", "")
+        plan_writes[f] = lines
+        patch["files"].append({"file": f, "line": hit, "before": e.get("before", ""),
+                               "after": e.get("after", "")})
+    if parts:
+        orig = read_text(os.path.join(root, item["path"]))
+        skill_dir = os.path.dirname(item["path"])
+        for p, body in parts.items():
+            p = p.lstrip("./")
+            if os.path.dirname(p) != skill_dir:
+                return False, f"拆出的 `{p}` 不在同 skill 目录 `{skill_dir}` 下", None
+            plan_writes[p] = body.split("\n")
+            patch["parts"].append(p)
+        got = "".join(_content_key("\n".join(plan_writes[p])) for p in patch["parts"])
+        if _content_key(orig) != got:
+            return False, "拆分不守恒：去掉空行与标题行后，原文与各新文件拼起来不一致", None
+        patch["removed"].append({"file": item["path"], "content": orig})
+    # 豁免规则：只允许命中本条目自己的文件
+    if res.get("verdict") == "waived" or res.get("reason_code") == "external":
+        rule = f"{item['path']}    {res.get('reason') or '包外引用，不参与待办'}"
+        before = {p: _waived(p, waivers) for p in [item["path"]]}
+        after = {p: _waived(p, waivers + [(item["path"], "x")]) for p in [item["path"]]}
+        if not after[item["path"]]:
+            return False, "新增的豁免规则没命中本条目自己的文件", None
+        patch["waiver_rule"] = rule
+    # 落盘
+    for f, lines in plan_writes.items():
+        fp = os.path.join(root, f)
+        os.makedirs(os.path.dirname(fp), exist_ok=True)
+        with open(fp, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(lines))
+    for r in patch["removed"]:
+        fp = os.path.join(root, r["file"])
+        if os.path.isfile(fp):
+            os.remove(fp)
+    if patch["waiver_rule"]:
+        wp = os.path.join(root, ".skillweave", "waivers.txt")
+        os.makedirs(os.path.dirname(wp), exist_ok=True)
+        with open(wp, "a", encoding="utf-8") as fh:
+            fh.write(patch["waiver_rule"] + "\n")
+    return True, f"落盘 {len(patch['files'])} 行改动 · 新增 {len(patch['parts'])} 份 · 删 {len(patch['removed'])} 份", patch
+
+
+def cmd_apply(root, proposals, state_path, out, revert_id=None):
+    """校验并落盘提案。`--revert <id>` 反向应用一条已记录的 patch。"""
+    if not out:
+        out = os.path.join(root, "dispatch")
+    pfile = os.path.join(out, "patches.json")
+    if revert_id:
+        return _revert_item(root, pfile, revert_id)
+    items = _plan_items(out)
+    if items is None:
+        print("[apply] FAIL 找不到 dispatch/plan.json，先跑 dispatch")
+        return 2
+    results, batches = [], set()
+    for p in proposals:
+        if not os.path.isfile(p):
+            print(f"[apply] FAIL 提案文件不存在 {p}")
+            return 2
+        with open(p, encoding="utf-8") as f:
+            doc = json.load(f)
+        batches.add(doc.get("batch", "?"))
+        results += doc.get("results", [])
+    got = [r.get("id") for r in results]
+    if len(got) != len(set(got)):
+        print("[apply] FAIL 提案里有重复的条目 id")
+        return 1
+    # 闭合校验：本次提案覆盖了哪些条目，就必须是条目表里的
+    unknown = [i for i in got if i not in items]
+    if unknown:
+        print(f"[apply] FAIL 提案里有不属于本次派发的条目：{unknown[:5]}")
+        return 1
+    dj = json.load(open(os.path.join(out, "baseline.json"), encoding="utf-8")) \
+        if os.path.isfile(os.path.join(out, "baseline.json")) else None
+    if dj is None:
+        print("[apply] FAIL 找不到 dispatch/baseline.json，先跑 dispatch")
+        return 2
+    waivers = _read_waivers(root)
+    applied, parked, failed = [], [], []
+    for r in results:
+        it = items[r["id"]]
+        ok, note, patch = _apply_item(root, it, r, dj, waivers)
+        if not ok:
+            failed.append((r["id"], note))
+            print(f"[apply] ⛔ {r['id']} {note}")
+            continue
+        if patch is None:
+            parked.append((r["id"], note))
+            print(f"[apply] ⏸ {r['id']} {note}")
+            continue
+        patch["applied_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+        applied.append(patch)
+        print(f"[apply] ✅ {r['id']} {note}")
+    # 逐条 patch 记录，追加写
+    hist = []
+    if os.path.isfile(pfile):
+        with open(pfile, encoding="utf-8") as f:
+            hist = json.load(f)
+    hist += applied
+    os.makedirs(out, exist_ok=True)
+    with open(pfile, "w", encoding="utf-8") as f:
+        json.dump(hist, f, ensure_ascii=False, indent=2, sort_keys=True)
+    if parked:
+        with open(os.path.join(out, "PARKED.md"), "a", encoding="utf-8") as f:
+            f.write(f"\n## {time.strftime('%Y-%m-%d')} · 落盘阶段未自动处理\n\n")
+            for i, n in parked:
+                f.write(f"- `{i}` · {n}\n")
+    print(f"[apply] 落盘 {len(applied)} 条 · 未自动处理 {len(parked)} 条 · 失败 {len(failed)} 条 · 记录 {pfile}")
+    return 1 if failed else 0
+
+
+def _revert_item(root, pfile, item_id):
+    """反向应用一条 patch：还原旧行、删掉新增文件、恢复被删文件、去掉它加的豁免规则。"""
+    if not os.path.isfile(pfile):
+        print("[apply] FAIL 没有 patches.json，无记录可回退")
+        return 2
+    with open(pfile, encoding="utf-8") as f:
+        hist = json.load(f)
+    hit = [h for h in hist if h["id"] == item_id]
+    if not hit:
+        print(f"[apply] FAIL 记录里没有 `{item_id}`")
+        return 2
+    p = hit[-1]
+    for e in reversed(p["files"]):
+        fp = os.path.join(root, e["file"])
+        lines = read_text(fp).split("\n")
+        at = _find_anchor(lines, e["after"], e["line"])
+        if at is None:
+            print(f"[apply] ⛔ 回退不了 `{e['file']}`:{e['line']} —— 当前内容与 patch 记录不符")
+            return 1
+        lines[at - 1] = e["before"]
+        with open(fp, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(lines))
+    for q in p["parts"]:
+        fp = os.path.join(root, q)
+        if os.path.isfile(fp):
+            os.remove(fp)
+    for r in p["removed"]:
+        fp = os.path.join(root, r["file"])
+        os.makedirs(os.path.dirname(fp), exist_ok=True)
+        with open(fp, "w", encoding="utf-8") as fh:
+            fh.write(r["content"])
+    if p.get("waiver_rule"):
+        wp = os.path.join(root, ".skillweave", "waivers.txt")
+        lines = [l for l in read_text(wp).split("\n") if l.strip() != p["waiver_rule"].strip()]
+        with open(wp, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(lines))
+    with open(pfile, "w", encoding="utf-8") as f:
+        json.dump([h for h in hist if h is not p], f, ensure_ascii=False, indent=2, sort_keys=True)
+    print(f"[apply] ↩ 已回退 `{item_id}`（还原 {len(p['files'])} 行 · 删 {len(p['parts'])} 份 · 恢复 {len(p['removed'])} 份）")
+    return 0
+
+
 def cmd_dispatch(root, out, batch_size=25):   # batch_size = 每批最多几条（不是几个 skill）
     """派发前的事实补全 + 批次划分 + prompt 落盘 + 计数起点。产物：dispatch/{plan.json,state.json,batch-*.md}"""
     dj, _ = _scan_fresh(root, "dispatch")
@@ -2024,7 +2257,8 @@ def cmd_verify(root, state_path, expect_fixed, splits_path, out):
     if not fails:
         print(f"[verify] PASS · rev {_rev(root)} · 记录 → {run}")
         return 0
-    print("[verify] FAIL —— 整批回滚（不逐条打补丁），下一次派发按以下级别改输入：")
+    print("[verify] FAIL —— 不整批回滚：通过的条目保留，未通过的条目按以下级别改输入后在已改动的树上继续修；"
+          "只有无法修正的条目才用 `apply --revert <id>` 回退它自己那一条。")
     for i in targets:
         if i in after:
             print(f"[verify]   {i}: {rounds[i]}")
@@ -2508,7 +2742,54 @@ def self_test():
         assert "## 条目与事实" in pr and ("包内没有同名文件" in pr or "候选" in pr or "二级标题" in pr), \
             "prompt 里必须有事实补全段"
         assert os.path.isfile(os.path.join(out9, "dispatch", "state.json")), "缺 state.json"
+
         st = os.path.join(out9, "dispatch", "state.json")
+        # ── 落盘器：锚点 / 白名单 / 拆分守恒 / 单条回退 ──
+        b1 = json.load(open(os.path.join(out9, "dispatch", "plan.json"), encoding="utf-8"))["batches"][0]
+        broken = next(it for it in b1["items"] if it["kind"] == "悬空")
+        bfull = os.path.join(pack, broken["path"])          # 用条目自己的路径，不猜
+        blines = read_text(bfull).split("\n")
+        bl = broken["refs"][0]["line"]
+        old_line = blines[bl - 1]                       # 锚点是整行逐字比对，所以取真行
+        new_line = old_line.replace("references/gone.md", "references/guide.md")
+        good = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "fixed", "reason_code": "typo-fixed",
+             "edits": [{"file": broken["path"], "line": bl, "before": old_line, "after": new_line}]}]}
+        gpath = os.path.join(tmp, "prop-good.json")
+        with open(gpath, "w", encoding="utf-8") as f:
+            json.dump(good, f, ensure_ascii=False)
+        assert cmd_apply(pack, [gpath], st, os.path.join(out9, "dispatch")) == 0, "合法提案该落盘"
+        assert "references/gone.md" not in read_text(bfull), "改动没落盘"
+        pj = json.load(open(os.path.join(out9, "dispatch", "patches.json"), encoding="utf-8"))
+        assert pj and pj[0]["files"][0]["file"], "缺逐条 patch 记录"
+        assert cmd_apply(pack, [], st, os.path.join(out9, "dispatch"), revert_id=broken["id"]) == 0, "回退该成功"
+        assert old_line in read_text(bfull), "回退没把整行原文还原回去"
+        bad = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "fixed",
+             "edits": [{"file": broken["path"], "line": bl,
+                        "before": "这句原文根本不存在", "after": "x"}]}]}
+        bpath = os.path.join(tmp, "prop-bad.json")
+        with open(bpath, "w", encoding="utf-8") as f:
+            json.dump(bad, f, ensure_ascii=False)
+        assert cmd_apply(pack, [bpath], st, os.path.join(out9, "dispatch")) == 1, "锚点对不上必须失败"
+        out_of_range = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "fixed",
+             "edits": [{"file": "README.md", "line": 1, "before": "x", "after": "y"}]}]}
+        rpath = os.path.join(tmp, "prop-range.json")
+        with open(rpath, "w", encoding="utf-8") as f:
+            json.dump(out_of_range, f, ensure_ascii=False)
+        assert cmd_apply(pack, [rpath], st, os.path.join(out9, "dispatch")) == 1, "越界改动必须失败"
+        # 拆分守恒：把 SKILL.md 拆成两份，第二份不守恒就该被拒
+        orig = read_text(bfull)
+        sp = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "fixed",
+             "edits": [{"file": broken["path"], "line": bl, "before": old_line, "after": new_line}],
+             "parts": {os.path.join(os.path.dirname(broken["path"]) or ".", "half.md"): "少了内容"}}]}
+        sppath = os.path.join(tmp, "prop-split.json")
+        with open(sppath, "w", encoding="utf-8") as f:
+            json.dump(sp, f, ensure_ascii=False)
+        assert cmd_apply(pack, [sppath], st, os.path.join(out9, "dispatch")) == 1, "拆分不守恒必须失败"
+        assert orig == read_text(bfull), "失败的提案不许留下半个改动"
         before_att = json.load(open(st, encoding="utf-8"))["attempts"]
         assert cmd_dispatch(pack, out9, batch_size=10) == 0, "重派（无尝试记录）应被允许"
         after_att = json.load(open(st, encoding="utf-8"))["attempts"]
