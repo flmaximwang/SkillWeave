@@ -1,0 +1,232 @@
+{
+  "candidates": 125,
+  "groups": {
+    "near_confusion": {
+      "acc": 1.0,
+      "bor": 1.0,
+      "chance": 0.008,
+      "hits": 8,
+      "judged": 8,
+      "n": 4
+    },
+    "should_not_trigger": {
+      "acc": 1.0,
+      "bor": 1.0,
+      "chance": 0.008,
+      "hits": 4,
+      "judged": 4,
+      "n": 2
+    },
+    "should_trigger": {
+      "acc": 1.0,
+      "bor": 1.0,
+      "chance": 0.008,
+      "hits": 16,
+      "judged": 16,
+      "n": 8
+    }
+  },
+  "judges": [
+    "judge-A.txt",
+    "judge-B.txt"
+  ],
+  "key": "judge-key.json",
+  "rows": [
+    {
+      "gold": "skills/hermes-install/install-hermes-skills",
+      "id": 1,
+      "kind": "should_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/hermes-install/install-hermes-skills",
+        "skills/hermes-install/install-hermes-skills"
+      ]
+    },
+    {
+      "gold": "skills/hermes-ops/maintain-hermes-gateway",
+      "id": 2,
+      "kind": "should_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/hermes-ops/maintain-hermes-gateway",
+        "skills/hermes-ops/maintain-hermes-gateway"
+      ]
+    },
+    {
+      "gold": "skills/research/research-paper-writing",
+      "id": 3,
+      "kind": "should_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/research/research-paper-writing",
+        "skills/research/research-paper-writing"
+      ]
+    },
+    {
+      "gold": "skills/office/pptx",
+      "id": 4,
+      "kind": "should_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/office/pptx",
+        "skills/office/pptx"
+      ]
+    },
+    {
+      "gold": "skills/creative/comfyui",
+      "id": 5,
+      "kind": "should_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/creative/comfyui",
+        "skills/creative/comfyui"
+      ]
+    },
+    {
+      "gold": "skills/hermes-ops/dispatch-work-to-another-profile",
+      "id": 6,
+      "kind": "should_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/hermes-ops/dispatch-work-to-another-profile",
+        "skills/hermes-ops/dispatch-work-to-another-profile"
+      ]
+    },
+    {
+      "gold": "skills/skill-tooling/load-external-skill-index",
+      "id": 7,
+      "kind": "should_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/skill-tooling/load-external-skill-index",
+        "skills/skill-tooling/load-external-skill-index"
+      ]
+    },
+    {
+      "gold": "skills/office/pptx",
+      "id": 8,
+      "kind": "should_not_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/productivity/md-docx-writeback",
+        "skills/productivity/md-docx-writeback"
+      ]
+    },
+    {
+      "gold": "skills/hermes-ops/maintain-hermes-gateway",
+      "id": 9,
+      "kind": "should_not_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/hermes-install/update-hermes-skills",
+        "skills/hermes-install/update-hermes-skills"
+      ]
+    },
+    {
+      "gold": "skills/research/tushare",
+      "id": 10,
+      "kind": "should_trigger",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/research/tushare",
+        "skills/research/tushare"
+      ]
+    },
+    {
+      "gold": "skills/accountancy/boc-credit-statement",
+      "id": 11,
+      "kind": "near_confusion",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/accountancy/boc-credit-statement",
+        "skills/accountancy/boc-credit-statement"
+      ]
+    },
+    {
+      "gold": "skills/accountancy/ccb-statement",
+      "id": 12,
+      "kind": "near_confusion",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/accountancy/ccb-statement",
+        "skills/accountancy/ccb-statement"
+      ]
+    },
+    {
+      "gold": "skills/research/tushare",
+      "id": 13,
+      "kind": "near_confusion",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/research/tushare",
+        "skills/research/tushare"
+      ]
+    },
+    {
+      "gold": "skills/accountancy/boc-statement",
+      "id": 14,
+      "kind": "near_confusion",
+      "n_judges": 2,
+      "ok": [
+        true,
+        true
+      ],
+      "picks": [
+        "skills/accountancy/boc-statement",
+        "skills/accountancy/boc-statement"
+      ]
+    }
+  ]
+}

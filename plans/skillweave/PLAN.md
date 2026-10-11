@@ -2,15 +2,16 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 27/32 块（84%） · 状态 `active` · 更新于 2026-10-11 15:48
+**进度** 28/33 块（85%） · 状态 `active` · 更新于 2026-10-11 15:50
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
+- `T-004#B-004` **决策：L1 从 24 项再压到 ≤20 的路线** — 待批准 · @you
 - `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
-- `T-004#B-003` **L1 收敛：把入口层条目压到上限内** — 已认领 · @default
 - `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** — 已认领 · @default
+- `T-008#B-003` **端到端：agent + CLI 走完一个真实 pack** — 已认领 · @default
 
 ## 图
 
@@ -37,6 +38,7 @@ flowchart LR
   T-004_B-001["B-001 四类动作的提案器（默认只出提案）"]
   T-004_B-002["B-002 改完自动重跑审计并出前后对照"]
   T-004_B-003["B-003 L1 收敛：把入口层条目压到上限内"]
+  T-004_B-004["B-004 决策：L1 从 24 项再压到 ≤20 的路线"]
   T-005_B-001["B-001 判官输入生成器（候选只有 description）"]
   T-005_B-002["B-002 打分器：逐题矩阵 + 分组 + 校正随机分"]
   T-005_B-003["B-003 在真实 pack 上跑一轮并留档"]
@@ -76,13 +78,15 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-002,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef claimed stroke-width:1px;
-  class T-004_B-001,T-004_B-003,T-006_B-001 claimed;
+  class T-004_B-001,T-006_B-001,T-008_B-003 claimed;
+  classDef blocked stroke-width:1px;
+  class T-004_B-004 blocked;
   classDef waiting stroke-width:1px;
-  class T-006_B-002,T-008_B-003 waiting;
+  class T-006_B-002 waiting;
 ```
 
 ## 任务
@@ -313,7 +317,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-004#B-001
     - 产物：`reports/2026-10-11-usinghermes/round2/COMPARISON.md`
     - run 2026-10-11 15:38 default pending→done 改完重跑出前后对照（同题面同金标）：should_trigger 0.938→1.0 · near_confusion 0.75→1.0 · should_not_trigger 1.0→1.0（BoR 0.937/0.748→全 1.0）；结构侧 dup top 1.00→0.81、常驻 6694→6548 token、技能 126→125。第 1 轮那 3 处错误全部落在被修的那一对上，改后零错误且无退化
-- [ ] `T-004#B-003` **L1 收敛：把入口层条目压到上限内** _impl_ — 已认领 @default
+- [x] `T-004#B-003` **L1 收敛：把入口层条目压到上限内** _impl_ — 已完成 @default
     - 做什么：【做什么】按 layers 的实测做收敛方案（先出提案，--apply 才落盘）：
 ① 44 个散技能多是工具轴（`skills/install-hermes-skills` 这类），按**两轴**归入类目：主语是软件/工具 → 类目
 按用途（install/maintain/troubleshoot…），主语是一类任务 → 类目按主题；② 同层近重复（T-003#B-004 的清单）
@@ -324,6 +328,15 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 判据：在 UsingHermes 上给出提案（含每个散技能的目标类目与 diff 形状）；在临时复制的 pack 上 `--apply` 一次，
 重跑 `layers` 出「前 → 后」对照表（入口层条目数、常驻字符、类目数），并跑 T-005 一轮证明路由不退化。
     - 依赖：T-003#B-001
+    - 产物：`reports/2026-10-11-usinghermes/round3/COMPARISON-3ROUNDS.md`
+    - run 2026-10-11 15:50 default pending→done L1 收敛执行完并跑第 3 轮证明不退化：r3 与 r2 分组分完全一致（应触发 16/16、不应触发 4/4、近邻混淆 8/8，BoR 全 1.0），而 L1 从 69 项压到 24 项（散技能 52→0）。常驻成本保持 6548 token。三轮题面逐字未动、金标统一用 r3 打分（第 1/2 轮 picks 按 move 表机械映射，原件未改）
+- [ ] `T-004#B-004` **决策：L1 从 24 项再压到 ≤20 的路线** _decision_ — 待批准 @you
+    - 做什么：【问题】归入类目后 L1 = 24 项（散 0 + 类目 24），仍超上限 20。再往下压有三条路，代价各不同：
+1. **合并现有类目**（例如把 hermes-diagnose(3)+hermes-dev(2) 合成一个 hermes-dev(5)；把 apple/computer-use/smart-home/file-management/media/note-taking/secretary/terminal/web 这些 1–3 人的小类目按用途合并）→ L1 可到 ~18。代价：类目名要重新起，且会打破最近才统一的现有命名。
+2. **hermes 四类合一**（install/ops/diagnose/dev → 一个 hermes/，24 名成员）→ L1 = 21 项，但 hermes/ 那一层回到 24 项。
+3. **不动**：把 20 当参考线而不是硬闸（这个数来自 Dream 的 MAX_FIRST_LAYER_SKILLS，不是规范要求）；24 项配「类目名自带用途」在实测里已经 0 错误。
+【解锁】选 1/2 → 我按方案在副本上再跑一轮并出对照；选 3 → 本块 done 并把「20 是参考线」写进 contract §4。
+    - 判据：答案以原话落进本块 run；若选 1/2，另开一块记执行与对照；若选 3，contract §4 把该项标为参考线并注明依据
 
 ### T-005 路由评测：框架无关、可校正随机 — 已完成
 @default
@@ -407,7 +420,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-001#B-001
     - run 2026-10-11 14:04 you blocked→done 定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。
 
-### T-008 SkillWeave skill 本体（可被任意 agent 安装） — 待排
+### T-008 SkillWeave skill 本体（可被任意 agent 安装） — 进行中
 @default
 - [x] `T-008#B-001` **skills/skillweave/SKILL.md：第一层薄入口** _impl_ — 已完成 @default
     - 做什么：【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`
@@ -434,7 +447,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
     - 依赖：T-008#B-001
     - 产物：`skills/skillweave/references/split.md`
     - run 2026-10-11 15:17 default pending→done 四份 references 齐全且都被 SKILL.md 点名（孤儿 0）：split（切分界线/该下沉标准/转指写法/前后对照三数）· group（两轴判据/类目命名 3-8 个/四个验收数）· merge（五项取证→真重复合并非重复写界限→dup 段必须消失）· rewrite（57 字符窗口/触发词优先/排除条款位置/分组+校正随机重测）
-- [ ] `T-008#B-003` **端到端：agent + CLI 走完一个真实 pack** _impl_ — 等前置 @default
+- [ ] `T-008#B-003` **端到端：agent + CLI 走完一个真实 pack** _impl_ — 已认领 @default
     - 做什么：【做什么】照装好的 skill 走一遍完整流程（在**临时复制的** pack 上做，不动原仓库）：
 `layers` 出 L1/L2/L3 → 按 `references/` 的四类动作改 → 重跑 `layers` 出前后对照 → 跑 T-005 一轮评测证明路由不退化。
     - 判据：临时 pack 上有真实 diff（不是提案）；`layers` 前后对照表（L1 条目数、常驻字符、L2 超限数、L3 孤儿数）
@@ -444,8 +457,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:14` **agent** [status] T-003#B-002: pending → done（体积对照进 audit size 段：超 5000 token 的 15/126，最大 accountancy-workflow 21427tok/747行(over-500) 等；行数三档按 claude-skills-cli 口径标注）
-- `2026-10-11 15:14` **agent** [status] T-003#B-003: pending → done（孤儿/悬空进 audit orphan 段：本 pack 孤儿 106、悬空 45（修误报后口径））
 - `2026-10-11 15:14` **agent** [status] T-003#B-004: pending → done（同层近重复进 audit dup 段（difflib，同父目录两两）：1672 对里相似度>0.5 的 12 对。**实测抓到一对 1.00 的重复技能**：skills/research/tushare/ ↔ skills/research/tushare-data/ —— description 逐字相同、各 4 个文件、只有 name 不同，路由必然掷硬币；另有 boc-statement↔ccb-statement 0.81）
 - `2026-10-11 15:14` **agent** [status] T-003#B-005: pending → done（成本两组数进 audit cost 段：常驻 21302 字符≈6694 token；L2 全体 391700 tok（中位 2307）；L3 470 文件/5996139 B）
 - `2026-10-11 15:14` **agent** [status] T-002#B-003: pending → done（摘要来源可追溯：有 description 的取 frontmatter.description（并把该摘要回源文件 frontmatter 校验命中），无 description 的取正文首段首句带行号，都没有的写 null；audit/tree 产物里每条 summary_source 都可回源定位）
@@ -464,6 +475,8 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 15:36` **default** [summary] T-004 第一刀（在副本 /tmp/pack-fix 上）：按 merge.md 取证后判定 tushare / tushare-data 为**真重复**（description 逐字同、references/数据接口.md 逐字节同、脚本同名微差、正文只差 slug 与 version 1.1.12/1.1.16），决定保留名字 tushare、取 1.1.16 的内容、删 tushare-data。改后实测：技能 126→125 · dup top 从 1.00 变 0.81（该对消失）·相似度>0.5 的对 12→11 · 常驻 6694→6548 token · 孤儿 106→103 · 悬空不变 45。第 2 轮评测已按冻结题面重生成判官输入（125 候选，tushare-data 已不在候选表），P10 的语义标注随结构更正（题面一字未动）；T-004#B-001（CLI 提案器）仍未做 —— 这一次是照 skill 的做法手工执行的，别把两者混起来记。
 - `2026-10-11 15:38` **agent** [status] T-004#B-002: pending → done（改完重跑出前后对照（同题面同金标）：should_trigger 0.938→1.0 · near_confusion 0.75→1.0 · should_not_trigger 1.0→1.0（BoR 0.937/0.748→全 1.0）；结构侧 dup top 1.00→0.81、常驻 6694→6548 token、技能 126→125。第 1 轮那 3 处错误全部落在被修的那一对上，改后零错误且无退化）
 - `2026-10-11 15:48` **default** [summary] T-004#B-003 执行记录（副本 /tmp/pack-fix2）：按 group.md 两轴判据把 52 个散技能全部归入类目（断言每个都有唯一落点，含 2 个最初漏掉的：dispatch-work-to-another-profile→hermes-ops、leave-and-rejoin-a-discord-thread→social-media）。L1 从 69 项（散 52+类目 17）→ **24 项（散 0+类目 24）**，常驻成本不变 6548 token（归入类目不增加菜单成本），悬空 45 不变、孤儿 103 不变。过程中修了我工具的两个真 bug：① 入口层判定（分组后会错抓成第一个类目）② 引用按 pack 根解析写死 ../.. 的深度假设（加一层类目就误报 3 条悬空）。24 项仍 >上限 20：再往下压需要合并现有类目或改成二级命名，属**分类学决策**，留给你拍板。
+- `2026-10-11 15:50` **agent** [status] T-004#B-003: pending → done（L1 收敛执行完并跑第 3 轮证明不退化：r3 与 r2 分组分完全一致（应触发 16/16、不应触发 4/4、近邻混淆 8/8，BoR 全 1.0），而 L1 从 69 项压到 24 项（散技能 52→0）。常驻成本保持 6548 token。三轮题面逐字未动、金标统一用 r3 打分（第 1/2 轮 picks 按 move 表机械映射，原件未改））
+- `2026-10-11 15:50` **agent** [block] 新增块 T-004#B-004「决策：L1 从 24 项再压到 ≤20 的路线」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
