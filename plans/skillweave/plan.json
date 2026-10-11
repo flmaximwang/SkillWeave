@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T15:36:18+08:00",
+  "updated_at": "2026-10-11T15:38:15+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -653,7 +653,7 @@
           "id": "T-004#B-002",
           "title": "改完自动重跑审计并出前后对照",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】`--apply` 之后自动重跑 T-003 全套，输出「前 → 后」对照表（fanout 分布、超限条数、\n孤儿数、近重复对数、常驻成本）。没有对照表 = 这次优化没有证据。",
           "input": "",
@@ -662,15 +662,25 @@
           "done_when": [
             "贴一份真实的前后对照表（在临时 pack 上做），每个数字都来自命令输出。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/round2/COMPARISON.md"
+          ],
           "deps": [
             "T-004#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "status_since": "2026-10-11T15:38:15+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T15:38:15+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "改完重跑出前后对照（同题面同金标）：should_trigger 0.938→1.0 · near_confusion 0.75→1.0 · should_not_trigger 1.0→1.0（BoR 0.937/0.748→全 1.0）；结构侧 dup top 1.00→0.81、常驻 6694→6548 token、技能 126→125。第 1 轮那 3 处错误全部落在被修的那一对上，改后零错误且无退化"
+            }
+          ]
         },
         {
           "id": "T-004#B-003",
@@ -1658,7 +1668,14 @@
       "kind": "summary",
       "text": "T-004 第一刀（在副本 /tmp/pack-fix 上）：按 merge.md 取证后判定 tushare / tushare-data 为**真重复**（description 逐字同、references/数据接口.md 逐字节同、脚本同名微差、正文只差 slug 与 version 1.1.12/1.1.16），决定保留名字 tushare、取 1.1.16 的内容、删 tushare-data。改后实测：技能 126→125 · dup top 从 1.00 变 0.81（该对消失）·相似度>0.5 的对 12→11 · 常驻 6694→6548 token · 孤儿 106→103 · 悬空不变 45。第 2 轮评测已按冻结题面重生成判官输入（125 候选，tushare-data 已不在候选表），P10 的语义标注随结构更正（题面一字未动）；T-004#B-001（CLI 提案器）仍未做 —— 这一次是照 skill 的做法手工执行的，别把两者混起来记。",
       "ref": ""
+    },
+    {
+      "at": "2026-10-11T15:38:15+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-004#B-002: pending → done（改完重跑出前后对照（同题面同金标）：should_trigger 0.938→1.0 · near_confusion 0.75→1.0 · should_not_trigger 1.0→1.0（BoR 0.937/0.748→全 1.0）；结构侧 dup top 1.00→0.81、常驻 6694→6548 token、技能 126→125。第 1 轮那 3 处错误全部落在被修的那一对上，改后零错误且无退化）",
+      "ref": "T-004#B-002"
     }
   ],
-  "rev": "938b743b281f"
+  "rev": "290da4a8b938"
 }

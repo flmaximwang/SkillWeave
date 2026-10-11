@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 26/32 块（81%） · 状态 `active` · 更新于 2026-10-11 15:36
+**进度** 27/32 块（84%） · 状态 `active` · 更新于 2026-10-11 15:38
 
 **参与方** 本人(human)
 
@@ -10,6 +10,7 @@
 
 - `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
 - `T-004#B-003` **L1 收敛：把入口层条目压到上限内** — 已认领 · @default
+- `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** — 已认领 · @default
 
 ## 图
 
@@ -75,13 +76,13 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-002,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef claimed stroke-width:1px;
-  class T-004_B-001,T-004_B-003 claimed;
+  class T-004_B-001,T-004_B-003,T-006_B-001 claimed;
   classDef waiting stroke-width:1px;
-  class T-004_B-002,T-006_B-001,T-006_B-002,T-008_B-003 waiting;
+  class T-006_B-002,T-008_B-003 waiting;
 ```
 
 ## 任务
@@ -305,11 +306,13 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 四类动作：拆（下沉 references + 原位留转指）· 分（归入类目压低 L1 条目数）· 并（近重复合并）· 改写（触发词）。
     - 判据：在 AgentSkill-UsingHermes 上跑 `--dry-run`：输出的每条提案带 `文件:行` 与 diff 形状；
 `--apply` 在一个**临时复制的 pack**上真跑一次，`git diff --stat` 与提案条数一致（贴输出）。
-- [ ] `T-004#B-002` **改完自动重跑审计并出前后对照** _impl_ — 等前置 @default
+- [x] `T-004#B-002` **改完自动重跑审计并出前后对照** _impl_ — 已完成 @default
     - 做什么：【做什么】`--apply` 之后自动重跑 T-003 全套，输出「前 → 后」对照表（fanout 分布、超限条数、
 孤儿数、近重复对数、常驻成本）。没有对照表 = 这次优化没有证据。
     - 判据：贴一份真实的前后对照表（在临时 pack 上做），每个数字都来自命令输出。
     - 依赖：T-004#B-001
+    - 产物：`reports/2026-10-11-usinghermes/round2/COMPARISON.md`
+    - run 2026-10-11 15:38 default pending→done 改完重跑出前后对照（同题面同金标）：should_trigger 0.938→1.0 · near_confusion 0.75→1.0 · should_not_trigger 1.0→1.0（BoR 0.937/0.748→全 1.0）；结构侧 dup top 1.00→0.81、常驻 6694→6548 token、技能 126→125。第 1 轮那 3 处错误全部落在被修的那一对上，改后零错误且无退化
 - [ ] `T-004#B-003` **L1 收敛：把入口层条目压到上限内** _impl_ — 已认领 @default
     - 做什么：【做什么】按 layers 的实测做收敛方案（先出提案，--apply 才落盘）：
 ① 44 个散技能多是工具轴（`skills/install-hermes-skills` 这类），按**两轴**归入类目：主语是软件/工具 → 类目
@@ -353,9 +356,9 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - run 2026-10-11 15:28 default pending→running 已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改
     - run 2026-10-11 15:29 default running→done 2 个独立判官各 15 行输出（wc -l 15/15，原件不改）。126 候选 / 14 题：should_trigger 14/14 全对 · should_not_trigger 5/6 · near_confusion 6/8。**全部 3 处错误都落在 audit 抓到的那个 1.00 相似对上**（P13 两票都投 tushare-data；P10 判官 B 投到 tushare=gold）—— 独立盲判把结构度量确认为唯一错源。校正随机分 BoR：should_trigger 1.00 · should_not_trigger 0.832 · near_confusion 0.748
 
-### T-006 在真实 pack 上验收 — 待排
+### T-006 在真实 pack 上验收 — 进行中
 @default
-- [ ] `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** _impl_ — 等前置 @default
+- [ ] `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** _impl_ — 已认领 @default
     - 做什么：【做什么】对该 pack 出完整报告：文档树 + 每层 fanout + 体积超限 + 孤儿/悬空 + 近重复 top-N +
 成本两组数 + 优化提案。基线（2026-10-11 实测）：`skills/` 第一层 69 个条目（52 个直接是技能 + 17 个类目）、
 全 pack 126 份 `SKILL.md`。
@@ -441,7 +444,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 14:58` **agent** [status] T-003#B-008: pending → done（内化 claude-skills-cli 的量化告警：每 skill 报 code_blocks/sections/long_paragraphs/todos，layers 出全 pack 合计。实测 UsingHermes：代码块 697 · 章节 1791 · 长段落 234 · TODO 4）
 - `2026-10-11 15:06` **agent** [status] T-003#B-007: pending → done（内化 skill-tools 六条检查（新子命令 checks，安全闸命中即退 1）。UsingHermes 实测：悬空引用 45 · token 超预算 15 · BOM 3 · 二进制 0 · name-目录不一致 1 · 硬编码路径 116 · 内嵌密钥 0；--self-test 加了硬编码路径/密钥命中两条断言）
 - `2026-10-11 15:14` **agent** [status] T-003#B-002: pending → done（体积对照进 audit size 段：超 5000 token 的 15/126，最大 accountancy-workflow 21427tok/747行(over-500) 等；行数三档按 claude-skills-cli 口径标注）
 - `2026-10-11 15:14` **agent** [status] T-003#B-003: pending → done（孤儿/悬空进 audit orphan 段：本 pack 孤儿 106、悬空 45（修误报后口径））
@@ -461,6 +463,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 15:29` **agent** [status] T-006#B-003: pending → done（第二/第三个 pack 交叉验证：Dream（2 技能、无类目）与 AgentSkill-SoftwareDev（30 散技能一个类目）都跑过 tree/layers（Dream L1 2 项 ✅；SoftwareDev L1 30 项 ❌，形状差异已被同一套命令量出来））
 - `2026-10-11 15:29` **default** [decision] 第 1 轮评测结论：结构度量（audit dup 段 1.00）与独立盲判（3 处错误全在同一对技能）互相确认。T-004 的收敛动作优先修这一对（tushare / tushare-data：description 逐字相同），改完跑第 2 轮——题面冻结不动、judge 输入重新生成——证明不退化。
 - `2026-10-11 15:36` **default** [summary] T-004 第一刀（在副本 /tmp/pack-fix 上）：按 merge.md 取证后判定 tushare / tushare-data 为**真重复**（description 逐字同、references/数据接口.md 逐字节同、脚本同名微差、正文只差 slug 与 version 1.1.12/1.1.16），决定保留名字 tushare、取 1.1.16 的内容、删 tushare-data。改后实测：技能 126→125 · dup top 从 1.00 变 0.81（该对消失）·相似度>0.5 的对 12→11 · 常驻 6694→6548 token · 孤儿 106→103 · 悬空不变 45。第 2 轮评测已按冻结题面重生成判官输入（125 候选，tushare-data 已不在候选表），P10 的语义标注随结构更正（题面一字未动）；T-004#B-001（CLI 提案器）仍未做 —— 这一次是照 skill 的做法手工执行的，别把两者混起来记。
+- `2026-10-11 15:38` **agent** [status] T-004#B-002: pending → done（改完重跑出前后对照（同题面同金标）：should_trigger 0.938→1.0 · near_confusion 0.75→1.0 · should_not_trigger 1.0→1.0（BoR 0.937/0.748→全 1.0）；结构侧 dup top 1.00→0.81、常驻 6694→6548 token、技能 126→125。第 1 轮那 3 处错误全部落在被修的那一对上，改后零错误且无退化）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
