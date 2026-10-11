@@ -1,0 +1,93 @@
+{
+  "L1": {
+    "first_layer_categories": 0,
+    "first_layer_entries": 1,
+    "first_layer_loose_skills": 1,
+    "menu_entries": [
+      "skills/using-bioxtas-raw/"
+    ],
+    "over_1024_chars": [],
+    "resident_chars": 336,
+    "resident_est_tokens": 235,
+    "skills": 1,
+    "skills_root": "skills/"
+  },
+  "L2": {
+    "counts_totals": {
+      "code_blocks": 0,
+      "long_paragraphs": 0,
+      "sections": 5,
+      "todos": 0
+    },
+    "counts_worst": [
+      {
+        "code_blocks": 0,
+        "id": "skills/using-bioxtas-raw/",
+        "long_paragraphs": 0,
+        "sections": 5,
+        "todos": 0
+      }
+    ],
+    "max_many": [
+      {
+        "est_tokens": 1710,
+        "id": "skills/using-bioxtas-raw/",
+        "lines": 46
+      }
+    ],
+    "over_limit": [],
+    "over_token": [],
+    "sibling_mentions_max": [
+      {
+        "id": "skills/using-bioxtas-raw/",
+        "mentions": 0
+      }
+    ]
+  },
+  "L3": {
+    "broken": 0,
+    "bytes": 472078,
+    "files": 45,
+    "largest": [
+      {
+        "bytes": 23224,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/evaluate-a-shape-reconstruction.md",
+        "sha256": "d874f07c202d690bcddb8c8ccee305ad4081a0973e4268d0f14ea0a96c606c8d"
+      },
+      {
+        "bytes": 22469,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/assess-guinier-fit-quality.md",
+        "sha256": "066d1adb396612bbad4e282dd2f1ca34412a8b9a7c2b5d751c313bd609f669ce"
+      },
+      {
+        "bytes": 22226,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/deconvolve-overlapping-elution-peaks.md",
+        "sha256": "303f3826f53b23ce4e234dc9399ca2382401b599965b615dcc9867c49e3035f9"
+      },
+      {
+        "bytes": 20949,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/fit-a-high-resolution-model-to-data.md",
+        "sha256": "5242124105133b35daafd1c3419035617e5cb137c0e05124f885f6d1ecbcfedc"
+      },
+      {
+        "bytes": 19181,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/compute-and-validate-p-of-r.md",
+        "sha256": "6c46a125ed8f2865e850d0392a109063c238393b687de45f7dfeb3e49d57d31b"
+      }
+    ],
+    "orphans": 0
+  },
+  "member_mode": "git-tracked",
+  "pack": "AgentSkill-UsingBioXTASRAW",
+  "untracked_skill_dirs": []
+}

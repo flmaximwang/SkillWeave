@@ -1,0 +1,272 @@
+{
+  "count": 7,
+  "pack": "AgentSkill-UsingBioXTASRAW",
+  "proposals": [
+    {
+      "action": "5393 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/analyze-time-resolved-series/SKILL.md:142-168 (E — 执行步骤 (Execution)) → + skills/analyze-time-resolved-series/references/<slug>.md",
+        "~ skills/analyze-time-resolved-series/SKILL.md:76-114 (A1 — 案例 (Past Application)) → + skills/analyze-time-resolved-series/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 5393,
+        "lines": 189,
+        "sections_by_size": [
+          {
+            "chars": 2086,
+            "lines": "142-168",
+            "title": "E — 执行步骤 (Execution)"
+          },
+          {
+            "chars": 2042,
+            "lines": "76-114",
+            "title": "A1 — 案例 (Past Application)"
+          },
+          {
+            "chars": 1960,
+            "lines": "18-55",
+            "title": "R — 原文 (Reading)"
+          },
+          {
+            "chars": 1580,
+            "lines": "56-75",
+            "title": "I — 骨架 (Interpretation)"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/analyze-time-resolved-series/SKILL.md:142"
+    },
+    {
+      "action": "6748 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/assess-guinier-fit-quality/SKILL.md:20-82 (R — 原文 (Reading)) → + skills/assess-guinier-fit-quality/references/<slug>.md",
+        "~ skills/assess-guinier-fit-quality/SKILL.md:164-191 (E — 执行步骤 (Execution)) → + skills/assess-guinier-fit-quality/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 6748,
+        "lines": 217,
+        "sections_by_size": [
+          {
+            "chars": 2526,
+            "lines": "20-82",
+            "title": "R — 原文 (Reading)"
+          },
+          {
+            "chars": 2065,
+            "lines": "164-191",
+            "title": "E — 执行步骤 (Execution)"
+          },
+          {
+            "chars": 1774,
+            "lines": "83-100",
+            "title": "I — 骨架 (Interpretation)"
+          },
+          {
+            "chars": 1691,
+            "lines": "192-223",
+            "title": "B — 边界 (Boundary)"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/assess-guinier-fit-quality/SKILL.md:20"
+    },
+    {
+      "action": "5670 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/compute-and-validate-p-of-r/SKILL.md:18-69 (R — 原文 (Reading)) → + skills/compute-and-validate-p-of-r/references/<slug>.md",
+        "~ skills/compute-and-validate-p-of-r/SKILL.md:184-208 (E — 执行步骤 (Execution)) → + skills/compute-and-validate-p-of-r/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 5670,
+        "lines": 232,
+        "sections_by_size": [
+          {
+            "chars": 1944,
+            "lines": "18-69",
+            "title": "R — 原文 (Reading)"
+          },
+          {
+            "chars": 1578,
+            "lines": "184-208",
+            "title": "E — 执行步骤 (Execution)"
+          },
+          {
+            "chars": 1383,
+            "lines": "209-237",
+            "title": "B — 边界 (Boundary)"
+          },
+          {
+            "chars": 1249,
+            "lines": "136-158",
+            "title": "A1 — 案例 (Past Application)"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/compute-and-validate-p-of-r/SKILL.md:18"
+    },
+    {
+      "action": "5070 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/configure-bioxtas-raw-for-a-dataset/SKILL.md:124-181 (B — 边界 (Boundary)) → + skills/configure-bioxtas-raw-for-a-dataset/references/<slug>.md",
+        "~ skills/configure-bioxtas-raw-for-a-dataset/SKILL.md:53-69 (配置怎么造出来：六步链（判据与顺序约束）) → + skills/configure-bioxtas-raw-for-a-dataset/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 5070,
+        "lines": 175,
+        "sections_by_size": [
+          {
+            "chars": 3158,
+            "lines": "124-181",
+            "title": "B — 边界 (Boundary)"
+          },
+          {
+            "chars": 1169,
+            "lines": "53-69",
+            "title": "配置怎么造出来：六步链（判据与顺序约束）"
+          },
+          {
+            "chars": 695,
+            "lines": "85-108",
+            "title": "A2 — 触发场景 (Future Trigger)"
+          },
+          {
+            "chars": 679,
+            "lines": "109-123",
+            "title": "E — 执行步骤 (Execution)"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/configure-bioxtas-raw-for-a-dataset/SKILL.md:124"
+    },
+    {
+      "action": "6556 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/deconvolve-overlapping-elution-peaks/SKILL.md:24-119 (R — 原文 (Reading)) → + skills/deconvolve-overlapping-elution-peaks/references/<slug>.md",
+        "~ skills/deconvolve-overlapping-elution-peaks/SKILL.md:154-186 (A1 — 案例 (Past Application)) → + skills/deconvolve-overlapping-elution-peaks/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 6556,
+        "lines": 265,
+        "sections_by_size": [
+          {
+            "chars": 3402,
+            "lines": "24-119",
+            "title": "R — 原文 (Reading)"
+          },
+          {
+            "chars": 2267,
+            "lines": "154-186",
+            "title": "A1 — 案例 (Past Application)"
+          },
+          {
+            "chars": 1917,
+            "lines": "212-244",
+            "title": "E — 执行步骤 (Execution)"
+          },
+          {
+            "chars": 1496,
+            "lines": "245-274",
+            "title": "B — 边界 (Boundary)"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/deconvolve-overlapping-elution-peaks/SKILL.md:24"
+    },
+    {
+      "action": "6857 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/evaluate-a-shape-reconstruction/SKILL.md:20-101 (R — 原文 (Reading)) → + skills/evaluate-a-shape-reconstruction/references/<slug>.md",
+        "~ skills/evaluate-a-shape-reconstruction/SKILL.md:102-144 (I — 骨架 (Interpretation)) → + skills/evaluate-a-shape-reconstruction/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 6857,
+        "lines": 245,
+        "sections_by_size": [
+          {
+            "chars": 3297,
+            "lines": "20-101",
+            "title": "R — 原文 (Reading)"
+          },
+          {
+            "chars": 2362,
+            "lines": "102-144",
+            "title": "I — 骨架 (Interpretation)"
+          },
+          {
+            "chars": 2167,
+            "lines": "195-215",
+            "title": "E — 执行步骤 (Execution)"
+          },
+          {
+            "chars": 1779,
+            "lines": "216-251",
+            "title": "B — 边界 (Boundary)"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/evaluate-a-shape-reconstruction/SKILL.md:20"
+    },
+    {
+      "action": "6271 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/fit-a-high-resolution-model-to-data/SKILL.md:18-66 (R — 原文 (Reading)) → + skills/fit-a-high-resolution-model-to-data/references/<slug>.md",
+        "~ skills/fit-a-high-resolution-model-to-data/SKILL.md:67-102 (I — 骨架 (Interpretation)) → + skills/fit-a-high-resolution-model-to-data/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 6271,
+        "lines": 208,
+        "sections_by_size": [
+          {
+            "chars": 2162,
+            "lines": "18-66",
+            "title": "R — 原文 (Reading)"
+          },
+          {
+            "chars": 2076,
+            "lines": "67-102",
+            "title": "I — 骨架 (Interpretation)"
+          },
+          {
+            "chars": 1969,
+            "lines": "160-183",
+            "title": "E — 执行步骤 (Execution)"
+          },
+          {
+            "chars": 1706,
+            "lines": "103-129",
+            "title": "A1 — 案例 (Past Application)"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/fit-a-high-resolution-model-to-data/SKILL.md:18"
+    }
+  ]
+}

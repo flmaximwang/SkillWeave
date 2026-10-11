@@ -1,0 +1,213 @@
+{
+  "L1": {
+    "first_layer_categories": 0,
+    "first_layer_entries": 13,
+    "first_layer_loose_skills": 13,
+    "menu_entries": [
+      "skills/analyze-time-resolved-series/",
+      "skills/assess-guinier-fit-quality/",
+      "skills/choose-a-molecular-weight-method/",
+      "skills/compute-and-validate-p-of-r/",
+      "skills/configure-bioxtas-raw-for-a-dataset/",
+      "skills/correct-sec-saxs-baseline/",
+      "skills/deconvolve-overlapping-elution-peaks/",
+      "skills/evaluate-a-shape-reconstruction/",
+      "skills/fit-a-high-resolution-model-to-data/",
+      "skills/process-sec-saxs-series/",
+      "skills/put-saxs-data-on-an-absolute-scale/",
+      "skills/reduce-saxs-frames-to-curves/",
+      "skills/script-raw-with-the-python-api/"
+    ],
+    "over_1024_chars": [],
+    "resident_chars": 3673,
+    "resident_est_tokens": 2246,
+    "skills": 13,
+    "skills_root": "skills/"
+  },
+  "L2": {
+    "counts_totals": {
+      "code_blocks": 5,
+      "long_paragraphs": 14,
+      "sections": 120,
+      "todos": 0
+    },
+    "counts_worst": [
+      {
+        "code_blocks": 0,
+        "id": "skills/analyze-time-resolved-series/",
+        "long_paragraphs": 2,
+        "sections": 8,
+        "todos": 0
+      },
+      {
+        "code_blocks": 0,
+        "id": "skills/assess-guinier-fit-quality/",
+        "long_paragraphs": 2,
+        "sections": 9,
+        "todos": 0
+      },
+      {
+        "code_blocks": 2,
+        "id": "skills/script-raw-with-the-python-api/",
+        "long_paragraphs": 1,
+        "sections": 11,
+        "todos": 0
+      },
+      {
+        "code_blocks": 1,
+        "id": "skills/put-saxs-data-on-an-absolute-scale/",
+        "long_paragraphs": 1,
+        "sections": 8,
+        "todos": 0
+      },
+      {
+        "code_blocks": 0,
+        "id": "skills/choose-a-molecular-weight-method/",
+        "long_paragraphs": 1,
+        "sections": 8,
+        "todos": 0
+      }
+    ],
+    "max_many": [
+      {
+        "est_tokens": 6857,
+        "id": "skills/evaluate-a-shape-reconstruction/",
+        "lines": 245
+      },
+      {
+        "est_tokens": 6748,
+        "id": "skills/assess-guinier-fit-quality/",
+        "lines": 217
+      },
+      {
+        "est_tokens": 6556,
+        "id": "skills/deconvolve-overlapping-elution-peaks/",
+        "lines": 265
+      },
+      {
+        "est_tokens": 6271,
+        "id": "skills/fit-a-high-resolution-model-to-data/",
+        "lines": 208
+      },
+      {
+        "est_tokens": 5670,
+        "id": "skills/compute-and-validate-p-of-r/",
+        "lines": 232
+      }
+    ],
+    "over_limit": [
+      {
+        "est_tokens": 6857,
+        "id": "skills/evaluate-a-shape-reconstruction/",
+        "lines": 245
+      },
+      {
+        "est_tokens": 6748,
+        "id": "skills/assess-guinier-fit-quality/",
+        "lines": 217
+      },
+      {
+        "est_tokens": 6556,
+        "id": "skills/deconvolve-overlapping-elution-peaks/",
+        "lines": 265
+      },
+      {
+        "est_tokens": 6271,
+        "id": "skills/fit-a-high-resolution-model-to-data/",
+        "lines": 208
+      },
+      {
+        "est_tokens": 5670,
+        "id": "skills/compute-and-validate-p-of-r/",
+        "lines": 232
+      },
+      {
+        "est_tokens": 5393,
+        "id": "skills/analyze-time-resolved-series/",
+        "lines": 189
+      },
+      {
+        "est_tokens": 5070,
+        "id": "skills/configure-bioxtas-raw-for-a-dataset/",
+        "lines": 175
+      }
+    ],
+    "over_token": [
+      "skills/evaluate-a-shape-reconstruction/",
+      "skills/assess-guinier-fit-quality/",
+      "skills/deconvolve-overlapping-elution-peaks/",
+      "skills/fit-a-high-resolution-model-to-data/",
+      "skills/compute-and-validate-p-of-r/",
+      "skills/analyze-time-resolved-series/",
+      "skills/configure-bioxtas-raw-for-a-dataset/"
+    ],
+    "sibling_mentions_max": [
+      {
+        "id": "skills/analyze-time-resolved-series/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/assess-guinier-fit-quality/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/choose-a-molecular-weight-method/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/compute-and-validate-p-of-r/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/configure-bioxtas-raw-for-a-dataset/",
+        "mentions": 0
+      }
+    ]
+  },
+  "L3": {
+    "broken": 0,
+    "bytes": 233540,
+    "files": 32,
+    "largest": [
+      {
+        "bytes": 14826,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/frame_flux_normalization.py",
+        "sha256": "ff9f268871f6d6b4c6e0303f163bc707371ea3ae41b33b8251323b0051149365"
+      },
+      {
+        "bytes": 11590,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/beam-instability-and-step-offsets.md",
+        "sha256": "a70338b51e23b74d50026f5338742d216a502170455019b9b041ce7eb674a421"
+      },
+      {
+        "bytes": 11482,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/rawapi-function-inventory.md",
+        "sha256": "0f2fd91ce4647dcb38cde77261db38d0286de99bcecc70595f587be5daf507f1"
+      },
+      {
+        "bytes": 9730,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/build-a-configuration-file.md",
+        "sha256": "0716de2778ebf0ae15804cd448f6a63dced941471de7ebb6b7040ddbc936a60a"
+      },
+      {
+        "bytes": 9365,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/block_step_correction.py",
+        "sha256": "29558aed264b8a09947162151b8ed76fd717f79109a2fcb36befcee4b2778fdf"
+      }
+    ],
+    "orphans": 13
+  },
+  "member_mode": "git-tracked",
+  "pack": "AgentSkill-UsingBioXTASRAW",
+  "untracked_skill_dirs": []
+}

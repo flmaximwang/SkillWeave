@@ -1,0 +1,21 @@
+{
+  "hits": {
+    "binary": [],
+    "bom": [],
+    "broken_refs": [],
+    "embedded_secret": [],
+    "hardcoded_path": [],
+    "name_mismatch": [],
+    "token_budget": [
+      "skills/analyze-time-resolved-series/SKILL.md  est_tokens=5393",
+      "skills/assess-guinier-fit-quality/SKILL.md  est_tokens=6748",
+      "skills/compute-and-validate-p-of-r/SKILL.md  est_tokens=5670",
+      "skills/configure-bioxtas-raw-for-a-dataset/SKILL.md  est_tokens=5070",
+      "skills/deconvolve-overlapping-elution-peaks/SKILL.md  est_tokens=6556",
+      "skills/evaluate-a-shape-reconstruction/SKILL.md  est_tokens=6857",
+      "skills/fit-a-high-resolution-model-to-data/SKILL.md  est_tokens=6271"
+    ]
+  },
+  "pack": "AgentSkill-UsingBioXTASRAW",
+  "skills": 13
+}
