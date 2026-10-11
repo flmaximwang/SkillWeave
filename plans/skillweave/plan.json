@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T22:51:41+08:00",
+  "updated_at": "2026-10-11T23:23:22+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -815,6 +815,27 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-11T22:51:41+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-008",
+          "title": "PlanWeave 第一步：weave.py prepare —— 可回滚、可对账的工作副本 + 推导 L1 + 两种形状的账",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "PlanWeave 流程打磨 · 第一步已落地为命令 `weave.py prepare <pack>`。\n\n用户三条修正后定稿的第一步：① 不查 rev / 不查别的 agent / 不做工作区检查（正常不遇到，别做无意义操作）；直接拷副本操作。\n② L1 形状要用户接入：两种可能（用户指定单入口 → 推导的 L1 降为 L2；或直接用推导的 L1 = 多入口），两种都出同口径的账让用户选。\n③ 不假定输入在 git 里 —— **拷贝之后确保副本由 git 管**即可。\n\n实现：cp -Rc（clonefile，秒级）→ 副本里确保 git（拷贝自带 .git 就摘掉所有 remote 让误推当场失败、把现状提交成起点；\n没有 git 就 git init + 一行 .gitignore + 初始 commit）→ 量副本、推导 L1（互指岛的连通分量）→ 出 BASELINE.md\n（副本路径与 rev · 推导的 L1 及依据 · 单入口/多入口同口径的账 · 待用户选定的形状）。--shape single|multi 记选择；\n副本已存在拒绝覆盖；形状没定前不动副本任何文件。\n\n实测两条路都通：① /tmp/uh-precollapse（git archive 出去的、没有 git 的 39-skill 快照）→ 副本 git init 出起点 commit 4bd9d10、\n工作区干净、BASELINE.md 报「39 skill · 入口层 13 项 · 推导的 L1 = 13 个岛 · 常驻 3,310 tok」；\n② 当前 UsingHermes（自带 git、有 origin）→ 副本 0 个 remote、rev = c12b938。\n原目录两次都未被碰。self-test 加四条断言（非 git 输入也能被 git 管 / 有起点 commit / 原目录没被 git init / BASELINE.md 两种形状都写）。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "非 git 输入也能得到由 git 管的副本；原目录不被碰；BASELINE.md 写出推导的 L1 与两种形状的账；self-test 全过"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T23:23:22+08:00",
           "runs": []
         }
       ],
@@ -2055,7 +2076,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-007「在 UsingHermes 上真塌成单入口（L1=1 / L2=13 岛 / L3=39 篇），README 与标识符同步」",
       "ref": "T-004#B-007"
+    },
+    {
+      "at": "2026-10-11T23:23:22+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-008「PlanWeave 第一步：weave.py prepare —— 可回滚、可对账的工作副本 + 推导 L1 + 两种形状的账」",
+      "ref": "T-004#B-008"
     }
   ],
-  "rev": "99b9249409d1"
+  "rev": "d7fd87fabcf8"
 }
