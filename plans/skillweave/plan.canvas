@@ -257,8 +257,8 @@
    "y": 170,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-006#B-001\n首个 subject：AgentSkill-UsingHermes 完整审计报告\n\n`claimed` · @default\n\n【做什么】对该 pack 出完整报告：文档树 + 每层 fanout + 体积超限 + 孤儿/悬空 + 近重复 top-N +\n成本两组数 + 优化提案。基线（2026-10-11 实测）：`skills/` 第一层 69 个条目（52 个直接是技能 + 17 个类目）、\n全 pack 126 份 `SKILL.md`"
+   "color": "4",
+   "text": "### T-006#B-001\n首个 subject：AgentSkill-UsingHermes 完整审计报告\n\n`done` · @default\n\n【做什么】对该 pack 出完整报告：文档树 + 每层 fanout + 体积超限 + 孤儿/悬空 + 近重复 top-N +\n成本两组数 + 优化提案。基线（2026-10-11 实测）：`skills/` 第一层 69 个条目（52 个直接是技能 + 17 个类目）、\n全 pack 126 份 `SKILL.md`"
   },
   {
    "id": "T-006#B-002",
@@ -267,8 +267,8 @@
    "y": 40,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-006#B-002\n独立子代理复核（不许自己验自己）\n\n`waiting` · @default\n\n【做什么】派一个与执行者不同的子代理，只读报告与 pack，按报告里的命令重跑，逐项核对数字；\n不一致的逐条列出。子代理**只用前台命令**（不许起后台进程）。"
+   "color": "5",
+   "text": "### T-006#B-002\n独立子代理复核（不许自己验自己）\n\n`running` · @default · 在做 @default\n\n【做什么】派一个与执行者不同的子代理，只读报告与 pack，按报告里的命令重跑，逐项核对数字；\n不一致的逐条列出。子代理**只用前台命令**（不许起后台进程）。"
   },
   {
    "id": "T-006#B-003",

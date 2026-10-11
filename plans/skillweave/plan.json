@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T16:07:44+08:00",
+  "updated_at": "2026-10-11T16:12:42+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -878,7 +878,7 @@
           "id": "T-006#B-001",
           "title": "首个 subject：AgentSkill-UsingHermes 完整审计报告",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】对该 pack 出完整报告：文档树 + 每层 fanout + 体积超限 + 孤儿/悬空 + 近重复 top-N +\n成本两组数 + 优化提案。基线（2026-10-11 实测）：`skills/` 第一层 69 个条目（52 个直接是技能 + 17 个类目）、\n全 pack 126 份 `SKILL.md`。",
           "input": "",
@@ -887,7 +887,9 @@
           "done_when": [
             "报告文件落 `<批次目录>/report-usinghermes.md`，每个数字带产生它的命令；报告里的命令能被别人重跑复现。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/report-usinghermes.md"
+          ],
           "deps": [
             "T-003#B-005",
             "T-004#B-002"
@@ -895,14 +897,22 @@
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:07+08:00",
-          "runs": []
+          "status_since": "2026-10-11T16:12:42+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T16:12:42+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "完整报告落地（基准 b8298f4）：入口层 68 项、常驻 6443 token、L2 超限 16（token 单口径 14）、L3 468 文件/6.86MB、孤儿 104、悬空 46、同层 1621 对里 12 对>0.5（top 1.00 为 tushare 那对）、checks 命中 116、提案 27 条。每个数字都带产生它的命令，§11 是 8 条复现清单（命令→该看到什么），供 T-006#B-002 的复核子代理逐条重跑。"
+            }
+          ]
         },
         {
           "id": "T-006#B-002",
           "title": "独立子代理复核（不许自己验自己）",
           "kind": "review",
-          "status": "pending",
+          "status": "running",
           "owner": "default",
           "doc": "【做什么】派一个与执行者不同的子代理，只读报告与 pack，按报告里的命令重跑，逐项核对数字；\n不一致的逐条列出。子代理**只用前台命令**（不许起后台进程）。",
           "input": "",
@@ -915,9 +925,20 @@
           "deps": [],
           "review_of": "T-006#B-001",
           "feedback": "",
-          "exec": {},
-          "status_since": "2026-10-11T13:42:07+08:00",
-          "runs": []
+          "exec": {
+            "by": "default",
+            "started": "2026-10-11T16:12:42+08:00"
+          },
+          "status_since": "2026-10-11T16:12:42+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T16:12:42+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "running",
+              "note": "已派独立子代理复核（只读报告+pack，按 §11 逐条重跑，输出 round4/verify-report.md）"
+            }
+          ]
         },
         {
           "id": "T-006#B-003",
@@ -1744,7 +1765,21 @@
       "kind": "status",
       "text": "T-004#B-001: pending → done（提案器落地并验收：dry-run 出 27 条（split 14 / rewrite 11 / merge 1 / group 1），每条带 文件:行 + diff 形状 + 证据 JSON；只有 1 条 auto_applyable，其余 26 条标 needs_model=True。--apply + --apply-group 在临时副本上真落盘：执行 52 条机械动作、逐条自检 ✓、路径集合级对账 ✓（git diff --stat = 209 files changed）。合并方向规则改为「身份取被引用更多的一方、同名文件取 version 更高的一方」。改后 L1 68→24 项、常驻 6311→6298 token、悬空 46→46（新增 0）、孤儿 101→101。踩到并修掉三个真 bug：① 合并身份按 id 排序（尾斜杠让 tushare-data 排前面，方向反了）② git status --porcelain -z 里 rename 的旧路径字段没有状态前缀，被多切 3 字符 ③ 中文路径 NFD/NFC 差异导致对账全是假差异。另记：15:46 的快照被别的 agent 推进过（a2d79b6），我一度把一条既有悬空误记成归位造成的，重取同 HEAD 基线后确认新增悬空 0 —— 基准必须同 HEAD 取。）",
       "ref": "T-004#B-001"
+    },
+    {
+      "at": "2026-10-11T16:12:42+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-006#B-001: pending → done（完整报告落地（基准 b8298f4）：入口层 68 项、常驻 6443 token、L2 超限 16（token 单口径 14）、L3 468 文件/6.86MB、孤儿 104、悬空 46、同层 1621 对里 12 对>0.5（top 1.00 为 tushare 那对）、checks 命中 116、提案 27 条。每个数字都带产生它的命令，§11 是 8 条复现清单（命令→该看到什么），供 T-006#B-002 的复核子代理逐条重跑。）",
+      "ref": "T-006#B-001"
+    },
+    {
+      "at": "2026-10-11T16:12:42+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-006#B-002: pending → running（已派独立子代理复核（只读报告+pack，按 §11 逐条重跑，输出 round4/verify-report.md））",
+      "ref": "T-006#B-002"
     }
   ],
-  "rev": "ec81cd5ce21c"
+  "rev": "d2e254ad69ec"
 }

@@ -470,7 +470,11 @@ def cmd_layers(root, out):
                "resident_chars": l1_chars, "resident_est_tokens": est_tokens(l1_text),
                "over_1024_chars": [s["id"] for s in skills if s["description_chars"] > 1024]},
         "L2": {"over_limit": [{"id": s["id"], "est_tokens": s["est_tokens"], "lines": s["body_lines"]}
-                              for s in sorted(over_l2, key=lambda s: -s["est_tokens"])],
+                               for s in sorted(over_l2, key=lambda s: -s["est_tokens"])],
+                # 口径：over_limit = token>5000 **或** 行数>500（两个闸任一超）；
+                # over_token = 只用 token 闸，专门给 audit 对拍用（两个命令的数必须能对上）。
+                "over_token": [s["id"] for s in sorted(skills, key=lambda s: -s["est_tokens"])
+                               if s["est_tokens"] > 5000],
                "max_many": sorted([{"id": s["id"], "est_tokens": s["est_tokens"], "lines": s["body_lines"]}
                                    for s in skills], key=lambda r: -r["est_tokens"])[:5],
                "sibling_mentions_max": sorted([{"id": s["id"], "mentions": len(s["mentions"])}
@@ -1197,8 +1201,20 @@ def self_test():
         assert cmd_score(os.path.join(out4, "judge-key.json"), [jf], out4) == 0
         sc = json.load(open(os.path.join(out4, "score.json")))
         assert sc["groups"]["should_trigger"]["acc"] == 1.0, sc["groups"]
+        # 提案器：这个 fixture 只有一个 skill、L1=1 项、正文很小 —— 正确行为是**一条都不提**（不误报）
+        out5 = os.path.join(tmp, "o5")
+        assert cmd_propose(pack, out5) == 0
+        pr = json.load(open(os.path.join(out5, "proposals.json")))
+        assert pr["count"] == 0, pr["proposals"]
+        assert os.path.isfile(os.path.join(out5, "PROPOSALS.md"))
+        # 跨命令口径对拍：layers 的 token 单口径必须与 audit 一致（两边不一致就是自相矛盾）
+        assert cmd_layers(pack, out5) == 0 and cmd_audit(pack, out5) == 0
+        l2 = json.load(open(os.path.join(out5, "layers.json")))["L2"]["over_token"]
+        au = [r["id"] for r in json.load(open(os.path.join(out5, "audit.json")))["size"] if r["over_token"]]
+        assert l2 == au, (l2, au)
         print("[self-test] ✅ 层（pack→类目→skill）/ 折叠 description / 孤儿 / 悬空 / "
-              "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 —— 全过")
+              "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 / 提案器四类动作 / "
+              "layers↔audit 口径对拍 —— 全过")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

@@ -2,14 +2,14 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 29/33 块（88%） · 状态 `active` · 更新于 2026-10-11 16:07
+**进度** 30/33 块（91%） · 状态 `active` · 更新于 2026-10-11 16:12
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
 - `T-004#B-004` **决策：L1 从 24 项再压到 ≤20 的路线** — 待批准 · @you
-- `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** — 已认领 · @default
+- `T-006#B-002` **独立子代理复核（不许自己验自己）** — 进行中 · @default · 在做 @default
 - `T-008#B-003` **端到端：agent + CLI 走完一个真实 pack** — 已认领 · @default
 
 ## 图
@@ -77,15 +77,15 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef blocked stroke-width:1px;
   class T-004_B-004 blocked;
+  classDef running stroke-width:1px;
+  class T-006_B-002 running;
   classDef claimed stroke-width:1px;
-  class T-006_B-001,T-008_B-003 claimed;
-  classDef waiting stroke-width:1px;
-  class T-006_B-002 waiting;
+  class T-008_B-003 claimed;
 ```
 
 ## 任务
@@ -372,18 +372,22 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 
 ### T-006 在真实 pack 上验收 — 进行中
 @default
-- [ ] `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** _impl_ — 已认领 @default
+- [x] `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** _impl_ — 已完成 @default
     - 做什么：【做什么】对该 pack 出完整报告：文档树 + 每层 fanout + 体积超限 + 孤儿/悬空 + 近重复 top-N +
 成本两组数 + 优化提案。基线（2026-10-11 实测）：`skills/` 第一层 69 个条目（52 个直接是技能 + 17 个类目）、
 全 pack 126 份 `SKILL.md`。
     - 判据：报告文件落 `<批次目录>/report-usinghermes.md`，每个数字带产生它的命令；报告里的命令能被别人重跑复现。
     - 依赖：T-003#B-005
     - 依赖：T-004#B-002
-- [ ] `T-006#B-002` **独立子代理复核（不许自己验自己）** _review_ — 等前置 @default
+    - 产物：`reports/2026-10-11-usinghermes/report-usinghermes.md`
+    - run 2026-10-11 16:12 default pending→done 完整报告落地（基准 b8298f4）：入口层 68 项、常驻 6443 token、L2 超限 16（token 单口径 14）、L3 468 文件/6.86MB、孤儿 104、悬空 46、同层 1621 对里 12 对>0.5（top 1.00 为 tushare 那对）、checks 命中 116、提案 27 条。每个数字都带产生它的命令，§11 是 8 条复现清单（命令→该看到什么），供 T-006#B-002 的复核子代理逐条重跑。
+- [ ] `T-006#B-002` **独立子代理复核（不许自己验自己）** _review_ — 进行中 @default
     - 做什么：【做什么】派一个与执行者不同的子代理，只读报告与 pack，按报告里的命令重跑，逐项核对数字；
 不一致的逐条列出。子代理**只用前台命令**（不许起后台进程）。
     - 判据：复核输出落文件，含「逐项 ✓/✗ 表 + 不一致明细」；有 ✗ 就回到对应块整改，不许改判据。
     - 依赖：T-006#B-001（任务级）
+    - 在做：@default
+    - run 2026-10-11 16:12 default pending→running 已派独立子代理复核（只读报告+pack，按 §11 逐条重跑，输出 round4/verify-report.md）
 - [x] `T-006#B-003` **第二个 pack 交叉验证（防过拟合）** _impl_ — 已完成 @default
     - 做什么：【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，
 证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。
@@ -458,8 +462,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:14` **agent** [status] T-003#B-005: pending → done（成本两组数进 audit cost 段：常驻 21302 字符≈6694 token；L2 全体 391700 tok（中位 2307）；L3 470 文件/5996139 B）
-- `2026-10-11 15:14` **agent** [status] T-002#B-003: pending → done（摘要来源可追溯：有 description 的取 frontmatter.description（并把该摘要回源文件 frontmatter 校验命中），无 description 的取正文首段首句带行号，都没有的写 null；audit/tree 产物里每条 summary_source 都可回源定位）
 - `2026-10-11 15:17` **agent** [status] T-008#B-001: pending → done（第一层薄入口写好并自托管验过：layers . → 入口层 skills/ 摆出 1 项（✅上限内）· 常驻 171 字符≈118 token；L2 skills/skillweave/ 1556tok/72 行（不超限）；L3 4 文件 0 孤儿 0 悬空；checks rc=0（无硬编码路径/密钥）；grep profile|lock|hermes|.hub 0 命中。自托管自检当场抓到「新建未提交的 skills/ 被 git 跟踪口径排除」这个真问题，已写进 SKILL.md）
 - `2026-10-11 15:17` **agent** [status] T-008#B-002: pending → done（四份 references 齐全且都被 SKILL.md 点名（孤儿 0）：split（切分界线/该下沉标准/转指写法/前后对照三数）· group（两轴判据/类目命名 3-8 个/四个验收数）· merge（五项取证→真重复合并非重复写界限→dup 段必须消失）· rewrite（57 字符窗口/触发词优先/排除条款位置/分组+校正随机重测））
 - `2026-10-11 15:17` **agent** [status] T-007#B-002: pending → done（本仓库的分层披露自检可用 `python3 scripts/weave.py layers .` + `checks .` 自查（自托管跑通，上面两组数字即证据））
@@ -478,6 +480,8 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 15:50` **agent** [status] T-004#B-003: pending → done（L1 收敛执行完并跑第 3 轮证明不退化：r3 与 r2 分组分完全一致（应触发 16/16、不应触发 4/4、近邻混淆 8/8，BoR 全 1.0），而 L1 从 69 项压到 24 项（散技能 52→0）。常驻成本保持 6548 token。三轮题面逐字未动、金标统一用 r3 打分（第 1/2 轮 picks 按 move 表机械映射，原件未改））
 - `2026-10-11 15:50` **agent** [block] 新增块 T-004#B-004「决策：L1 从 24 项再压到 ≤20 的路线」
 - `2026-10-11 16:07` **agent** [status] T-004#B-001: pending → done（提案器落地并验收：dry-run 出 27 条（split 14 / rewrite 11 / merge 1 / group 1），每条带 文件:行 + diff 形状 + 证据 JSON；只有 1 条 auto_applyable，其余 26 条标 needs_model=True。--apply + --apply-group 在临时副本上真落盘：执行 52 条机械动作、逐条自检 ✓、路径集合级对账 ✓（git diff --stat = 209 files changed）。合并方向规则改为「身份取被引用更多的一方、同名文件取 version 更高的一方」。改后 L1 68→24 项、常驻 6311→6298 token、悬空 46→46（新增 0）、孤儿 101→101。踩到并修掉三个真 bug：① 合并身份按 id 排序（尾斜杠让 tushare-data 排前面，方向反了）② git status --porcelain -z 里 rename 的旧路径字段没有状态前缀，被多切 3 字符 ③ 中文路径 NFD/NFC 差异导致对账全是假差异。另记：15:46 的快照被别的 agent 推进过（a2d79b6），我一度把一条既有悬空误记成归位造成的，重取同 HEAD 基线后确认新增悬空 0 —— 基准必须同 HEAD 取。）
+- `2026-10-11 16:12` **agent** [status] T-006#B-001: pending → done（完整报告落地（基准 b8298f4）：入口层 68 项、常驻 6443 token、L2 超限 16（token 单口径 14）、L3 468 文件/6.86MB、孤儿 104、悬空 46、同层 1621 对里 12 对>0.5（top 1.00 为 tushare 那对）、checks 命中 116、提案 27 条。每个数字都带产生它的命令，§11 是 8 条复现清单（命令→该看到什么），供 T-006#B-002 的复核子代理逐条重跑。）
+- `2026-10-11 16:12` **agent** [status] T-006#B-002: pending → running（已派独立子代理复核（只读报告+pack，按 §11 逐条重跑，输出 round4/verify-report.md））
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
