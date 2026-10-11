@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T15:17:17+08:00",
+  "updated_at": "2026-10-11T15:18:12+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -991,7 +991,7 @@
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T15:17:17+08:00",
+          "status_since": "2026-10-11T15:18:12+08:00",
           "runs": [
             {
               "at": "2026-10-11T15:17:17+08:00",
@@ -999,6 +999,13 @@
               "from": "pending",
               "to": "done",
               "note": "第一层薄入口写好并自托管验过：layers . → 入口层 skills/ 摆出 1 项（✅上限内）· 常驻 171 字符≈118 token；L2 skills/skillweave/ 1556tok/72 行（不超限）；L3 4 文件 0 孤儿 0 悬空；checks rc=0（无硬编码路径/密钥）；grep profile|lock|hermes|.hub 0 命中。自托管自检当场抓到「新建未提交的 skills/ 被 git 跟踪口径排除」这个真问题，已写进 SKILL.md"
+            },
+            {
+              "at": "2026-10-11T15:18:12+08:00",
+              "by": "default",
+              "from": "done",
+              "to": "done",
+              "note": "更正上一条 run：当时写「grep profile|lock|hermes 0 命中」是错的 —— references/group.md 里有 2 处把某 skill 名当反面例子（含框架名）。已改成中性例子并重跑：grep 0 命中，checks rc=0。判据本身不变"
             }
           ]
         },
@@ -1532,7 +1539,14 @@
       "kind": "status",
       "text": "T-007#B-002: pending → done（本仓库的分层披露自检可用 `python3 scripts/weave.py layers .` + `checks .` 自查（自托管跑通，上面两组数字即证据））",
       "ref": "T-007#B-002"
+    },
+    {
+      "at": "2026-10-11T15:18:12+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-008#B-001: done → done（更正上一条 run：当时写「grep profile|lock|hermes 0 命中」是错的 —— references/group.md 里有 2 处把某 skill 名当反面例子（含框架名）。已改成中性例子并重跑：grep 0 命中，checks rc=0。判据本身不变）",
+      "ref": "T-008#B-001"
     }
   ],
-  "rev": "3eeb61c7fd65"
+  "rev": "2ea7bf488e32"
 }
