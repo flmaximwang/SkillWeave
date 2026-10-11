@@ -16,6 +16,7 @@ import argparse
 import codecs
 import collections
 import difflib
+import fnmatch
 import hashlib
 import json
 import math
@@ -1605,6 +1606,98 @@ def _doc_edges(root, nodes, broken, external):
     return out
 
 
+
+def _read_waivers(root):
+    """包内的**免检表**：`<pack>/.skillweave/waivers.txt`，一行一条 `<glob>  <理由>`（`#` 开头是注释）。
+
+    为什么放包里不放工具里：「哪张 png 是给人看的」「哪个 json 是测试留档」是**包主的判断**，
+    不是通用真理。工具只负责匹配 + 标豁免 + 单独计数。"""
+    p = os.path.join(root, ".skillweave", "waivers.txt")
+    out = []
+    if os.path.isfile(p):
+        for ln in read_text(p).split("\n"):
+            ln = ln.strip()
+            if not ln or ln.startswith("#"):
+                continue
+            parts = re.split(r"\s{2,}|\t+", ln, 1)
+            out.append((parts[0].strip(), parts[1].strip() if len(parts) > 1 else ""))
+    return out
+
+
+def _waived(path, waivers):
+    """glob 匹配路径本身、或路径尾部、或纯文件名（写 `test-*.json` 这种就按名字匹配）。"""
+    for g, why in waivers:
+        if (fnmatch.fnmatch(path, g) or fnmatch.fnmatch(path, "*/" + g)
+                or fnmatch.fnmatch(os.path.basename(path), g)):
+            return why or "（未写理由）"
+    return None
+
+
+ACTION = {
+    "超限": ("拆分该文件 / 或把资产移到不打分的位置", "机械可判"),
+    "到不了根": ("加一条引用 / 删 / 或判豁免（测试留档类）", "机械可判"),
+    "悬空": ("改路径 / 删掉这句引用", "待模型"),
+    "近重复": ("合并 / 改写其中一条 description", "待模型"),
+}
+
+
+def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers):
+    # 返回 (文本, 待办数, 豁免数)：打印与表头都取这里的数，避免两处各算一遍对不上
+    """一张能照着做的清单：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判。豁免的单列一栏。"""
+    todo, waived = [], []
+
+    def add(kind, path, num, action, who, extra=""):
+        why = _waived(path, waivers)
+        if not why and extra:                      # 近重复那条有两个路径，任一中豁免都算豁免
+            why = _waived(extra, waivers)
+        row = {"kind": kind, "path": path, "num": num, "action": action, "who": who, "why": why}
+        (waived if why else todo).append(row)
+
+    for p, o in over_all:
+        a, who = ACTION["超限"]
+        add("超限", p, "; ".join(o), a, who)
+    for p in orphan_all:
+        a, who = ACTION["到不了根"]
+        add("到不了根", p, f"{nodes[p]['bytes']} B", a, who)
+    by_file = collections.defaultdict(list)
+    for p, t, ln in broken:
+        by_file[p].append((ln, t))
+    for p, items in sorted(by_file.items()):
+        a, who = ACTION["悬空"]
+        items = sorted(items)
+        ex = " · ".join(f"{ln}: `{t}`" for ln, t in items[:3]) + (" …" if len(items) > 3 else "")
+        add("悬空", p, f"{len(items)} 条（{ex}）", a, who)
+    for r, a_, b_ in dup:
+        a, who = ACTION["近重复"]
+        add("近重复", f"{a_} ↔ {b_}", f"相似度 {r}", a, who, extra=b_)
+
+    L = [f"# 待办 · {os.path.basename(root)}", "",
+         "由 `weave.py disclosure` 生成。术语见 `DISCLOSURE.md` 头部术语表。", "",
+         f"- **待办 {len(todo)} 条**（机械可判 {sum(1 for r in todo if r['who'] == '机械可判')} · "
+         f"待模型 {sum(1 for r in todo if r['who'] == '待模型')}）",
+         f"- **已豁免 {len(waived)} 条**（按包里 `.skillweave/waivers.txt`，共 {len(waivers)} 条规则）", "",
+         "## 待办（照着做）", "",
+         "| # | 文档 | 问题 | 数字 | 建议动作 | 谁判 |", "|---|---|---|---|---|---|"]
+    for i, r in enumerate(todo, 1):
+        L.append(f"| {i} | `{r['path']}` | {r['kind']} | {r['num']} | {r['action']} | {r['who']} |")
+    if not todo:
+        L.append("| — | — | — | — | 没有待办 | — |")
+    L += ["", "## 已豁免（匹配了 waivers.txt，不动它）", "",
+          "| 文档 | 问题 | 数字 | 理由 |", "|---|---|---|---|"]
+    for r in waived:
+        L.append(f"| `{r['path']}` | {r['kind']} | {r['num']} | {r['why']} |")
+    if not waived:
+        L.append("| — | — | — | 没有命中豁免规则 |")
+    L += ["", "## 免检表长什么样（`<pack>/.skillweave/waivers.txt`）", "",
+          "```",
+          "# 一行一条：<glob>  两个以上空格  理由（# 开头是注释）",
+          "*/assets/*.png             给人看的图，Agent 不读",
+          "*/test-prompts.json        测试留档，本来就不该被披露",
+          "```", "",
+          "豁免是**包主的判断**，写在包里、工具只匹配；没写规则的按上面的建议动作办。", ""]
+    return "\n".join(L), len(todo), len(waived)
+
+
 def cmd_disclosure(root, out):
     """**第二步**：以每个根文档为起点，把披露链递归展开到 L1..Ln，并逐文档体检 → `DISCLOSURE.md`。
 
@@ -1678,6 +1771,13 @@ def cmd_disclosure(root, out):
             if r >= 0.5:
                 dup.append((round(r, 3), a, b))
 
+    waivers = _read_waivers(root)
+    os.makedirs(out, exist_ok=True)
+    todo_md = os.path.join(out, "TODO.md")
+    todo_text, n_todo, n_waived_rows = render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers)
+    with open(todo_md, "w", encoding="utf-8") as f:
+        f.write(todo_text)
+
     L = [f"# 披露链 · {os.path.basename(root)}", "",
          "## 术语表", "",
          "- **文档 / 节点**：一份文件（`SKILL.md`、`references/*.md`、`scripts/*.py` 各算一份）。",
@@ -1696,7 +1796,9 @@ def cmd_disclosure(root, out):
          f"- 文档节点：**{len(nodes)} 份** · 层数：**{len([x for x in levels if x is not None])}**",
          f"- 超限：**{len(over_all)}** 份 · 到不了根：**{len(orphan_all)}** 份 · "
          f"悬空引用：**{len(broken)}** 条 · 外部引用（不算披露）：**{len(external)}** 条",
-         f"- 根选择层近重复（Jaccard≥0.5·靠 description 选根才算）：**{len(dup)}** 对", ""]
+         f"- 根选择层近重复（Jaccard≥0.5·靠 description 选根才算）：**{len(dup)}** 对",
+         f"- **待办 {n_todo} 条 · 已豁免 {n_waived_rows} 条** → 见同目录 [`TODO.md`](TODO.md)"
+         f"（豁免规则 {len(waivers)} 条，来自包里 `.skillweave/waivers.txt`）", ""]
     for d in levels:
         if d is None:
             L += ["## 到不了的文档（没有任何根披露到它们）", ""]
@@ -1717,8 +1819,18 @@ def cmd_disclosure(root, out):
                 bad.append("根")
             L.append(f"| `{p}` | {len(edges.get(p, {}))} | {size} | {' · '.join(bad) or '✅'} |")
         L.append("")
-    if dup:
-        L += ["### 根选择层近重复", ""] + [f"- {r} `{a}` ↔ `{b}`" for r, a, b in sorted(dup, reverse=True)] + [""]
+    L += ["## 根选择层（L0）", "",
+          "根不是被谁披露出来的，而是**靠 description 选出来的** —— 所以它单独一层，混进 Ln 会让两个形状的层数不可比。", "",
+          "| 根 | description 字符 | 常驻 tok | 同层近重复 |", "|---|---|---|---|"]
+    dup_of = {}
+    for r, a, b in dup:
+        dup_of.setdefault(a, []).append((r, b))
+        dup_of.setdefault(b, []).append((r, a))
+    for p in roots:
+        n = nodes[p]
+        d = ", ".join(f"{r} ↔ `{q}`" for r, q in dup_of.get(p, [])) or "—"
+        L.append(f"| `{p}` | {n['desc_chars']} | {est_tokens(next((s['description'] for s in skills if s['id'] == n['skill']), ''))} | {d} |")
+    L += [""]
     if broken:
         L += ["### 悬空引用", ""] + [f"- `{p}:{ln}` → `{t}`（不存在）" for p, t, ln in broken] + [""]
     if over_all:
@@ -1730,7 +1842,6 @@ def cmd_disclosure(root, out):
           f"description ≤{CAP_DESC_CHARS} 字符 · 单份文件 ≤{CAP_FILE_BYTES} B。",
           "- 每个文档在表里恰好出现一次（由命令自己核对：节点数 == 表行数）。", ""]
 
-    os.makedirs(out, exist_ok=True)
     md = os.path.join(out, "DISCLOSURE.md")
     rows = sum(len(lv[d]) for d in levels)
     with open(md, "w", encoding="utf-8") as f:
@@ -1742,6 +1853,7 @@ def cmd_disclosure(root, out):
                    "over": over_all, "orphans": orphan_all, "root_near_dup": dup},
                   f, ensure_ascii=False, indent=1, sort_keys=True)
     assert rows == len(nodes), f"对账失败：表行数 {rows} != 节点数 {len(nodes)}"
+    print(f"[disclosure] 待办清单 → {todo_md}")
     print(f"[disclosure] 根 {len(roots)} 个（=形状）· 层 " +
           " → ".join(f"L{d}={len(lv[d])}" if d is not None else f"未分层={len(lv[d])}" for d in levels) +
           f" · 文档 {len(nodes)} 份（表行数 {rows} 对账 ✅）· 超限 {len(over_all)} · "
@@ -2037,6 +2149,18 @@ def self_test():
         dm = open(os.path.join(out8, "DISCLOSURE.md"), encoding="utf-8").read()
         assert "L1（1 份）" in dm and "口径：**层 = 披露深度**" in dm, dm[:200]
         assert dj["levels"].get("2"), "demo 的 references/guide.md 应该在 L2"    # guide.md 被点名
+        todo_md = os.path.join(out8, "TODO.md")
+        assert os.path.isfile(todo_md), "缺 TODO.md"
+        t0 = open(todo_md, encoding="utf-8").read()
+        assert "待办" in t0 and "免检表长什么样" in t0, t0[:200]
+        # 包内免检表：命中就不算待办，改列「已豁免」
+        os.makedirs(os.path.join(pack, ".skillweave"), exist_ok=True)
+        open(os.path.join(pack, ".skillweave", "waivers.txt"), "w", encoding="utf-8").write(
+            "# 一行一条\n*unused.md   没人点名是刻意的\n")
+        out9 = os.path.join(tmp, "o9")
+        assert cmd_disclosure(pack, out9) == 0
+        t1 = open(os.path.join(out9, "TODO.md"), encoding="utf-8").read()
+        assert "没人点名是刻意的" in t1, t1[:400]
         # 第一步 prepare：非 git 的输入 → 副本由 git 管、原目录不被碰、BASELINE.md 出两种形状的账
         out7 = os.path.join(tmp, "o7")
         dest7 = os.path.join(tmp, "ws", "pack")
