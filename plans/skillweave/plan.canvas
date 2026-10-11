@@ -339,6 +339,16 @@
    "height": 110,
    "color": "4",
    "text": "### T-008#B-003\n端到端：agent + CLI 走完一个真实 pack\n\n`done` · @default\n\n【做什么】照装好的 skill 走一遍完整流程（在**临时复制的** pack 上做，不动原仓库）：\n`layers` 出 L1/L2/L3 → 按 `references/` 的四类动作改 → 重跑 `layers` 出前后对照 → 跑 T-005 一轮评测证明路由不退化。"
+  },
+  {
+   "id": "T-008#B-004",
+   "type": "text",
+   "x": 40,
+   "y": 1340,
+   "width": 300,
+   "height": 110,
+   "color": "5",
+   "text": "### T-008#B-004\n四类动作补齐实测：拆（落地）+ 改写（落地）\n\n`running` · @default\n\n【为什么要做】四类动作里「并」「分」在 T-004/T-008#B-003 已真跑过；「拆」「改写」一直只停在提案 —— 一个声称支持四类动作的工具，两类没跑过就是没证据。\n【拆】对全 pack 最胖的 accountancy-workflow（751 行 / 21427 tok）做拆分：扫标题算每段 token → "
   }
  ],
  "edges": [

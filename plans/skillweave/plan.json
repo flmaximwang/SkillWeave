@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T16:18:48+08:00",
+  "updated_at": "2026-10-11T16:27:18+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -1202,6 +1202,27 @@
               "note": "端到端走完（全程在临时复制的 pack 上，原仓库未动）：① 真实 diff 不是提案 —— /tmp/pack-fix3 上 git diff --stat = 209 files changed（52 条 git mv + 1 对合并），逐条自检 ✓、路径集合级对账 ✓；② layers 前后四数（同一 HEAD b8298f4）：L1 条目 68→24 · 常驻 20,864→20,699 字符（6443→6298 token）· L2 超限 16→15 · L3 孤儿 104→101；③ 评测：round4 两个独立判官输出落盘各 15 行（14 题逐题一行 + DONE），打分 should_trigger 0.937 / should_not_trigger 1.0 / near_confusion 1.0；④ 判官输出行数与题面数对齐（14 题面 → 15 行含 DONE）。未做：正文下沉（split 14 条仍只是提案，需要模型判断哪段该沉）。"
             }
           ]
+        },
+        {
+          "id": "T-008#B-004",
+          "title": "四类动作补齐实测：拆（落地）+ 改写（落地）",
+          "kind": "impl",
+          "status": "running",
+          "owner": "default",
+          "doc": "【为什么要做】四类动作里「并」「分」在 T-004/T-008#B-003 已真跑过；「拆」「改写」一直只停在提案 —— 一个声称支持四类动作的工具，两类没跑过就是没证据。\n【拆】对全 pack 最胖的 accountancy-workflow（751 行 / 21427 tok）做拆分：扫标题算每段 token → 按用到频率倒序选 14 个区块 → 逐行搬进 12 个 references/*.md、每处留一行转指。硬断言：行多重集守恒（原 636 = 正文 131 + 搬走 517 − 转指 12）。\n【改写】对三条同族（中行借记卡/中行信用卡/建行活期）加互斥条款与加粗的银行+卡种。\n【已知】改写让字符相似度反着走（0.581→0.662 升），判据只能是路由评测 —— 已把这条写进 references/rewrite.md。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "① 拆分后该 skill est_tokens < 5000 且全 pack L2 超限数下降，行守恒断言通过；② 孤儿/悬空不上升；③ 第 5 轮盲判（题面冻结、2 个独立判官）输出落盘、行数对齐，分数与前一轮对比无退化"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T16:27:18+08:00",
+          "runs": []
         }
       ],
       "note": "",
@@ -1823,7 +1844,14 @@
       "kind": "status",
       "text": "T-008#B-003: pending → done（端到端走完（全程在临时复制的 pack 上，原仓库未动）：① 真实 diff 不是提案 —— /tmp/pack-fix3 上 git diff --stat = 209 files changed（52 条 git mv + 1 对合并），逐条自检 ✓、路径集合级对账 ✓；② layers 前后四数（同一 HEAD b8298f4）：L1 条目 68→24 · 常驻 20,864→20,699 字符（6443→6298 token）· L2 超限 16→15 · L3 孤儿 104→101；③ 评测：round4 两个独立判官输出落盘各 15 行（14 题逐题一行 + DONE），打分 should_trigger 0.937 / should_not_trigger 1.0 / near_confusion 1.0；④ 判官输出行数与题面数对齐（14 题面 → 15 行含 DONE）。未做：正文下沉（split 14 条仍只是提案，需要模型判断哪段该沉）。）",
       "ref": "T-008#B-003"
+    },
+    {
+      "at": "2026-10-11T16:27:18+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "新增块 T-008#B-004「四类动作补齐实测：拆（落地）+ 改写（落地）」",
+      "ref": "T-008#B-004"
     }
   ],
-  "rev": "3ffc7a9625ad"
+  "rev": "c5d9433012a0"
 }
