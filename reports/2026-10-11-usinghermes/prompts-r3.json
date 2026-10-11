@@ -1,0 +1,148 @@
+{
+  "_note": "第 3 轮：题面与 r1/r2 **逐字相同**；gold 路径随「散技能归入类目」的搬迁**机械改写**（old→new 全表见 move 字段），题面与题型一字未动。",
+  "move": {
+    "skills/accountancy-workflow": "skills/accountancy/accountancy-workflow",
+    "skills/alipay-statement": "skills/accountancy/alipay-statement",
+    "skills/boc-statement": "skills/accountancy/boc-statement",
+    "skills/ccb-statement": "skills/accountancy/ccb-statement",
+    "skills/credit-instrument-balances": "skills/accountancy/credit-instrument-balances",
+    "skills/jd-statement": "skills/accountancy/jd-statement",
+    "skills/ledger-reconciliation": "skills/accountancy/ledger-reconciliation",
+    "skills/ledger-record-reconciliation": "skills/accountancy/ledger-record-reconciliation",
+    "skills/manual-entries": "skills/accountancy/manual-entries",
+    "skills/statement-dedup-reconciliation": "skills/accountancy/statement-dedup-reconciliation",
+    "skills/wechat-statement": "skills/accountancy/wechat-statement",
+    "skills/ci-flake-triage": "skills/testing/ci-flake-triage",
+    "skills/clean-pytest": "skills/testing/clean-pytest",
+    "skills/flaky-test-detective": "skills/testing/flaky-test-detective",
+    "skills/mutation-test-runner": "skills/testing/mutation-test-runner",
+    "skills/pytest-patterns": "skills/testing/pytest-patterns",
+    "skills/test-patterns": "skills/testing/test-patterns",
+    "skills/matplotlib-axes-layout": "skills/dev-tools/matplotlib-axes-layout",
+    "skills/sipoon-codegraph-index": "skills/dev-tools/sipoon-codegraph-index",
+    "skills/network-tls-failure-triage": "skills/dev-tools/network-tls-failure-triage",
+    "skills/software-development": "skills/dev-tools/software-development",
+    "skills/llama-vision": "skills/dev-tools/llama-vision",
+    "skills/skillopt": "skills/skill-tooling/skillopt",
+    "skills/load-external-skill-index": "skills/skill-tooling/load-external-skill-index",
+    "skills/dream": "skills/skill-tooling/dream",
+    "skills/install-hermes-skills": "skills/hermes-install/install-hermes-skills",
+    "skills/update-hermes-skills": "skills/hermes-install/update-hermes-skills",
+    "skills/remove-hermes-skills": "skills/hermes-install/remove-hermes-skills",
+    "skills/install-a-hermes-plugin": "skills/hermes-install/install-a-hermes-plugin",
+    "skills/remove-a-hermes-plugin": "skills/hermes-install/remove-a-hermes-plugin",
+    "skills/recruit-learning-in-profile": "skills/hermes-install/recruit-learning-in-profile",
+    "skills/recruit-learning-in-session": "skills/hermes-install/recruit-learning-in-session",
+    "skills/maintain-hermes-desktop-app": "skills/hermes-ops/maintain-hermes-desktop-app",
+    "skills/maintain-hermes-gateway": "skills/hermes-ops/maintain-hermes-gateway",
+    "skills/maintain-hermes-memory": "skills/hermes-ops/maintain-hermes-memory",
+    "skills/maintain-hermes-models": "skills/hermes-ops/maintain-hermes-models",
+    "skills/maintain-hermes-node": "skills/hermes-ops/maintain-hermes-node",
+    "skills/maintain-hermes-profile": "skills/hermes-ops/maintain-hermes-profile",
+    "skills/maintain-hermes-profiles": "skills/hermes-ops/maintain-hermes-profiles",
+    "skills/maintain-hermes-profile-skill-parity": "skills/hermes-ops/maintain-hermes-profile-skill-parity",
+    "skills/maintain-hermes-skill-cards": "skills/hermes-ops/maintain-hermes-skill-cards",
+    "skills/maintain-hermes-skills": "skills/hermes-ops/maintain-hermes-skills",
+    "skills/manage-global-heartbeat": "skills/hermes-ops/manage-global-heartbeat",
+    "skills/manage-hermes-cron-jobs": "skills/hermes-ops/manage-hermes-cron-jobs",
+    "skills/dispatch-work-to-another-profile": "skills/hermes-ops/dispatch-work-to-another-profile",
+    "skills/diagnose-a-failed-hermes-update": "skills/hermes-diagnose/diagnose-a-failed-hermes-update",
+    "skills/hermes-browser-lane-repair": "skills/hermes-diagnose/hermes-browser-lane-repair",
+    "skills/hermes-session-forensics": "skills/hermes-diagnose/hermes-session-forensics",
+    "skills/hermes-session-routing-forensics": "skills/hermes-diagnose/hermes-session-routing-forensics",
+    "skills/hermes-desktop-plugins": "skills/hermes-dev/hermes-desktop-plugins",
+    "skills/hermes-themes": "skills/hermes-dev/hermes-themes",
+    "skills/life-science-research": "skills/research/life-science-research",
+    "skills/tushare": "skills/research/tushare",
+    "skills/leave-and-rejoin-a-discord-thread": "skills/social-media/leave-and-rejoin-a-discord-thread"
+  },
+  "prompts": [
+    {
+      "id": 1,
+      "kind": "should_trigger",
+      "gold": "skills/hermes-install/install-hermes-skills",
+      "text": "我想把一个 GitHub 上的 skill 仓库装进这个 agent，怎么装、装完怎么确认它真的生效了？"
+    },
+    {
+      "id": 2,
+      "kind": "should_trigger",
+      "gold": "skills/hermes-ops/maintain-hermes-gateway",
+      "text": "gateway 重启之后 bot 在群里不说话了，怎么排查？"
+    },
+    {
+      "id": 3,
+      "kind": "should_trigger",
+      "gold": "skills/research/research-paper-writing",
+      "text": "我要把实验结果写成一篇投 NeurIPS 的论文，从实验设计到投稿的流程该怎么走？"
+    },
+    {
+      "id": 4,
+      "kind": "should_trigger",
+      "gold": "skills/office/pptx",
+      "text": "帮我把这份报告做成 pptx，要能改的那种。"
+    },
+    {
+      "id": 5,
+      "kind": "should_trigger",
+      "gold": "skills/creative/comfyui",
+      "text": "本机 ComfyUI 想换一个基模出图，权重和 LoRA 怎么配？"
+    },
+    {
+      "id": 6,
+      "kind": "should_trigger",
+      "gold": "skills/hermes-ops/dispatch-work-to-another-profile",
+      "text": "有件事我想让另一个 profile 去做（它那边有对应的工具），怎么把活派过去？"
+    },
+    {
+      "id": 7,
+      "kind": "should_trigger",
+      "gold": "skills/skill-tooling/load-external-skill-index",
+      "text": "先别装，我只想看看某个 skill 仓库里都有什么技能。"
+    },
+    {
+      "id": 8,
+      "kind": "should_not_trigger",
+      "gold": "skills/office/pptx",
+      "expect_pick": "skills/office/docx",
+      "text": "帮我把这份报告做成 Word 文档，要能改的那种。"
+    },
+    {
+      "id": 9,
+      "kind": "should_not_trigger",
+      "gold": "skills/hermes-ops/maintain-hermes-gateway",
+      "expect_pick": "skills/hermes-install/install-hermes-skills",
+      "text": "这个 skill 仓库里的技能装进 agent 之后，怎么确认安装状态是最新的？"
+    },
+    {
+      "id": 10,
+      "kind": "should_trigger",
+      "gold": "skills/research/tushare",
+      "text": "帮我查一下最近哪个板块最强，把行情数据导出一份。",
+      "_change": "原 kind=should_not_trigger/gold=tushare（诱饵，正确答案 tushare-data）；合并后 tushare 即正确答案"
+    },
+    {
+      "id": 11,
+      "kind": "near_confusion",
+      "gold": "skills/accountancy/boc-credit-statement",
+      "text": "中国银行信用卡账单的 PDF 想解析成结构化数据，怎么处理？"
+    },
+    {
+      "id": 12,
+      "kind": "near_confusion",
+      "gold": "skills/accountancy/ccb-statement",
+      "text": "建行那个流水文件也要解析，格式和中行不一样，有对应的办法吗？"
+    },
+    {
+      "id": 13,
+      "kind": "near_confusion",
+      "gold": "skills/research/tushare",
+      "text": "用 Tushare 拉 A 股数据做研究，我想按自然语言提问让它帮我取数。"
+    },
+    {
+      "id": 14,
+      "kind": "near_confusion",
+      "gold": "skills/accountancy/boc-statement",
+      "text": "中国银行借记卡的流水想解析成表格，列结构和信用卡那个不一样。"
+    }
+  ]
+}

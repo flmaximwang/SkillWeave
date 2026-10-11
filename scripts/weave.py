@@ -204,8 +204,10 @@ def extract_declared_refs(body, skill_rel):
 
 # ---------------------------------------------------------------- per-skill 分析（替换点）
 
-def analyze_skill(path, rel):
-    """一个 skill 目录 → 契约里的 skill 节点字段。要换成 `asa --json` 就换这一个函数。"""
+def analyze_skill(root, path, rel):
+    """一个 skill 目录 → 契约里的 skill 节点字段。要换成 `asa --json` 就换这一个函数。
+    `root` = pack 根：引用解析的第二个基准（契约 §3：先按 skill 目录、再按 pack 根）。
+    旧实现写死 `path/../..`，pack 多一层类目就错位 —— 实测会把本来能解析的引用误报成悬空。"""
     sk_path = os.path.join(path, "SKILL.md")
     text = read_text(sk_path)
     meta, body, body_line = parse_frontmatter(text)
@@ -242,7 +244,7 @@ def analyze_skill(path, rel):
             refs.append({"target": t, "kind": "example", "line": line})
             continue
         local = os.path.normpath(os.path.join(path, t))
-        at_pack = os.path.normpath(os.path.join(path, "..", "..", t))
+        at_pack = os.path.normpath(os.path.join(root, t))
         if os.path.exists(local):
             kind, resolved = "resolved", resolved | {t}
         elif os.path.exists(at_pack):
@@ -311,7 +313,7 @@ def tracked_set(pack):
     return {x for x in p.stdout.split("\0") if x}
 
 
-def walk_dir(path, rel, tracked, skipped, skills):
+def walk_dir(root, path, rel, tracked, skipped, skills):
     """递归：含 SKILL.md 的目录 = skill；含 skill 后代的目录 = category；其余目录 = asset（折叠成一个节点）。
     `tracked` 非 None 时只算 git 成员（未跟踪的 skill 形目录记进 `skipped`，不混进度量）。"""
     def member(r):
@@ -325,7 +327,7 @@ def walk_dir(path, rel, tracked, skipped, skills):
         return any(t == d or t.startswith(pre) for t in tracked)
 
     if os.path.isfile(os.path.join(path, "SKILL.md")):
-        node = analyze_skill(path, rel)
+        node = analyze_skill(root, path, rel)
         node["parent"] = os.path.dirname(rel.rstrip("/"))
         node["parent"] = (node["parent"] + "/") if node["parent"] else ""
         node["tracked"] = True
@@ -343,7 +345,7 @@ def walk_dir(path, rel, tracked, skipped, skills):
                 if any("SKILL.md" in fns for _, _, fns in os.walk(fp)):
                     skipped.append(crel + "/")
                 continue
-            sub = walk_dir(fp, crel + "/", tracked, skipped, skills)
+            sub = walk_dir(root, fp, crel + "/", tracked, skipped, skills)
             if sub is not None:
                 children.append(sub)
         elif member(crel):
@@ -417,19 +419,17 @@ def fanout_report(root):
 # ---------------------------------------------------------------- 三级披露（L1/L2/L3）
 
 def skills_root(tree):
-    """找到「装技能的那一层」：自上而下第一个**直接**含 skill 的目录节点。
-    pack 第一级披露的选项数就取它的直接子项数（= Agent 第一次选择看到的菜单）。"""
+    """找「装技能的那一层」：从 pack 根往下，只要**唯一**的选择项还是个类目就继续下钻；
+    遇到两个以上选择项（或唯一选择项已经是 skill）就停 —— 这一层才是 Agent 第一次选择看到的菜单。
+    分组后 `skills/` 下面全是类目，入口层仍是 `skills/`（旧实现只认「直接含 skill 的目录」，会错抓成第一个类目）。"""
     node = tree
     while node["kind"] != "pack":
         node = node["children"][0]
     while True:
-        if any(c["kind"] == "skill" for c in node["children"]):
+        choices = [c for c in node["children"] if c["kind"] in ("skill", "category")]
+        if len(choices) != 1 or choices[0]["kind"] != "category":
             return node
-        nxt = [c for c in node["children"] if c["kind"] in ("category",) or any(
-            d["kind"] in ("skill", "category") for d in c["children"])]
-        if not nxt:
-            return node
-        node = nxt[0]
+        node = choices[0]
 
 
 def cmd_layers(root, out):
@@ -437,7 +437,7 @@ def cmd_layers(root, out):
     L2 = 每个 skill 的 SKILL.md 正文（触发时载入）· L3 = references/scripts/assets（按需）。"""
     skills, skipped = [], []
     tracked = tracked_set(root)
-    tree = walk_dir(root, "", tracked, skipped, skills)
+    tree = walk_dir(root, root, "", tracked, skipped, skills)
     if tree is None:
         print("[layers] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
@@ -586,7 +586,7 @@ def cmd_checks(root, out):
     """六条内化检查（skill-tools 口径）：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥。"""
     skills, skipped = [], []
     tracked = tracked_set(root)
-    tree = walk_dir(root, "", tracked, skipped, skills)
+    tree = walk_dir(root, root, "", tracked, skipped, skills)
     if tree is None:
         print("[checks] FAIL 这个目录里没有任何 skill")
         return 1
@@ -611,7 +611,7 @@ def cmd_audit(root, out, top=20):
     """审计四段：size（体积对照）· orphan（孤儿/悬空）· dup（同层近重复抢题）· cost（两组成本）。"""
     skills, skipped = [], []
     tracked = tracked_set(root)
-    tree = walk_dir(root, "", tracked, skipped, skills)
+    tree = walk_dir(root, root, "", tracked, skipped, skills)
     if tree is None:
         print("[audit] FAIL 这个目录里没有任何 skill")
         return 1
@@ -683,7 +683,7 @@ def cmd_judge(root, prompts_path, out, trunc=57):
     判官只读 judge-input.txt；金标永远不进它。"""
     skills, skipped = [], []
     tracked = tracked_set(root)
-    tree = walk_dir(root, "", tracked, skipped, skills)
+    tree = walk_dir(root, root, "", tracked, skipped, skills)
     if tree is None:
         print("[judge] FAIL 这个目录里没有任何 skill")
         return 1
@@ -809,7 +809,7 @@ def main(argv=None):
 
     skills, skipped = [], []
     tracked = tracked_set(root)
-    tree = walk_dir(root, "", tracked, skipped, skills)
+    tree = walk_dir(root, root, "", tracked, skipped, skills)
     if tree is None:
         print("[tree] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
