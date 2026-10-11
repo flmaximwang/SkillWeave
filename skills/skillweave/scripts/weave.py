@@ -2974,7 +2974,7 @@ def self_test():
             "回退该删掉搬出的文件"
         assert old_line in read_text(bfull), "回退该把指针行还原"
 
-        # 删行 + 多行替换：把段落「搬出去 + 原文留一行指针」用的就是这两招
+        # 删行 + 整行替换：把段落「搬出去 + 原文留一行指针」用的就是这两招
         blines2 = read_text(bfull).split("\n")
         keep_line = blines2[bl - 1]
         mv2 = {"batch": "B1", "results": [
@@ -2988,7 +2988,7 @@ def self_test():
             json.dump(mv2, f, ensure_ascii=False)
         _orig_text = read_text(bfull)                  # 回退的判据用「逐字节还原」，比逐行断言更硬
         _before_n = len(read_text(bfull).split("\n"))
-        assert cmd_apply(pack, [mv2p], st, os.path.join(out9, "dispatch")) == 0, "删行 + 多行替换该落盘"
+        assert cmd_apply(pack, [mv2p], st, os.path.join(out9, "dispatch")) == 0, "删行 + 指针替换该落盘"
         _after = read_text(bfull).split("\n")
         assert "## 指针 → 见 `references/moved2.md`" in _after, "指针行没写进去"
         assert len(_after) == _before_n - 1, "删了一行，总行数该少 1"
