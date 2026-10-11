@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T23:44:31+08:00",
+  "updated_at": "2026-10-12T00:08:24+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -857,6 +857,27 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-11T23:44:31+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-010",
+          "title": "第二步收口：TODO.md 待办清单 + 包内免检表 + 根选择层单列（L0）",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "第二步收口（用户「按你的办法做」）——三件事都落地：\n\n① 出口从「体检表」改成 **TODO.md 待办清单**：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判（机械可判/待模型）；\n   悬空按文件聚合成一行（一个文件十几条会把清单淹掉）。体检表 DISCLOSURE.md 降为附件。\n② **包内免检表** `<pack>/.skillweave/waivers.txt`（一行一条 <glob> + 理由）：命中的记「已豁免」并单独计数。\n   理由：哪张 png 是给人看的、哪个 json 是测试留档，是**包主的判断**，写进工具等于替所有包做决定。\n③ **根选择层（L0）单列**一节（description 字符 / 常驻 tok / 同层近重复），不进 Ln —— 它是「选哪个根」不是「披露了谁」，\n   混进去会让两个形状的层数不可比。\n\nUsingHermes 实测（改完的包已推送）：**待办 77 条**（超限 6 · 到不了根 10 · 悬空 61）· **已豁免 26 条**（6 条规则命中：\nassets 里的 png/交互 HTML、test-prompts.json、test-results.md）。产物 = `TODO.md` + `DISCLOSURE.md` + `disclosure.json` +\n`.skillweave/waivers.txt`，README 已指路。修掉一处自相矛盾：打印 145 / 清单 146（现在计数与清单同源）。\n契约新增 §0.6。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "TODO.md 每条带数字与建议动作与谁判；免检表命中记「已豁免」；打印与清单计数一致；self-test 全过"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-12T00:08:24+08:00",
           "runs": []
         }
       ],
@@ -2111,7 +2132,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-009「PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md」",
       "ref": "T-004#B-009"
+    },
+    {
+      "at": "2026-10-12T00:08:24+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-010「第二步收口：TODO.md 待办清单 + 包内免检表 + 根选择层单列（L0）」",
+      "ref": "T-004#B-010"
     }
   ],
-  "rev": "804e4f1f583e"
+  "rev": "9ed07c8b0747"
 }
