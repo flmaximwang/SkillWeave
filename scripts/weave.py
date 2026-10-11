@@ -678,18 +678,103 @@ def cmd_audit(root, out, top=20):
     return 0
 
 
+def cmd_judge(root, prompts_path, out, trunc=57):
+    """生成**一个纯文本判官输入**（候选只有 description 截断窗口）+ 独立的金标文件 + 任务书。
+    判官只读 judge-input.txt；金标永远不进它。"""
+    skills, skipped = [], []
+    tracked = tracked_set(root)
+    tree = walk_dir(root, "", tracked, skipped, skills)
+    if tree is None:
+        print("[judge] FAIL 这个目录里没有任何 skill")
+        return 1
+    prompts = json.load(open(prompts_path, encoding="utf-8"))["prompts"]
+    os.makedirs(out, exist_ok=True)
+    cand = sorted(((s["id"].rstrip("/"), (s["description"] or "").replace("\n", " ")[:trunc])
+                   for s in skills), key=lambda x: x[0])
+    L = [f"# 判官输入（只读这一个文件；不要读任何技能目录）", "",
+         f"## 候选（{len(cand)} 个；每行：路径 | 描述前 {trunc} 字符）", ""]
+    L += [f"{c} | {d}" for c, d in cand]
+    L += ["", "## 题面（每题只答一个候选路径，或 `none`）", ""]
+    L += [f"P{p['id']}. {p['text']}" for p in prompts]
+    L += ["", "## 输出格式（逐行）", "P1 <路径或 none>", "…每行一题…", "DONE"]
+    txt = "\n".join(L) + "\n"
+    with open(os.path.join(out, "judge-input.txt"), "w", encoding="utf-8") as f:
+        f.write(txt)
+    key = {"pack": os.path.basename(root), "trunc": trunc,
+           "candidates": [c for c, _ in cand], "prompts": prompts}
+    with open(os.path.join(out, "judge-key.json"), "w", encoding="utf-8") as f:
+        json.dump(key, f, ensure_ascii=False, indent=2, sort_keys=True)
+    # 自检：金标不许泄进判官输入
+    leak = [p["id"] for p in prompts
+            if f"P{p['id']}. {p['text']}" in txt and f" {p.get('gold')}\n" in txt.split(f"P{p['id']}. ")[1][:400]
+            and p.get("gold") and p["text"].strip() != p["text"]]
+    assert "gold" not in txt, "金标字段泄进判官输入"
+    print(f"[judge] 候选 {len(cand)} 个（描述截断 {trunc} 字符）· 题面 {len(prompts)} 条")
+    print(f"[judge] 出: {os.path.join(out, 'judge-input.txt')}  ← 判官只读这个")
+    print(f"[judge] 出: {os.path.join(out, 'judge-key.json')}  ← 金标，不进判官输入")
+    return 0
+
+
+def cmd_score(key_path, judge_paths, out):
+    """吃「判官输出 + 金标」出逐题矩阵、按题型分组、并给**校正随机**分（BoR 口径）。"""
+    key = json.load(open(key_path, encoding="utf-8"))
+    prompts = {p["id"]: p for p in key["prompts"]}
+    n_cand = len(key["candidates"])
+    picks = {}
+    for jp in judge_paths:
+        for ln in open(jp, encoding="utf-8"):
+            ln = ln.strip()
+            m = re.match(r"^P(\d+)\s+(\S+)$", ln)
+            if m:
+                picks.setdefault(int(m.group(1)), []).append(m.group(2).rstrip("/"))
+    rows, groups = [], {}
+    for pid, p in sorted(prompts.items()):
+        got = picks.get(pid, [])
+        gold = p.get("gold")
+        ok = [(g == gold) if p["kind"] in ("should_trigger", "near_confusion") else (g != gold)
+              for g in got]
+        rows.append({"id": pid, "kind": p["kind"], "gold": gold, "picks": got,
+                     "ok": ok, "n_judges": len(got)})
+        g = groups.setdefault(p["kind"], {"n": 0, "hits": 0, "judged": 0})
+        g["n"] += 1
+        g["hits"] += sum(1 for x in ok if x)
+        g["judged"] += len(ok)
+    for g in groups.values():
+        g["acc"] = round(g["hits"] / g["judged"], 3) if g["judged"] else None
+        chance = 1 / n_cand if n_cand > 1 else None      # 只有 1 个候选时随机基线无意义
+        g["chance"] = round(chance, 4) if chance is not None else None
+        g["bor"] = (round((g["acc"] - chance) / (1 - chance), 3)
+                    if (g["acc"] is not None and chance is not None and chance < 1) else None)
+    rep = {"key": os.path.basename(key_path), "judges": [os.path.basename(j) for j in judge_paths],
+           "candidates": n_cand, "rows": rows, "groups": groups}
+    os.makedirs(out, exist_ok=True)
+    with open(os.path.join(out, "score.json"), "w", encoding="utf-8") as f:
+        json.dump(rep, f, ensure_ascii=False, indent=2, sort_keys=True)
+    print(f"[score] 候选 {n_cand} 个 · 判官 {len(judge_paths)} 份 · 题 {len(rows)} 条")
+    for r in rows:
+        mark = "".join("✓" if x else "✗" for x in r["ok"]) or "-"
+        print(f"  P{r['id']:<3} {r['kind']:<20} {mark:<3} gold={r['gold']}  picks={r['picks']}")
+    for k, g in sorted(groups.items()):
+        print(f"[score] {k:<20} acc={g['acc']} chance={g['chance']} BoR={g['bor']}  ({g['hits']}/{g['judged']})")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
-    ap.add_argument("cmd", nargs="?", choices=["tree", "layers", "checks", "audit"])
+    ap.add_argument("cmd", nargs="?", choices=["tree", "layers", "checks", "audit", "judge", "score"])
+    ap.add_argument("--prompts", default=None)
+    ap.add_argument("--key", default=None)
+    ap.add_argument("--judge", nargs="*", default=[])
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
     if a.self_test:
         return self_test()
-    if not a.cmd or not a.pack:
+    if not a.cmd or (a.cmd != "score" and not a.pack):
         ap.print_usage()
         return 2
+
     if a.cmd == "layers":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
@@ -702,6 +787,19 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
         return cmd_audit(root, out)
+    if a.cmd == "judge":
+        root = os.path.abspath((a.pack or ".").rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        if not a.prompts:
+            print("[judge] 需要 --prompts <题面 json>（题面必须冻结，不许现编）")
+            return 2
+        return cmd_judge(root, a.prompts, out)
+    if a.cmd == "score":
+        out = a.out or tempfile.gettempdir()
+        if not a.key or not a.judge:
+            print("[score] 需要 --key <金标 json> --judge <判官输出文件…>")
+            return 2
+        return cmd_score(a.key, a.judge, out)
     root = os.path.abspath(a.pack.rstrip("/"))
     if not os.path.isdir(root):
         print(f"[tree] FAIL 目录不存在: {root}")
@@ -852,6 +950,20 @@ def self_test():
         assert len(ch["hardcoded_path"]) == 1, ch
         assert len(ch["embedded_secret"]) == 1, ch
         assert ch["name_mismatch"] == [], ch
+        # 路由评测管线：生成判官输入 → 假判官输出 → 打分（含校正随机分）
+        pf = os.path.join(tmp, "prompts.json")
+        with open(pf, "w") as f:
+            json.dump({"prompts": [{"id": 1, "kind": "should_trigger", "gold": "notes/demo",
+                                    "text": "演示题面"}]}, f)
+        out4 = os.path.join(tmp, "o4")
+        assert cmd_judge(pack, pf, out4) == 0
+        txt = open(os.path.join(out4, "judge-input.txt")).read()
+        assert "gold" not in txt, "金标泄进判官输入"
+        jf = os.path.join(tmp, "judge-A.txt")
+        open(jf, "w").write("P1 notes/demo\nDONE\n")
+        assert cmd_score(os.path.join(out4, "judge-key.json"), [jf], out4) == 0
+        sc = json.load(open(os.path.join(out4, "score.json")))
+        assert sc["groups"]["should_trigger"]["acc"] == 1.0, sc["groups"]
         print("[self-test] ✅ 层（pack→类目→skill）/ 折叠 description / 孤儿 / 悬空 / "
               "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 —— 全过")
         return 0
