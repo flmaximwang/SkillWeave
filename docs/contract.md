@@ -80,7 +80,10 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
   - 单位 = **skill 子树**（文件归属 = 最长前缀匹配的 `SKILL.md` 目录）；断言**批次间文件集合两两不相交**。
   - **事实补全**（能从树/包里查到的先算好，让子代理「验路径」而不是「猜路径」）：悬空 → 包内同名候选；
     到不了根 → 同目录里**被披露过的兄弟**；超限 → 行数 + 二级标题清单。这是第一次成功率的大头。
-  - 产物：`plan.json`（批次/条目/`prompt_sha256`）· `state.json`（`attempts` 计数）· `batch-N.prompt.md`。
+  - 产物：`plan.json`（批次/条目/`prompt_sha256`）· `state.json`（`attempts` 计数 + 重派历史）·
+    `baseline.json`（**冻在 pack 里**的基线，不指临时目录）· `batch-N.prompt.md`（生成物，不入库）。
+  - **重派守卫**：`attempts` 重派时继承（不许清零）；某批已有尝试且 `prompt_sha256` 未变 → **拒绝派发（退 3）** ——
+    相同输入 = 相同输出，要重派必须按梯子换输入。
   - 条目 id = `kind-<sha1(path:line)[:8]>`（稳定，可跨命令引用）。
 - **`verify <pack> --state … --expect-fixed <id…> [--splits <json>]`** —— **闸 1**，四类判据：
   1. **该消的消了**（`--expect-fixed` 的 id 在重扫后必须消失）；
@@ -90,7 +93,8 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 - 失败 = **整批回滚**（不逐条打补丁，否则后续测量失去基准），并按梯子决定下次派发改什么输入：
   `R1 给证据 → R2 减粒度 → R3 喂事实 → R4 换执行者 → R5 落 PARKED.md`。**回归项也计账**。
 - **不许打转**：同一 prompt hash 不许重派（相同输入 = 相同输出）；计数写在 `state.json`，不在谁的记忆里。
-- 跑完读两个文件：`RUN.md`（每批：过了没 · 哪条判据拦的 · 下一级是什么）与 `PARKED.md`（走完梯子仍不过的，等一条规则）。
+- 跑完读两个文件（都落在 `dispatch/` 里，`verify` 默认写在 `state` 旁边）：`RUN.md`（每批：过了没 · 哪条判据拦的 ·
+  下一级是什么）与 `PARKED.md`（走完梯子仍不过的，等一条规则）。
 
 ## 1. 节点
 
