@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T22:30:54+08:00",
+  "updated_at": "2026-10-11T22:51:41+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -794,6 +794,27 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-11T22:30:54+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-007",
+          "title": "在 UsingHermes 上真塌成单入口（L1=1 / L2=13 岛 / L3=39 篇），README 与标识符同步",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "用户点头后真跑（worktree skillweave/collapse-l1，基于 980c79e）。\n\n执行：weave.py collapse --apply --entry-dir using-hermes --description \"<我起草的那条>\"。\n落盘：39 个 skill 目录整棵搬进 skills/using-hermes/references/<岛>/<skill>/，git 全部识别为 100% rename（内容一字未改）；\n伞体 skills/using-hermes/SKILL.md = 13 行岛索引；每岛一份 INDEX.md（13 份）。\n\n对照（同一 HEAD 前后各量一次）：\n- L1 常驻：39 条 description = 3,310 tok → 1 条 = **58 tok**（description 80 字符）\n- 入口层：13 项 → **1 项**；L2 正文：最大 4,993 tok → 伞体 **556 tok / 19 行**\n- L3 文件：149 → 162（+13 INDEX.md）；技能数 39 → 1\n- 孤儿/悬空 26/25 → 0/0 —— **构造性假象**：伞体按目录点名了每个 references/<岛>/，目录级点名盖住一切；\n  原来那 25 条悬空引用**仍在文件里**，只是那 39 篇正文不再是 skill、不再被量。不是修好。\n- 代价：**独立可装 39 → 1**；单装某个 skill 的标识符变成\n  flmaximwang/AgentSkill-UsingHermes/skills/using-hermes/references/<岛>/<skill>（README 已同步）。\n\n产物：docs/disclosure/{multi-entry.md,multi-entry.html}（改前的多入口形状实物，基准 980c79e）、\nsingle-entry.md（单入口的账与伞体）；README 的「文档树 / 分层披露」一节重写成单入口口径。\n收尾：主 clone --ff-only 合并并推送 origin/main = c12b938；worktree 已 remove、分支已删、工作区 0 项；\n顺手清掉 skills/ 下两个只剩 .DS_Store 的空目录（maintain-hermes-memory/、productivity/，是上次重排留下的垃圾，未被 git 跟踪）。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "回读技能=1 且入口层=1；常驻下降且 39 篇正文内容逐字节未变（git rename 100%）；README 装法路径存在；worktree 已合并清理"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T22:51:41+08:00",
           "runs": []
         }
       ],
@@ -2027,7 +2048,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-006「可选项：单入口形状（L1=1 入口 / L2=13 岛 / L3=39 篇）—— weave.py collapse」",
       "ref": "T-004#B-006"
+    },
+    {
+      "at": "2026-10-11T22:51:41+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-007「在 UsingHermes 上真塌成单入口（L1=1 / L2=13 岛 / L3=39 篇），README 与标识符同步」",
+      "ref": "T-004#B-007"
     }
   ],
-  "rev": "4558dae639cd"
+  "rev": "99b9249409d1"
 }
