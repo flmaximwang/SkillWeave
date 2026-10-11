@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 9/33 块（27%） · 状态 `active` · 更新于 2026-10-11 14:07
+**进度** 9/33 块（27%） · 状态 `active` · 更新于 2026-10-11 14:09
 
 **参与方** 本人(human)
 
@@ -412,7 +412,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 13:59` **agent** [status] T-001#B-003: pending → done（caps 表 = contract §4，每条带出处；第一层上限 20 沿用 Dream 的 MAX_FIRST_LAYER_SKILLS）
 - `2026-10-11 13:59` **agent** [status] T-002#B-001: pending → done（weave.py tree：AgentSkill-UsingHermes 实测 skills=126 / nodes=1941；抽 5 条 ref 边逐条回正文对行号，5/5 命中）
 - `2026-10-11 13:59` **agent** [status] T-003#B-001: pending → done（layers 子命令（三级披露）：L1 入口层 skills/ 摆出 69 项 = 散技能 52 + 类目 17，常驻 21302 字符 ≈ 6694 token，❌ 超上限 20；research/ 17、autonomous-ai-agents/ 15、productivity/ 13。另跑 Dream（2 项 ✅）与 AgentSkill-SoftwareDev（30 项 ❌）交叉验证）
 - `2026-10-11 13:59` **agent** [status] T-007#B-001: pending → done（公开远端已建并推送（gh repo create flmaximwang/SkillWeave --public）；plans/skillweave 随仓库提交；origin/main == HEAD）
@@ -432,6 +431,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-008「内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数」
 - `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-009「修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」」
 - `2026-10-11 14:07` **agent** [block] 新增块 T-002#B-005「可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）」
+- `2026-10-11 14:09` **default** [decision] 用户 2026-10-11 补充需求（依赖政策）：不引外部依赖。原话「agent-skill-analysis 只是一个科研项目，还没有在社区中得到广泛的应用，后续的优化更新会受限，所以我倾向于不使用外部依赖，只是在其他项目效果更好时将其内化」。落成 docs/contract.md §6：不引 Node/npm/第三方 Python 包；内化 = 把规则/检查清单/字段口径/判断方法搬进来自己实现（纯 stdlib），并在 docs/compare-tools.md 记来源与实测对照；只在实测更好时内化那一条。据此撤销 T-002#B-005（--from-asa 适配器），对拍只作为一次性取数脚本。
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
