@@ -86,7 +86,7 @@ AgentSkill-SoftwareDev  L1 技能=30  入口层 30 项（无类目）· ≈900 t
 
 ## 依据与契约
 
-- [`docs/flow.md`](docs/flow.md) — **流程 9 步**（唯一流程来源：做什么 · 命令 · 谁判断 · 用户要不要介入 · 现状）
+- [`docs/flow.md`](docs/flow.md) — **流程（按架构写）**：A 取景 → **B 机械构建文档树** → C 读树 → D 改树 → E 复测 → F 验收交付（唯一流程来源）
 - [`docs/contract.md`](docs/contract.md) —— 节点 schema、三级披露定义、每层要量的量、caps 表（每条带出处）。
 - [`docs/prior-art.md`](docs/prior-art.md) —— 外部实测结论（分层披露值多少、只看 description 会掉多少分、
   层深该怎么评）。
