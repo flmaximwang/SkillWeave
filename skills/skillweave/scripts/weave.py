@@ -1930,27 +1930,40 @@ def _apply_item(root, item, res, dj, waivers):
     patch = {"id": item["id"], "kind": item["kind"], "files": [], "parts": [], "removed": [],
              "waiver_rule": None, "reason_code": res.get("reason_code", ""),
              "reason": res.get("reason", "")}
+    # 同一文件内**按行号降序**应用：删行不会把后面的行号挤歪。
+    # 删行用**严格同位**（行号与内容都要对得上），不按内容找 —— 空行到处一样，按内容找会误删别处。
+    by_file = collections.defaultdict(list)
     for e in edits:
         f = (e.get("file") or "").lstrip("./")
         if f not in allowed:
             return False, f"越界改动 `{f}`，本条目只允许改 {sorted(allowed)}", None
-        fp = os.path.join(root, f)
-        if not os.path.isfile(fp):
+        if not os.path.isfile(os.path.join(root, f)):
             return False, f"文件不存在 `{f}`", None
-        lines = plan_writes.get(f, read_text(fp).split("\n"))
-        hit = _find_anchor(lines, e.get("before", ""), int(e.get("line", 0)))
-        if hit is None:
-            return False, f"锚点对不上 `{f}`:{e.get('line')} —— 待改文本在该行 ±3 内找不到", None
         if isinstance(e.get("after"), str) and "\n" in e["after"]:
-            return False, f"`after` 只能是单行（要改多行就拆成多条 edit，或把整段搬到新文件）", None
-        del_hits = plan_deletes.setdefault(f, set())
-        if "after" in e and e["after"] is None:
-            del_hits.add(hit)                       # `after: null` = 删掉这一行
-        else:
-            lines[hit - 1] = e.get("after", "")
+            return False, "`after` 只能是单行（要改多行就拆成多条 edit，或把整段搬到新文件）", None
+        by_file[f].append(e)
+    for f, es in by_file.items():
+        lines = plan_writes.get(f, read_text(os.path.join(root, f)).split("\n"))
+        dels = plan_deletes.setdefault(f, set())
+        for e in sorted(es, key=lambda x: -int(x.get("line", 0))):
+            n = int(e.get("line", 0))
+            if not (1 <= n <= len(lines)):
+                return False, f"行号超出范围 `{f}`:{n}", None
+            if "after" in e and e["after"] is None:
+                now = lines[n - 1].strip()
+                if now != (e.get("before") or "").strip():
+                    return False, (f"删行对不上 `{f}`:{n} —— 该行现在是 `{now[:40]}`，"
+                                   f"记录里是 `{(e.get('before') or '').strip()[:40]}`"), None
+                dels.add(n)
+                patch["files"].append({"file": f, "line": n, "before": e.get("before", ""), "after": None})
+            else:
+                hit = _find_anchor(lines, e.get("before", ""), n)
+                if hit is None:
+                    return False, f"锚点对不上 `{f}`:{n} —— 待改文本在该行 ±3 内找不到", None
+                lines[hit - 1] = e.get("after", "")
+                patch["files"].append({"file": f, "line": hit, "before": e.get("before", ""),
+                                       "after": e.get("after", "")})
         plan_writes[f] = lines
-        patch["files"].append({"file": f, "line": hit, "before": e.get("before", ""),
-                               "after": e.get("after", "")})
     dirs_ok = {os.path.dirname(item["path"])}                 # 允许落在该 skill 目录之下，不要求同目录
     if item.get("owner") and item["owner"] != "(pack)":
         dirs_ok.add(os.path.dirname(item["owner"]))
@@ -2936,6 +2949,23 @@ def self_test():
         with open(mlp, "w", encoding="utf-8") as f:
             json.dump(ml, f, ensure_ascii=False)
         assert cmd_apply(pack, [mlp], st, os.path.join(out9, "dispatch")) == 1, "多行 after 该被拒"
+
+        # 删空行不能误删别处：空行到处一样，按内容找会删错行
+        _orig_lines = read_text(bfull).split("\n")
+        _blanks = [i for i, l in enumerate(_orig_lines, 1) if l.strip() == ""]
+        _pick = _blanks[2] if len(_blanks) > 2 else _blanks[0]
+        delp = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "fixed",
+             "edits": [{"file": broken["path"], "line": _pick, "before": "", "after": None}],
+             "parts": {os.path.join(os.path.dirname(broken["path"]) or ".", "blank-test.md"): "占位\n"}}]}
+        delpp = os.path.join(tmp, "prop-delblank.json")
+        with open(delpp, "w", encoding="utf-8") as f:
+            json.dump(delp, f, ensure_ascii=False)
+        assert cmd_apply(pack, [delpp], st, os.path.join(out9, "dispatch")) == 0, "删空行该落盘"
+        assert read_text(bfull).split("\n") == _orig_lines[:_pick - 1] + _orig_lines[_pick:], \
+            "删空行必须只删掉那一行，别处的空行不许动"
+        assert cmd_apply(pack, [], st, os.path.join(out9, "dispatch"), revert_id=broken["id"]) == 0, "该能回退"
+        assert read_text(bfull).split("\n") == _orig_lines, "回退该逐行还原"
 
         # 只写豁免、没有 edits 的提案：要能落盘、写进 waivers、让条目离开待办
         _wp = os.path.join(pack, ".skillweave", "waivers.txt")
