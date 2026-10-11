@@ -82,6 +82,12 @@
 - **孤儿**：skill 目录内除 `SKILL.md` 外的文件，**没有被任何祖先点名** = `orphans`。
   「点名」含**目录级**：正文点名了 `templates/README.md`，则 `templates/` 整目录算被点名（该目录下的文件都不算孤儿）。
   0 容忍，但报告里只列清单，不自动删。
+- **互指边与「岛」（`visualize` 用）**：A→B 当且仅当 **A 的任何一个文本文件里出现 B 的目录名**
+  （`(?<![\w-])<slug>(?![\w-])`）。岛 = 该有向图**忽略方向**后的连通分量。
+  **岛数对口径敏感，报必须连口径一起报**——同一份数据实测：只看 `SKILL.md` 里 frontmatter `name` 互指 → 11 个岛；
+  再加「引用解析到别的 skill 目录」的边 → 10 个岛；扫全部文本文件、按**目录名**互指 → 13 个岛。
+  选目录名口径的理由：它是包内既有的稳定标识（`name` 与目录名不总一致，实测 `gateway-session-list/` 的 `name` 是 `gateway-operations`）。
+  **岛是数据给的分层**（谁真的指到谁），不是人分的类；`visualize` 只画它，不做合并建议。
 
 ## 4. caps（阈值）与出处
 
@@ -93,6 +99,7 @@
 | `description` | hard ≤ **1024 字符** | agentskills.io 规范（硬约束） |
 | 单份 `references/*.md` | 报超 **20000 字节** | Dream 的 `check-disclosure.py` 常量（本机既有口径，沿用） |
 | `fanout` | **不设死值**，报分布 + 校正随机分 | Meta arXiv:2605.24660 |
+| 入口层条目数 | `MAX_FIRST_LAYER = 20`，**参考线不是硬闸** | 出自 Dream 的 `check-disclosure.py` 的 `MAX_FIRST_LAYER_SKILLS`，**不是规范要求**。2026-10-11 定：超了只提示；实际处置走「按互指岛分组」而不是往 20 上削（UsingHermes：28 → 13 项） |
 | 孤儿 | **0** | 本仓库契约（`agent-skill-analysis` 同口径报 `orphans`） |
 
 表中每个数字都必须能追到 `docs/similar-work.md` / `docs/prior-art.md` 的对应条目；**不许出现没有出处的自创数字**。

@@ -36,7 +36,7 @@ license: MIT
 | **L2 第二级** | 被选中那个 skill 的 **`SKILL.md` 正文** | 触发时载入 | 正文 token/行数、它转指出去多少个兄弟 |
 | **L3 第三级** | 该 skill 的 `references/` `scripts/` `assets/` | 按需读 | 孤儿文件、悬空引用、最大文件 |
 
-## 命令（三条，都只读）
+## 命令（五条：四条只读 + 一条生成产物）
 
 ```bash
 SW=<本 skill 的 scripts/weave.py 绝对路径>     # 装好后：<skills 目录>/skillweave/scripts/weave.py
@@ -47,12 +47,19 @@ python3 "$SW" layers "$PACK" --out /tmp/sw     # 三级披露：L1 菜单与常�
 python3 "$SW" audit  "$PACK" --out /tmp/sw     # 审计四段：体积 / 孤儿悬空 / 同层抢题 / 成本两组数
 python3 "$SW" checks "$PACK" --out /tmp/sw     # 七条检查（含硬编码路径、内嵌密钥；命中退 1）
 python3 "$SW" propose "$PACK" --out /tmp/sw    # 四类动作的提案：**默认 dry-run，不改盘**
+python3 "$SW" visualize "$PACK"                 # 生成物落回 pack：TREE.md + TREE.html（三级披露的文本版与可视化）
 python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json   # 只执行机械那部分
 ```
 
 产物落在 `--out`：`tree.json` / `LAYERS.md` / `audit.json` / `checks.json` / `proposals.json` + `PROPOSALS.md`。
 **先跑 `checks`**：它命中的硬编码路径/密钥是安全与可移植问题，先解决再谈结构。
 `propose` 每条提案带 `文件:行` + diff 形状 + 是否 `auto_applyable`；`needs_model=True` 的那些**必须你来判断**。
+
+`visualize` 默认把两份产物写在 pack 根（`--out` 可改）：`TREE.md`（L1 菜单 → L2 正文 → L3 按需，逐 skill 数字）
+与 `TREE.html`（自包含、离线可开；互指图画成圆环 + 弦，节点带编号 + 框内图例）。两份都是**生成物，不要手改**。
+互指图的边 = 「某个 skill 的任何文本文件里点到另一个 skill 的**目录名**」；岛 = 该图的连通分量。
+**岛数对口径敏感**（同一份数据：只看 SKILL.md 的 frontmatter `name` → 11 个；再加「引用落到别的 skill 目录」→ 10 个；
+扫全部文本文件按目录名 → 13 个）——报岛数必须连口径一起报。
 
 ## 四类动作：谁做什么（**判断靠你，机械靠 CLI**）
 
