@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-12T00:08:24+08:00",
+  "updated_at": "2026-10-12T00:16:25+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -878,6 +878,27 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-12T00:08:24+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-011",
+          "title": "第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」",
+          "kind": "impl",
+          "status": "pending",
+          "owner": "default",
+          "doc": "第三步的派发设计（用户否掉「按标题机械拆解」后定的）：\n\n① **取消「机械可判」这一列** —— 77 条全是判断，工具只管验收。反例：profile-distribution-sync.md:16-18 的\n   scripts/sync.py / skills_owned.py / skills_excluded.txt 不是断链，是另一个仓库\n   (/Users/maxim/Repositories/Agent-ProteinDesign) 的文件，同段表格里就写着那个绝对路径；检测器只因 scripts/ 开头就误判成悬空。\n② **派发单位 = skill 子树**：77 条落在 **23 个 skill** 里。同一 skill 的改动共享一份父文档与引用风格，一个 agent 读一次父文档\n   就能改完该 skill 的全部条目；按文件派会把同一 skill 拆给多个 agent，冲撞。\n③ **三批**（每批 ≤10 并行）：批1 重的 4 个 skill / 38 条（install-hermes-skills 12 · maintain-hermes-profile 11 ·\n   hermes-profile-housekeeping 8 · maintain-hermes-skills 7）；批2 中等 10 个 / 30 条；批3 单条 9 个 / 9 条。\n④ **每个 agent 的输入**：该 skill 的 SKILL.md 全文 + 它名下所有待办条目（文件:行:目标）+ 树位置（披露它的父文档 / 深度）\n   + 约束「只改引用不改文义；拆文件要给拆分方案（按主题切，不按标题切）」。输出提案（不写盘）：{file,line,before,after,reason}。\n⑤ **验收（主会话）**：重跑 disclosure → 该 skill 的条目消失 · 无新增 · 拆过的行守恒 · diff 每条追得到 TODO 编号。\n   子代理不开后台进程，前台跑完即结束。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "23 个 skill 处理完；重跑 disclosure 无新增；diff 每条追得到编号"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-12T00:16:25+08:00",
           "runs": []
         }
       ],
@@ -2139,7 +2160,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-010「第二步收口：TODO.md 待办清单 + 包内免检表 + 根选择层单列（L0）」",
       "ref": "T-004#B-010"
+    },
+    {
+      "at": "2026-10-12T00:16:25+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-011「第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」」",
+      "ref": "T-004#B-011"
     }
   ],
-  "rev": "9ed07c8b0747"
+  "rev": "2f4199619675"
 }

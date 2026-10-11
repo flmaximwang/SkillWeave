@@ -2,13 +2,13 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 42/42 块（100%） · 状态 `active` · 更新于 2026-10-12 00:08
+**进度** 42/43 块（98%） · 状态 `active` · 更新于 2026-10-12 00:16
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
-- （没有在途工作）
+- `T-004#B-011` **第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」** — 已认领 · @default
 
 ## 图
 
@@ -42,6 +42,7 @@ flowchart LR
   T-004_B-008["B-008 PlanWeave 第一步：weave.py prepare —— 可回滚、可对账的工作副本 + 推导 L1 + 两种形状的账"]
   T-004_B-009["B-009 PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md"]
   T-004_B-010["B-010 第二步收口：TODO.md 待办清单 + 包内免检表 + 根选择层单列（L0）"]
+  T-004_B-011["B-011 第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」"]
   T-005_B-001["B-001 判官输入生成器（候选只有 description）"]
   T-005_B-002["B-002 打分器：逐题矩阵 + 分组 + 校正随机分"]
   T-005_B-003["B-003 在真实 pack 上跑一轮并留档"]
@@ -87,6 +88,8 @@ flowchart LR
   class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-004_B-004,T-004_B-005,T-004_B-006,T-004_B-007,T-004_B-008,T-004_B-009,T-004_B-010,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005,T-008_B-006 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
+  classDef claimed stroke-width:1px;
+  class T-004_B-011 claimed;
 ```
 
 ## 任务
@@ -297,7 +300,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 产物：`reports/2026-10-11-usinghermes/LAYERS.md`
     - run 2026-10-11 14:53 default pending→done 修完并实测：broken 301→45（剩 45 条抽 3 真查盘、都真不存在）、孤儿 239→106；单 skill research-paper-writing 6→0 / 44→0；新增 example 一类（267 条）与 URL 不误当路径；--self-test 加了 3 条断言全过
 
-### T-004 优化：按度量的结果改结构 — 已完成
+### T-004 优化：按度量的结果改结构 — 进行中
 @default
 - [x] `T-004#B-001` **四类动作的提案器（默认只出提案）** _impl_ — 已完成 @default
     - 做什么：【做什么】按 T-007#B-003 定的形态拆成两半（用户 2026-10-11）：
@@ -435,6 +438,21 @@ assets 里的 png/交互 HTML、test-prompts.json、test-results.md）。产物 
 `.skillweave/waivers.txt`，README 已指路。修掉一处自相矛盾：打印 145 / 清单 146（现在计数与清单同源）。
 契约新增 §0.6。
     - 判据：TODO.md 每条带数字与建议动作与谁判；免检表命中记「已豁免」；打印与清单计数一致；self-test 全过
+- [ ] `T-004#B-011` **第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」** _impl_ — 已认领 @default
+    - 做什么：第三步的派发设计（用户否掉「按标题机械拆解」后定的）：
+
+① **取消「机械可判」这一列** —— 77 条全是判断，工具只管验收。反例：profile-distribution-sync.md:16-18 的
+   scripts/sync.py / skills_owned.py / skills_excluded.txt 不是断链，是另一个仓库
+   (/Users/maxim/Repositories/Agent-ProteinDesign) 的文件，同段表格里就写着那个绝对路径；检测器只因 scripts/ 开头就误判成悬空。
+② **派发单位 = skill 子树**：77 条落在 **23 个 skill** 里。同一 skill 的改动共享一份父文档与引用风格，一个 agent 读一次父文档
+   就能改完该 skill 的全部条目；按文件派会把同一 skill 拆给多个 agent，冲撞。
+③ **三批**（每批 ≤10 并行）：批1 重的 4 个 skill / 38 条（install-hermes-skills 12 · maintain-hermes-profile 11 ·
+   hermes-profile-housekeeping 8 · maintain-hermes-skills 7）；批2 中等 10 个 / 30 条；批3 单条 9 个 / 9 条。
+④ **每个 agent 的输入**：该 skill 的 SKILL.md 全文 + 它名下所有待办条目（文件:行:目标）+ 树位置（披露它的父文档 / 深度）
+   + 约束「只改引用不改文义；拆文件要给拆分方案（按主题切，不按标题切）」。输出提案（不写盘）：{file,line,before,after,reason}。
+⑤ **验收（主会话）**：重跑 disclosure → 该 skill 的条目消失 · 无新增 · 拆过的行守恒 · diff 每条追得到 TODO 编号。
+   子代理不开后台进程，前台跑完即结束。
+    - 判据：23 个 skill 处理完；重跑 disclosure 无新增；diff 每条追得到编号
 
 ### T-005 路由评测：框架无关、可校正随机 — 已完成
 @default
@@ -601,7 +619,6 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 
 ## 日志（近 20 条）
 
-- `2026-10-11 16:07` **agent** [status] T-004#B-001: pending → done（提案器落地并验收：dry-run 出 27 条（split 14 / rewrite 11 / merge 1 / group 1），每条带 文件:行 + diff 形状 + 证据 JSON；只有 1 条 auto_applyable，其余 26 条标 needs_model=True。--apply + --apply-group 在临时副本上真落盘：执行 52 条机械动作、逐条自检 ✓、路径集合级对账 ✓（git diff --stat = 209 files changed）。合并方向规则改为「身份取被引用更多的一方、同名文件取 version 更高的一方」。改后 L1 68→24 项、常驻 6311→6298 token、悬空 46→46（新增 0）、孤儿 101→101。踩到并修掉三个真 bug：① 合并身份按 id 排序（尾斜杠让 tushare-data 排前面，方向反了）② git status --porcelain -z 里 rename 的旧路径字段没有状态前缀，被多切 3 字符 ③ 中文路径 NFD/NFC 差异导致对账全是假差异。另记：15:46 的快照被别的 agent 推进过（a2d79b6），我一度把一条既有悬空误记成归位造成的，重取同 HEAD 基线后确认新增悬空 0 —— 基准必须同 HEAD 取。）
 - `2026-10-11 16:12` **agent** [status] T-006#B-001: pending → done（完整报告落地（基准 b8298f4）：入口层 68 项、常驻 6443 token、L2 超限 16（token 单口径 14）、L3 468 文件/6.86MB、孤儿 104、悬空 46、同层 1621 对里 12 对>0.5（top 1.00 为 tushare 那对）、checks 命中 116、提案 27 条。每个数字都带产生它的命令，§11 是 8 条复现清单（命令→该看到什么），供 T-006#B-002 的复核子代理逐条重跑。）
 - `2026-10-11 16:12` **agent** [status] T-006#B-002: pending → running（已派独立子代理复核（只读报告+pack，按 §11 逐条重跑，输出 round4/verify-report.md））
 - `2026-10-11 16:15` **default** [summary] 文档与 CLI 对齐：README 补 audit/checks/propose 与当前实测数字（旧数字是 126/69/6694/239/301，已换成 b8298f4 的 125/68/6443/104/46）；skill 正文补 propose 与七条检查；contract 两处改：① L2 两个闸口径（over_limit 16 vs over_token 14）② 入口层判定换成新规则（旧的『第一个直接含 skill 的目录』在分组后会错抓类目）
@@ -621,6 +638,7 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 - `2026-10-11 23:23` **default** [block] 新增块 T-004#B-008「PlanWeave 第一步：weave.py prepare —— 可回滚、可对账的工作副本 + 推导 L1 + 两种形状的账」
 - `2026-10-11 23:44` **default** [block] 新增块 T-004#B-009「PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md」
 - `2026-10-12 00:08` **default** [block] 新增块 T-004#B-010「第二步收口：TODO.md 待办清单 + 包内免检表 + 根选择层单列（L0）」
+- `2026-10-12 00:16` **default** [block] 新增块 T-004#B-011「第三步派发设计：单位 = skill 子树（23 个 skill / 3 批）+ 取消「机械可判」」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
