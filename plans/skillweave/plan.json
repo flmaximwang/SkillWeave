@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T17:59:53+08:00",
+  "updated_at": "2026-10-11T22:17:34+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -729,7 +729,7 @@
           "id": "T-004#B-004",
           "title": "决策：L1 从 24 项再压到 ≤20 的路线",
           "kind": "decision",
-          "status": "blocked",
+          "status": "done",
           "owner": "you",
           "doc": "【问题】归入类目后 L1 = 24 项（散 0 + 类目 24），仍超上限 20。再往下压有三条路，代价各不同：\n1. **合并现有类目**（例如把 hermes-diagnose(3)+hermes-dev(2) 合成一个 hermes-dev(5)；把 apple/computer-use/smart-home/file-management/media/note-taking/secretary/terminal/web 这些 1–3 人的小类目按用途合并）→ L1 可到 ~18。代价：类目名要重新起，且会打破最近才统一的现有命名。\n2. **hermes 四类合一**（install/ops/diagnose/dev → 一个 hermes/，24 名成员）→ L1 = 21 项，但 hermes/ 那一层回到 24 项。\n3. **不动**：把 20 当参考线而不是硬闸（这个数来自 Dream 的 MAX_FIRST_LAYER_SKILLS，不是规范要求）；24 项配「类目名自带用途」在实测里已经 0 错误。\n【解锁】选 1/2 → 我按方案在副本上再跑一轮并出对照；选 3 → 本块 done 并把「20 是参考线」写进 contract §4。",
           "input": "",
@@ -743,7 +743,36 @@
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T15:50:18+08:00",
+          "status_since": "2026-10-11T22:17:13+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T22:17:13+08:00",
+              "by": "you",
+              "from": "blocked",
+              "to": "done",
+              "note": "决策（用户 2026-10-11 拍板）：L1 就定为互指图的 13 个岛，不再往 20 上削。依据：① 互指图（谁在正文/引用里点到谁的目录名）忽略方向后得 13 个连通分量 = 21/4/3/2 + 九个 1；② description 词面两两 Jaccard 最高只有 0.12 —— 词面数据完全不支持任何「该分几组」的结论，分组只能靠关系或靠人；③ 岛数对口径敏感（只看 SKILL.md 的 name 互指 → 11；再加引用边 → 10；扫全文件按目录名 → 13），所以口径写进 contract §3，报数必须连口径一起报。落法：4 个多成员岛 → 类目目录（hermes-ops / housekeeping / extensions-and-source / authoring-and-discovery），9 个单成员岛 → 留作散项，入口层 = 4 + 9 = 13 项（≤20，❌ 旗标消失）。20 本身在 contract §4 定为**参考线不是硬闸**（出处是 Dream 的常量，不是规范）。"
+            }
+          ]
+        },
+        {
+          "id": "T-004#B-005",
+          "title": "L1 按互指岛的 13 个岛重排（入口层 28→13）+ 文档树可视化落进 UsingHermes 仓库",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "在 UsingHermes 上执行（worktree skillweave/l1-islands，基于 0de1ca9）：34 个 skill 用 git mv 重排，清掉搬空的 autonomous-ai-agents/ 与 productivity/；39 个 skill 数不变、常驻 description 一字未改 = 3,310 tok 不变、L2 超限 0 不变、孤儿 26 不变、悬空 25 不变（悬空集合与改前逐条相同，只是路径前缀变了）。同时给 weave.py 加 visualize 子命令，产出 TREE.md（三级披露文本版）+ TREE.html（自包含离线 SVG：L1 菜单 → L2 正文 → L3 文件，互指岛画成圆环 + 弦、节点带编号 + 框内图例），两份落在 pack 根并由 README 指路。验证：self-test 全过（含新增两条可视化断言）；TREE.html 数据层核对 39 个节点 / 99 条边 / TREE.md 39 行，与 layers 同口径（入口层 13、常驻 3,310）；headless Chrome 截图后逐条目视（标题与卡片重叠、长名叠字已修）。落地：主 clone 以 --ff-only 合并并推送 origin/main = 980c79e；worktree 已 remove、分支已删、工作区 0 项。代价（已如实告知）：39 个 skill 的 install 标识符多了一层类目段（skills/<类别>/<name>），外部书签/文档会失效；同层近重复配对数 8 → 1 是**量测效应**（配对只在同层内比，跨类目的那几对被切开后不再可见），语义重复仍在。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "入口层 ≤ 20 且常驻/孤儿/悬空不涨；TREE.md + TREE.html 落进 UsingHermes 并目视验过；worktree 已合并清理"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T22:17:34+08:00",
           "runs": []
         }
       ],
@@ -1939,7 +1968,21 @@
       "kind": "status",
       "text": "T-008#B-006: running → done（全部完成。① r6 盲判：2 个独立判官各 15 行、结果 14/14 全对（应触发 7/7 · 不该触发 3/3 全 none · 近邻混淆 4/4）， BoR 全 1.0，39 候选下校正随机基线 0.0256；② worktree 改动（5 个超限 skill 下沉）已从主 clone 以 --ff-only 合并进 main 并推送， origin/main = 0de1ca9；③ 两个 worktree 都已移除、分支已删（skillweave/cleanup-audit、cheatsheet）， git worktree list 只剩主 clone、git branch 只剩 main、工作区 0 项；④ 顺带清了 AgentSkill-AgentEvolution 的 3 个陈旧 worktree （每条分支 ahead=0 且工作区干净）连同 8 条已合并分支；该包 HEAD=origin/main=7d9fff3、工作区干净。 未做：L1 仍 28 项（建议把上限 20 当参考线，不逆着用户的拉平动作塞类目）；8 对同层相似 + 1 对疑似真重复只报不改。）",
       "ref": "T-008#B-006"
+    },
+    {
+      "at": "2026-10-11T22:17:13+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-004#B-004: blocked → done（决策（用户 2026-10-11 拍板）：L1 就定为互指图的 13 个岛，不再往 20 上削。依据：① 互指图（谁在正文/引用里点到谁的目录名）忽略方向后得 13 个连通分量 = 21/4/3/2 + 九个 1；② description 词面两两 Jaccard 最高只有 0.12 —— 词面数据完全不支持任何「该分几组」的结论，分组只能靠关系或靠人；③ 岛数对口径敏感（只看 SKILL.md 的 name 互指 → 11；再加引用边 → 10；扫全文件按目录名 → 13），所以口径写进 contract §3，报数必须连口径一起报。落法：4 个多成员岛 → 类目目录（hermes-ops / housekeeping / extensions-and-source / authoring-and-discovery），9 个单成员岛 → 留作散项，入口层 = 4 + 9 = 13 项（≤20，❌ 旗标消失）。20 本身在 contract §4 定为**参考线不是硬闸**（出处是 Dream 的常量，不是规范）。）",
+      "ref": "T-004#B-004"
+    },
+    {
+      "at": "2026-10-11T22:17:34+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-005「L1 按互指岛的 13 个岛重排（入口层 28→13）+ 文档树可视化落进 UsingHermes 仓库」",
+      "ref": "T-004#B-005"
     }
   ],
-  "rev": "3dd8b38b00ba"
+  "rev": "0dd519293cf7"
 }
