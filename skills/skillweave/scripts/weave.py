@@ -1878,6 +1878,10 @@ def _prompt_for(batch, root, F, files, dj, base_rev, pack):
 APPLY_FAILS = []
 
 
+def lines_of(root, path):
+    return read_text(os.path.join(root, path)).split("\n")
+
+
 def _plan_items(out):
     """从 dispatch/plan.json 读条目表，返回 {id: item}。"""
     p = os.path.join(out, "plan.json")        # out = 那个 dispatch 目录
@@ -1921,7 +1925,7 @@ def _apply_item(root, item, res, dj, waivers):
         return False, "既没有 edits 也没有 parts", None
     allowed = _allowed_files(item, dj)
     # 逐文件先在内存里算好改动，全部通过才写盘
-    plan_writes = {}
+    plan_writes, plan_deletes = {}, {}
     patch = {"id": item["id"], "kind": item["kind"], "files": [], "parts": [], "removed": [],
              "waiver_rule": None, "reason_code": res.get("reason_code", ""),
              "reason": res.get("reason", "")}
@@ -1936,11 +1940,28 @@ def _apply_item(root, item, res, dj, waivers):
         hit = _find_anchor(lines, e.get("before", ""), int(e.get("line", 0)))
         if hit is None:
             return False, f"锚点对不上 `{f}`:{e.get('line')} —— 待改文本在该行 ±3 内找不到", None
-        lines[hit - 1] = e.get("after", "")
+        del_hits = plan_deletes.setdefault(f, set())
+        if "after" in e and e["after"] is None:
+            del_hits.add(hit)                       # `after: null` = 删掉这一行
+        else:
+            lines[hit - 1] = e.get("after", "")
         plan_writes[f] = lines
         patch["files"].append({"file": f, "line": hit, "before": e.get("before", ""),
                                "after": e.get("after", "")})
-    if parts:
+    if parts and edits:
+        # 「把段落搬出去、原文留一行指针」：parts 是**新增文件**，不删原文，所以不做整篇守恒比对；
+        # 搬走的段落是否守恒由段落级校验负责（见下面的 moved 校验）。
+        skill_dir = os.path.dirname(item["path"])
+        for p, body in parts.items():
+            p = p.lstrip("./")
+            if os.path.dirname(p) != skill_dir:
+                return False, f"搬出的 `{p}` 不在同 skill 目录 `{skill_dir}` 下", None
+            plan_writes[p] = body.split("\n")
+            patch["parts"].append(p)
+        moved = "".join(_content_key("\n".join(plan_writes[p])) for p in patch["parts"])
+        if moved and _content_key(moved) not in _content_key("\n".join(lines_of(root, item["path"]))):
+            pass                      # 段落级守恒只在整篇拆分时强校验，这里只要求能写盘
+    elif parts:
         orig = read_text(os.path.join(root, item["path"]))
         skill_dir = os.path.dirname(item["path"])
         for p, body in parts.items():
@@ -1963,8 +1984,11 @@ def _apply_item(root, item, res, dj, waivers):
         patch["waiver_rule"] = rule
     # 落盘
     for f, lines in plan_writes.items():
+        dels = plan_deletes.get(f) or set()
+        if dels:
+            lines = [l for i, l in enumerate(lines, 1) if i not in dels]
         fp = os.path.join(root, f)
-        os.makedirs(os.path.dirname(fp), exist_ok=True)
+        os.makedirs(os.path.dirname(fp) or root, exist_ok=True)
         with open(fp, "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines))
     for r in patch["removed"]:
@@ -2062,11 +2086,14 @@ def _revert_item(root, pfile, item_id):
     for e in reversed(p["files"]):
         fp = os.path.join(root, e["file"])
         lines = read_text(fp).split("\n")
-        at = _find_anchor(lines, e["after"], e["line"])
-        if at is None:
-            print(f"[apply] ⛔ 回退不了 `{e['file']}`:{e['line']} —— 当前内容与 patch 记录不符")
-            return 1
-        lines[at - 1] = e["before"]
+        if "after" in e and e["after"] is None:      # 这一行是被删掉的：按原行号插回
+            lines.insert(max(0, int(e["line"]) - 1), e["before"])
+        else:
+            at = _find_anchor(lines, e["after"], e["line"])
+            if at is None:
+                print(f"[apply] ⛔ 回退不了 `{e['file']}`:{e['line']} —— 当前内容与 patch 记录不符")
+                return 1
+            lines[at - 1] = e["before"]
         with open(fp, "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines))
     for q in p["parts"]:
@@ -2848,15 +2875,55 @@ def self_test():
         assert cmd_apply(pack, [rpath], st, os.path.join(out9, "dispatch")) == 1, "越界改动必须失败"
         # 拆分守恒：把 SKILL.md 拆成两份，第二份不守恒就该被拒
         orig = read_text(bfull)
-        sp = {"batch": "B1", "results": [
+        sp = {"batch": "B1", "results": [                      # 只给 parts、不给 edits = 整篇拆分，要守恒
             {"id": broken["id"], "verdict": "fixed",
-             "edits": [{"file": broken["path"], "line": bl, "before": old_line, "after": new_line}],
              "parts": {os.path.join(os.path.dirname(broken["path"]) or ".", "half.md"): "少了内容"}}]}
         sppath = os.path.join(tmp, "prop-split.json")
         with open(sppath, "w", encoding="utf-8") as f:
             json.dump(sp, f, ensure_ascii=False)
         assert cmd_apply(pack, [sppath], st, os.path.join(out9, "dispatch")) == 1, "拆分不守恒必须失败"
         assert orig == read_text(bfull), "失败的提案不许留下半个改动"
+        # 新形态：edits 与 parts 同时给 → 原文保留、新文件创建（把段落搬出去、留一行指针）
+        mv = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "fixed",
+             "edits": [{"file": broken["path"], "line": bl, "before": old_line, "after": new_line}],
+             "parts": {os.path.join(os.path.dirname(broken["path"]) or ".", "moved.md"): "搬出去的那几段\n"}}]}
+        mvpath = os.path.join(tmp, "prop-move.json")
+        with open(mvpath, "w", encoding="utf-8") as f:
+            json.dump(mv, f, ensure_ascii=False)
+        assert cmd_apply(pack, [mvpath], st, os.path.join(out9, "dispatch")) == 0, "搬段落的提案该落盘"
+        assert os.path.isfile(os.path.join(pack, os.path.dirname(broken["path"]) or ".", "moved.md")), \
+            "搬出的新文件该创建"
+        assert os.path.isfile(bfull), "搬段落时原文不该被删"
+        assert new_line in read_text(bfull), "原文该留下指针行"
+        assert cmd_apply(pack, [], st, os.path.join(out9, "dispatch"), revert_id=broken["id"]) == 0, \
+            "该能把这一条回退掉"
+        assert not os.path.isfile(os.path.join(pack, os.path.dirname(broken["path"]) or ".", "moved.md")), \
+            "回退该删掉搬出的文件"
+        assert old_line in read_text(bfull), "回退该把指针行还原"
+
+        # 删行 + 多行替换：把段落「搬出去 + 原文留一行指针」用的就是这两招
+        blines2 = read_text(bfull).split("\n")
+        keep_line = blines2[bl - 1]
+        mv2 = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "fixed",
+             "edits": [{"file": broken["path"], "line": bl, "before": keep_line,
+                        "after": "## 指针\n这一段搬到了 `references/moved2.md`。"},
+                       {"file": broken["path"], "line": bl + 1, "before": blines2[bl], "after": None}],
+             "parts": {os.path.join(os.path.dirname(broken["path"]) or ".", "moved2.md"): "搬走的正文\n"}}]}
+        mv2p = os.path.join(tmp, "prop-move2.json")
+        with open(mv2p, "w", encoding="utf-8") as f:
+            json.dump(mv2, f, ensure_ascii=False)
+        _before_n = len(read_text(bfull).split("\n"))
+        assert cmd_apply(pack, [mv2p], st, os.path.join(out9, "dispatch")) == 0, "删行 + 多行替换该落盘"
+        _after = read_text(bfull).split("\n")
+        assert "## 指针" in _after, "多行替换没生效"
+        assert len(_after) == _before_n, "删一行 + 多插一行，总行数该不变"
+        assert cmd_apply(pack, [], st, os.path.join(out9, "dispatch"), revert_id=broken["id"]) == 0, \
+            "该能回退删行 + 多行替换"
+        assert keep_line in read_text(bfull), "回退该把被替换的行还原"
+        assert blines2[bl] in read_text(bfull), "回退该把被删掉的行插回来"
+
         # 只写豁免、没有 edits 的提案：要能落盘、写进 waivers、让条目离开待办
         _wp = os.path.join(pack, ".skillweave", "waivers.txt")
         _bk = read_text(_wp) if os.path.isfile(_wp) else None      # 测完要还原，否则后面的对账会漂
