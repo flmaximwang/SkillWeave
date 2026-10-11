@@ -1471,6 +1471,7 @@ def render_collapse_md(root, skills, edges, islands, dirs, entry_dir, desc, befo
     body_tok = est_tokens("\n".join(body))
     idx_tok = sum(est_tokens(island_index_md(n, i, byid)) for n, i in dirs)
     resident_after = est_tokens(desc or "")
+    n_skills = len(skills)
     L = [f"# 单入口方案（L1 = 1 个 skill 入口）· {os.path.basename(root)}", "",
          f"由 `weave.py collapse` 生成（**默认 dry-run，不改盘**）。基准 `{before['rev']}`。", "",
          "## 形状", "", "```",
@@ -1485,9 +1486,9 @@ def render_collapse_md(root, skills, edges, islands, dirs, entry_dir, desc, befo
          f"| 第一次点击 | {before['entry']} 项 | **1 项** |",
          f"| 第二次点击 | — | **{len(dirs)} 项**（岛索引，载入时付 **{body_tok} tok**） |",
          f"| 第三次点击 | 无 | **{len(skills)} 项**（岛的 `INDEX.md`，**{idx_tok} tok**） |",
-         f"| 独立可装 | 每个 skill 各自能装 | **只剩这一个 skill**（39 个不再是 skill） |", "",
+         f"| 独立可装 | 每个 skill 各自能装 | **只剩这一个 skill**（其余 {n_skills} 个不再是 skill） |", "",
          "## 伞体（`SKILL.md` 正文，机械生成的部分）", "", "```markdown"] + \
-        ["---", f"name: {entry_dir}", f"description: {desc or '（必须你写：这是触发词，工具不许代笔）'}", "---", ""] + \
+        ["---", f"name: {entry_dir}", f"description: {desc or '（待写：这是触发词，由模型定，工具不代笔）'}", "---", ""] + \
         body + ["```", "",
                 f"> `description` 由模型写（触发词是判断题）。`weave.py collapse --apply` 不带 `--description` 会拒绝执行。", "",
                 "## 要执行的机械动作", "", "```bash"]
@@ -1502,7 +1503,7 @@ def render_collapse_md(root, skills, edges, islands, dirs, entry_dir, desc, befo
     L += ["## 换口径时的注意", "",
           "- 「岛」= 互指图（谁在正文/引用里点到谁的目录名）的连通分量；口径见 `docs/contract.md` §3。",
           "- 岛数对口径敏感（同一份数据 11 / 10 / 13），报数必须连口径一起报。",
-          "- 单入口的代价是**独立可装**：39 个 skill 变成 1 个 skill 的 `references/`。"
+          f"- 单入口的代价是**独立可装**：{n_skills} 个 skill 变成 1 个 skill 的 `references/`。"
           "别的包/人想单独装其中一个就没法装了。",
           ""]
     return "\n".join(L)
@@ -2433,6 +2434,29 @@ def cmd_disclosure(root, out):
     return 0
 
 
+def _in_git_repo(pack):
+    """输入目录是不是在一个 git 仓库里，是就返回仓库根。"""
+    g = git(pack, "rev-parse", "--show-toplevel")
+    if g is not None and g.returncode == 0 and (g.stdout or "").strip():
+        return os.path.realpath(g.stdout.strip())
+    return None
+
+
+def _worktree_copy(pack, dest, log, branch=None):
+    """输入原本就在 git 仓库里 → **开 worktree**，不拷整份（用户 2026-10-12 定的规则）。
+    好处：改动能按包仓库的规矩合回；坏处：worktree 共享同一个 .git，所以 push 一律回主 clone 做。"""
+    root = _in_git_repo(pack)
+    rel = os.path.relpath(os.path.realpath(pack), root)
+    branch = branch or ("skillweave/" + os.path.basename(os.path.realpath(pack)).lower())
+    head = (git(root, "rev-parse", "HEAD") or type("x", (), {"stdout": ""})()).stdout.strip()
+    r = git(root, "worktree", "add", "-b", branch, dest, head)
+    if r is None or r.returncode != 0:
+        return None, (r.stderr.strip() if r is not None else "git worktree add 失败")
+    log.append(f"输入在 git 仓库 `{root}` 里 → 开 worktree `{dest}`（分支 `{branch}`，基于 `{head[:9]}`）")
+    log.append("worktree 与主 clone 共享 .git：**push 与合并回主 clone 做**，别在 worktree 里切 main")
+    return os.path.join(dest, rel), branch
+
+
 def _clone_copy(pack, dest):
     """拷贝一份副本。macOS 走 APFS clonefile（`cp -Rc`，秒级、几乎不占额外空间），不支持就退回 `cp -R`。"""
     r = subprocess.run(["cp", "-Rc", pack, dest], capture_output=True, text=True)
@@ -2493,9 +2517,21 @@ def cmd_prepare(pack, out, dest=None, shape=None, description=None):
         print(f"[prepare] FAIL 副本已存在，不覆盖: {dest}（换 --dest 或先删掉它）")
         return 2
     os.makedirs(os.path.dirname(dest), exist_ok=True)
-    how = _clone_copy(pack, dest)
-    log = [f"副本：`{dest}`（{how}）· 原目录只读，未动"]
-    rev = _ensure_git_copy(dest, log)
+    log, wt = [], None
+    if _in_git_repo(pack):                      # 原本在 git 仓库里 → 开 worktree
+        work, extra = _worktree_copy(pack, dest, log)
+        if work is None:
+            print(f"[prepare] FAIL 开 worktree 失败：{extra}")
+            return 1
+    else:                                       # 不是 git 仓库 → 拷副本再 git init
+        how = _clone_copy(pack, dest)
+        log.append(f"副本：`{dest}`（{how}）· 原目录只读，未动")
+        work = dest
+    rev = _rev(work)
+    if rev in (None, "", "?"):                 # `_rev` 没 git 时返回 "?"，是 truthy，要显式判
+        rev = _ensure_git_copy(work, log)
+    log.append(f"工作区：`{work}`")
+    dest = work
 
     skills, skipped = [], []
     tree = walk_dir(dest, dest, "", tracked_set(dest), skipped, skills)
@@ -2735,6 +2771,34 @@ def self_test():
         assert cmd_disclosure(pack, out9) == 0
         t1 = open(os.path.join(out9, "TODO.md"), encoding="utf-8").read()
         assert "没人点名是刻意的" in t1, t1[:400]
+        # prepare 的两条路：git 仓库 → worktree；非 git → copy + git init
+        _repo = os.path.join(tmp, "repo-in")
+        os.makedirs(os.path.join(_repo, "skills", "demo"))
+        with open(os.path.join(_repo, "skills", "demo", "SKILL.md"), "w") as f:
+            f.write("---\nname: demo\ndescription: 做一件事时用。\n---\n\n见 `references/x.md`。\n")
+        with open(os.path.join(_repo, "README.md"), "w") as f:
+            f.write("repo\n")
+        git(_repo, "init", "-q")
+        git(_repo, "-c", "user.name=t", "-c", "user.email=t@t", "add", "-A")
+        git(_repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "init")
+        _wt = os.path.join(tmp, "repo-wt")
+        assert cmd_prepare(_repo, os.path.join(tmp, "o-prep-wt"), dest=_wt, shape="multi") == 0, \
+            "git 仓库输入该走 worktree"
+        assert os.path.isfile(os.path.join(_wt, ".git")), "worktree 的 .git 该是个文件，不是目录"
+        wl = git(_repo, "worktree", "list")
+        assert _wt in (wl.stdout or ""), "主 clone 里该能看到这个 worktree"
+        git(_repo, "worktree", "remove", "--force", _wt)
+        # 非 git 输入：拷副本 + git init
+        _plain = os.path.join(tmp, "plain-in")
+        os.makedirs(os.path.join(_plain, "skills", "demo"))
+        with open(os.path.join(_plain, "skills", "demo", "SKILL.md"), "w") as f:
+            f.write("---\nname: demo\ndescription: 做一件事时用。\n---\n\n见 `references/x.md`。\n")
+        _cp = os.path.join(tmp, "plain-copy")
+        assert cmd_prepare(_plain, os.path.join(tmp, "o-prep-cp"), dest=_cp, shape="multi") == 0, \
+            "非 git 输入该走拷贝"
+        assert git(_cp, "rev-parse", "--git-dir") is not None, "副本该被 git 管起来"
+        assert not os.path.exists(os.path.join(_plain, ".git")), "原目录不该被 git init"
+
         # 派发：事实补全 + 批次 + 计数起点
         assert cmd_dispatch(pack, out9, batch_size=10) == 0, "dispatch 该成功"
         pl = json.load(open(os.path.join(out9, "dispatch", "plan.json"), encoding="utf-8"))
