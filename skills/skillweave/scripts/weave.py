@@ -1020,6 +1020,7 @@ def main(argv=None):
     ap.add_argument("--expect-fixed", nargs="*", default=[])
     ap.add_argument("--splits", default=None)
     ap.add_argument("--batch-size", type=int, default=25)
+    ap.add_argument("--refresh-baseline", action="store_true")
     ap.add_argument("--proposals", nargs="*", default=[])
     ap.add_argument("--revert", default=None)
     ap.add_argument("pack", nargs="?")
@@ -1059,7 +1060,7 @@ def main(argv=None):
     if a.cmd == "dispatch":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or root
-        return cmd_dispatch(root, out, batch_size=a.batch_size)
+        return cmd_dispatch(root, out, batch_size=a.batch_size, refresh_baseline=a.refresh_baseline)
     if a.cmd == "apply":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(root, "dispatch")
@@ -1986,19 +1987,24 @@ def _apply_item(root, item, res, dj, waivers):
     dirs_ok = {os.path.dirname(item["path"])}                 # 允许落在该 skill 目录之下，不要求同目录
     if item.get("owner") and item["owner"] != "(pack)":
         dirs_ok.add(os.path.dirname(item["owner"]))
+    def _parts_conserve(item_path):
+        """parts 拼起来是否等于原文件：是 → 这是一次**拆分**（删原件）；否 → 是**搬出**（留原件）。"""
+        orig = read_text(os.path.join(root, item_path))
+        got = "".join(_content_key("\n".join(plan_writes[p])) for p in parts if p in plan_writes)
+        return orig, (got == _content_key(orig))
+
     if parts and edits:
-        # 「把段落搬出去、原文留一行指针」：parts 是**新增文件**，不删原文，所以不做整篇守恒比对；
-        # 搬走的段落是否守恒由段落级校验负责（见下面的 moved 校验）。
+        # 先按「拆分」试：parts 等于原文就删原件；否则当搬出（原文保留，指针行自己给）。
         for p, body in parts.items():
             p = p.lstrip("./")
             if not any(p == d or p.startswith(d + "/") for d in dirs_ok):
                 return False, f"搬出的 `{p}` 不落在 {sorted(dirs_ok)} 之下", None
             plan_writes[p] = body.split("\n")
             patch["parts"].append(p)
-        moved = "".join(_content_key("\n".join(plan_writes[p])) for p in patch["parts"])
-        if moved and _content_key(moved) not in _content_key("\n".join(lines_of(root, item["path"]))):
-            pass                      # 段落级守恒只在整篇拆分时强校验，这里只要求能写盘
-    elif parts:
+        _orig, _is_split = _parts_conserve(item["path"])
+        if _is_split:                 # parts 就是原文的拆分：删掉原件，指针行由 edits 负责换成两份
+            patch["removed"].append({"file": item["path"], "content": _orig})
+    elif parts:                       # 只给 parts：一律按拆分处理，守恒不过就拒
         orig = read_text(os.path.join(root, item["path"]))
         for p, body in parts.items():
             p = p.lstrip("./")
@@ -2119,7 +2125,20 @@ def _revert_item(root, pfile, item_id):
         print(f"[apply] FAIL 记录里没有 `{item_id}`")
         return 2
     p = hit[-1]
+    # 先删新文件、再恢复被删的原件，最后才回退行改动 —— 拆分过的原文件在回退前是不存在的
+    for q in p["parts"]:
+        fp = os.path.join(root, q)
+        if os.path.isfile(fp):
+            os.remove(fp)
+    for r in p["removed"]:
+        fp = os.path.join(root, r["file"])
+        os.makedirs(os.path.dirname(fp) or root, exist_ok=True)
+        with open(fp, "w", encoding="utf-8") as fh:
+            fh.write(r["content"])
+    _removed = {r["file"] for r in p["removed"]}
     for e in reversed(p["files"]):
+        if e["file"] in _removed:
+            continue                  # 这份是被拆掉的原件：恢复回来的内容就是改动前的状态，不用再回退行
         fp = os.path.join(root, e["file"])
         lines = read_text(fp).split("\n")
         if "after" in e and e["after"] is None:      # 这一行是被删掉的：按原行号插回
@@ -2132,15 +2151,6 @@ def _revert_item(root, pfile, item_id):
             lines[at - 1] = e["before"]
         with open(fp, "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines))
-    for q in p["parts"]:
-        fp = os.path.join(root, q)
-        if os.path.isfile(fp):
-            os.remove(fp)
-    for r in p["removed"]:
-        fp = os.path.join(root, r["file"])
-        os.makedirs(os.path.dirname(fp), exist_ok=True)
-        with open(fp, "w", encoding="utf-8") as fh:
-            fh.write(r["content"])
     if p.get("waiver_rule"):
         wp = os.path.join(root, ".skillweave", "waivers.txt")
         lines = [l for l in read_text(wp).split("\n") if l.strip() != p["waiver_rule"].strip()]
@@ -2152,7 +2162,7 @@ def _revert_item(root, pfile, item_id):
     return 0
 
 
-def cmd_dispatch(root, out, batch_size=25):   # batch_size = 每批最多几条（不是几个 skill）
+def cmd_dispatch(root, out, batch_size=25, refresh_baseline=False):   # batch_size = 每批最多几条
     """派发前的事实补全 + 批次划分 + prompt 落盘 + 计数起点。产物：dispatch/{plan.json,state.json,batch-*.md}"""
     dj, _ = _scan_fresh(root, "dispatch")
     if dj is None:
@@ -2209,7 +2219,7 @@ def cmd_dispatch(root, out, batch_size=25):   # batch_size = 每批最多几条�
     # **不许打转**：计数从旧 state 继承（重派不许把账清零）；同一批 prompt 没换过就拒绝重派
     st_path = os.path.join(d, "state.json")
     prev = json.load(open(st_path, encoding="utf-8")) if os.path.isfile(st_path) else None
-    if prev:
+    if prev and not refresh_baseline:
         for b in plan["batches"]:
             ids = [it["id"] for it in b["items"]]
             n = sum(prev.get("attempts", {}).get(i, 0) for i in ids)
@@ -3011,6 +3021,26 @@ def self_test():
             "删空行必须只删掉那一行，别处的空行不许动"
         assert cmd_apply(pack, [], st, os.path.join(out9, "dispatch"), revert_id=broken["id"]) == 0, "该能回退"
         assert read_text(bfull).split("\n") == _orig_lines, "回退该逐行还原"
+
+        # parts 拼起来等于原文 → 按拆分处理，原件要删掉（否则「拆了但原件还在」）
+        _sp_orig = read_text(bfull)
+        _half = len(_sp_orig.split("\n")) // 2
+        _lns = _sp_orig.split("\n")
+        sp2 = {"batch": "B1", "results": [
+            {"id": broken["id"], "verdict": "fixed",
+             "edits": [{"file": broken["path"], "line": bl, "before": _lns[bl - 1],
+                        "after": "## 指针 → 见 `references/p1.md`"}],
+             "parts": {os.path.join(os.path.dirname(broken["path"]) or ".", "p1.md"): "\n".join(_lns[:_half]),
+                       os.path.join(os.path.dirname(broken["path"]) or ".", "p2.md"): "\n".join(_lns[_half:])}}]}
+        sp2p = os.path.join(tmp, "prop-split2.json")
+        with open(sp2p, "w", encoding="utf-8") as f:
+            json.dump(sp2, f, ensure_ascii=False)
+        assert cmd_apply(pack, [sp2p], st, os.path.join(out9, "dispatch")) == 0, "守恒的拆分该落盘"
+        assert not os.path.isfile(bfull), "拆分后原件该被删掉"
+        assert os.path.isfile(os.path.join(os.path.dirname(bfull), "p1.md")), "拆出的两份该落盘"
+        assert cmd_apply(pack, [], st, os.path.join(out9, "dispatch"), revert_id=broken["id"]) == 0, "该能回退"
+        assert read_text(bfull) == _sp_orig, "回退该把原件整份恢复回来"
+        assert not os.path.isfile(os.path.join(os.path.dirname(bfull), "p1.md")), "回退该删掉拆出的两份"
 
         # 只写豁免、没有 edits 的提案：要能落盘、写进 waivers、让条目离开待办
         _wp = os.path.join(pack, ".skillweave", "waivers.txt")
