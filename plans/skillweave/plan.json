@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T13:59:28+08:00",
+  "updated_at": "2026-10-11T14:04:13+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -30,7 +30,7 @@
           "id": "T-001#B-001",
           "title": "决策：本仓库的落点与远端",
           "kind": "decision",
-          "status": "blocked",
+          "status": "done",
           "owner": "you",
           "doc": "【问题】本仓库已在本地建成：`~/Repositories/Repo/SkillWeave`（`git init` 完成，**没有任何远端**，\n工作区只有 README.md / docs/prior-art.md / plans/）。要不要建 GitHub 远端，建的话叫什么、公开还是私有。\n\n1. 远端怎么定？\n   - A：`flmaximwang/SkillWeave`（公开）—— 与 Dream / Loomerto 同级，别的 agent 可直接 `git clone` 用。\n   - B：同名但私有 —— 先自己用，等形状稳了再公开。\n   - C：不建远端，只在本地跑（那就没有备份，也没有跨机可用性）。\n2. 本仓库要不要同时做成「可被任意 agent 安装的 skill」（`skills/skillweave/SKILL.md`），\n   还是纯 CLI 工具仓库？（见 T-007#B-003，两问可一起答。）\n\n【解锁】答 1 → 解锁 T-007#B-001（README/提交/推送）；答 2 → 解锁 T-007#B-003。\n\n【已实测的事实】本地仓库存在、`git init` 完成、尚无 commit；本机已有 `git@github.com:flmaximwang/*` 的 SSH 凭据\n（Dream / Loomerto 都在用）。",
           "input": "",
@@ -44,7 +44,7 @@
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:59:28+08:00",
+          "status_since": "2026-10-11T14:04:13+08:00",
           "runs": [
             {
               "at": "2026-10-11T13:59:28+08:00",
@@ -52,6 +52,13 @@
               "from": "blocked",
               "to": "blocked",
               "note": "① 已答：公开仓库 → flmaximwang/SkillWeave（已建 + 推送）。② 交付形态未答，块保持待批准。"
+            },
+            {
+              "at": "2026-10-11T14:04:13+08:00",
+              "by": "you",
+              "from": "blocked",
+              "to": "done",
+              "note": "① 公开仓库 → flmaximwang/SkillWeave（已建+推送）。② 用户 2026-10-11 定：**做成 public skill —— 可被任意 agent 安装的 skill**，不是纯 CLI 仓库。原话：『T1B1 就做成 public skill 吧，做成可被任意 agent 安装的 skill，纯 cli 我觉得跑不完整个流程，例如文档拆分在缺少语言模型的辅助时不可能做』。"
             }
           ]
         },
@@ -402,7 +409,7 @@
           "kind": "impl",
           "status": "pending",
           "owner": "default",
-          "doc": "【做什么】读 T-003 的报告，出**可执行的提案**（默认 `--dry-run`，只打印 diff 与影响面，不落盘）：\n- 拆：超过体积上限的节点 → 下沉到 `references/`，原位留一行转指；\n- 分：fanout 超最优点的一层 → 归入类目目录（并给出新路径清单）；\n- 并：同层近重复 → 合并方案（保留哪个、折进哪个、正文哪几段是重复的）；\n- 改写：description 缺「何时用」或缺触发词 → 给出改写稿（改完必须能重跑 T-005 证明更好）。\n`--apply` 才落盘，且落盘前对每个被改文件留 `.orig` 备份。",
+          "doc": "【做什么】按 T-007#B-003 定的形态拆成两半（用户 2026-10-11）：\n- **CLI 侧（可机械化）**：四类动作里能量化的部分 —— 超限节点清单、机械切分（按标题切开一份 SKILL.md）、\n  新路径清单、重跑对照表。默认 `--dry-run` 只出提案，`--apply` 才落盘且先留 `.orig` 备份。\n- **skill 侧（需要语言模型）**：判断「哪几段该下沉 / 这个散技能该进哪个类目 / 这两条是不是近重复该合并 /\n  description 的触发词改成什么」—— 这些写成 `skills/skillweave/SKILL.md` + `references/` 里的做法，\n  由安装了这个 skill 的 agent 执行。CLI 不假装能做这些判断。\n\n四类动作：拆（下沉 references + 原位留转指）· 分（归入类目压低 L1 条目数）· 并（近重复合并）· 改写（触发词）。",
           "input": "",
           "output": "",
           "command": "",
@@ -691,7 +698,7 @@
           "id": "T-007#B-003",
           "title": "交付形态：纯 CLI 仓库，还是同时可安装的 skill",
           "kind": "impl",
-          "status": "blocked",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】按 T-001#B-001 第 2 问的答案落地：\n- 只做 CLI：README 写清 `python3 scripts/weave.py ...` 的用法即可；\n- 同时做 skill：加 `skills/skillweave/SKILL.md`（第一层薄、细节下沉、`name` + `description` 合规），\n  任何 agent 拿到本仓库都能按 agentskills.io 规范识别它。",
           "input": "",
@@ -707,7 +714,94 @@
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:07+08:00",
+          "status_since": "2026-10-11T14:04:13+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T14:04:13+08:00",
+              "by": "you",
+              "from": "blocked",
+              "to": "done",
+              "note": "定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。"
+            }
+          ]
+        }
+      ],
+      "note": "",
+      "exec": {}
+    },
+    {
+      "id": "T-008",
+      "title": "SkillWeave skill 本体（可被任意 agent 安装）",
+      "owner": "default",
+      "status": "pending",
+      "deps": [],
+      "blocks": [
+        {
+          "id": "T-008#B-001",
+          "title": "skills/skillweave/SKILL.md：第一层薄入口",
+          "kind": "impl",
+          "status": "pending",
+          "owner": "default",
+          "doc": "【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`\n+ `references/`）。第一层只放：**什么时候用** · **输入是 pack（一整套含 SKILL.md 的文件夹树）不是单个\nSKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py tree` / `weave.py layers`）·\n**四类动作里哪些由 agent 用语言模型做、哪些机械动作由 CLI 做** · 每步一行转指到 `references/`。\n安装不依赖任何 agent 框架（没有 profile / lock / 安装器专属步骤）。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "① `skills/skillweave/SKILL.md` 存在，frontmatter `name`+`description`（≤1024 字符，含触发词）；\n② 正文在上限内（行数/字节）且每份 `references/*.md` 都被正文点名（无孤儿）；\n③ 在本仓库根跑 `python3 scripts/weave.py layers .`：L1 条目数在上限内 ✅（自托管自检）；\n④ 一个没有装任何 Hermes 组件的 agent 只靠本仓库文件就能照做（判据：命令与路径要么是仓库内相对路径、\n要么是通用工具，出现任何 profile/lock 概念即不通过）。"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T14:04:13+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-008#B-002",
+          "title": "references/：四类动作的做法（要语言模型的那几段）",
+          "kind": "impl",
+          "status": "pending",
+          "owner": "default",
+          "doc": "【做什么】四份 `references/`，每份回答「怎么判断 + 改完跑哪条命令重测」：\n`references/split.md`（拆：按标题切分；哪些段落该下沉、哪些必须留在第一层；留什么样的转指行）·\n`references/group.md`（分：散技能归入类目的两轴判据；类目名怎么起）·\n`references/merge.md`（并：近重复的取证方式；保留哪个、折进哪个、正文哪几段是重复的）·\n`references/rewrite.md`（改写：`description` 前 57 字符窗口、触发词优先、排除条款位置、改完必须重跑评测）。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "四份文件都存在且各被 SKILL.md 点名一次；每份含「判据」段与「改完重跑」段（命令可复制执行）；\n不出现「照经验改改」这类不可核验的说法。"
+          ],
+          "artifacts": [],
+          "deps": [
+            "T-008#B-001"
+          ],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T14:04:13+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-008#B-003",
+          "title": "端到端：agent + CLI 走完一个真实 pack",
+          "kind": "impl",
+          "status": "pending",
+          "owner": "default",
+          "doc": "【做什么】照装好的 skill 走一遍完整流程（在**临时复制的** pack 上做，不动原仓库）：\n`layers` 出 L1/L2/L3 → 按 `references/` 的四类动作改 → 重跑 `layers` 出前后对照 → 跑 T-005 一轮评测证明路由不退化。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "临时 pack 上有真实 diff（不是提案）；`layers` 前后对照表（L1 条目数、常驻字符、L2 超限数、L3 孤儿数）\n四个数都在；评测那轮的判官输出落文件且行数 == 题面数。"
+          ],
+          "artifacts": [],
+          "deps": [
+            "T-008#B-002",
+            "T-004#B-003"
+          ],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T14:04:13+08:00",
           "runs": []
         }
       ],
@@ -987,7 +1081,56 @@
       "kind": "block",
       "text": "新增块 T-004#B-003「L1 收敛：把入口层条目压到上限内」",
       "ref": "T-004#B-003"
+    },
+    {
+      "at": "2026-10-11T14:04:13+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-001#B-001: blocked → done（① 公开仓库 → flmaximwang/SkillWeave（已建+推送）。② 用户 2026-10-11 定：**做成 public skill —— 可被任意 agent 安装的 skill**，不是纯 CLI 仓库。原话：『T1B1 就做成 public skill 吧，做成可被任意 agent 安装的 skill，纯 cli 我觉得跑不完整个流程，例如文档拆分在缺少语言模型的辅助时不可能做』。）",
+      "ref": "T-001#B-001"
+    },
+    {
+      "at": "2026-10-11T14:04:13+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-007#B-003: blocked → done（定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。）",
+      "ref": "T-007#B-003"
+    },
+    {
+      "at": "2026-10-11T14:04:13+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "T-004#B-001 改了 做什么",
+      "ref": "T-004#B-001"
+    },
+    {
+      "at": "2026-10-11T14:04:13+08:00",
+      "actor": "agent",
+      "kind": "task",
+      "text": "新增任务 T-008「SkillWeave skill 本体（可被任意 agent 安装）」",
+      "ref": "T-008"
+    },
+    {
+      "at": "2026-10-11T14:04:13+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "新增块 T-008#B-001「skills/skillweave/SKILL.md：第一层薄入口」",
+      "ref": "T-008#B-001"
+    },
+    {
+      "at": "2026-10-11T14:04:13+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "新增块 T-008#B-002「references/：四类动作的做法（要语言模型的那几段）」",
+      "ref": "T-008#B-002"
+    },
+    {
+      "at": "2026-10-11T14:04:13+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "新增块 T-008#B-003「端到端：agent + CLI 走完一个真实 pack」",
+      "ref": "T-008#B-003"
     }
   ],
-  "rev": "84d982481d04"
+  "rev": "febd6c384dd6"
 }

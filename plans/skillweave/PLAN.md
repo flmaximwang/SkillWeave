@@ -2,15 +2,13 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 6/25 块（24%） · 状态 `active` · 更新于 2026-10-11 13:59
+**进度** 8/28 块（29%） · 状态 `active` · 更新于 2026-10-11 14:04
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
-- `T-001#B-001` **决策：本仓库的落点与远端** — 待批准 · @you
 - `T-002#B-004` **决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器** — 待批准 · @you
-- `T-007#B-003` **交付形态：纯 CLI 仓库，还是同时可安装的 skill** — 待批准 · @default
 - `T-002#B-002` **可重建、可 diff** — 已认领 · @default
 - `T-002#B-003` **节点摘要的来源可追溯** — 已认领 · @default
 - `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
@@ -18,6 +16,7 @@
 - `T-005#B-001` **判官输入生成器（候选只有 description）** — 已认领 · @default
 - `T-006#B-003` **第二个 pack 交叉验证（防过拟合）** — 已认领 · @default
 - `T-007#B-002` **本仓库自己的分层披露自检** — 已认领 · @default
+- `T-008#B-001` **skills/skillweave/SKILL.md：第一层薄入口** — 已认领 · @default
 
 ## 图
 
@@ -48,6 +47,9 @@ flowchart LR
   T-007_B-001["B-001 提交本仓库：README / docs / plans 一起进版本"]
   T-007_B-002["B-002 本仓库自己的分层披露自检"]
   T-007_B-003["B-003 交付形态：纯 CLI 仓库，还是同时可安装的 skill"]
+  T-008_B-001["B-001 skills/skillweave/SKILL.md：第一层薄入口"]
+  T-008_B-002["B-002 references/：四类动作的做法（要语言模型的那几段）"]
+  T-008_B-003["B-003 端到端：agent + CLI 走完一个真实 pack"]
   T-001_B-002 --> T-001_B-003
   T-002_B-001 --> T-002_B-002
   T-002_B-001 --> T-002_B-003
@@ -67,21 +69,24 @@ flowchart LR
   T-001_B-001 --> T-007_B-001
   T-002_B-001 --> T-007_B-002
   T-001_B-001 --> T-007_B-003
-  classDef blocked stroke-width:1px;
-  class T-001_B-001,T-002_B-004,T-007_B-003 blocked;
+  T-008_B-001 --> T-008_B-002
+  T-008_B-002 --> T-008_B-003
+  T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-003_B-001,T-007_B-001 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-003_B-001,T-007_B-001,T-007_B-003 done;
   classDef claimed stroke-width:1px;
-  class T-002_B-002,T-002_B-003,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002 claimed;
+  class T-002_B-002,T-002_B-003,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
+  classDef blocked stroke-width:1px;
+  class T-002_B-004 blocked;
   classDef waiting stroke-width:1px;
-  class T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-004_B-002,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002 waiting;
+  class T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-004_B-002,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-008_B-002,T-008_B-003 waiting;
 ```
 
 ## 任务
 
-### T-001 契约与形状：先把「文档树」与「层」定义死 — 待批准
+### T-001 契约与形状：先把「文档树」与「层」定义死 — 已完成
 @default
-- [ ] `T-001#B-001` **决策：本仓库的落点与远端** _decision_ — 待批准 @you
+- [x] `T-001#B-001` **决策：本仓库的落点与远端** _decision_ — 已完成 @you
     - 做什么：【问题】本仓库已在本地建成：`~/Repositories/Repo/SkillWeave`（`git init` 完成，**没有任何远端**，
 工作区只有 README.md / docs/prior-art.md / plans/）。要不要建 GitHub 远端，建的话叫什么、公开还是私有。
 
@@ -98,6 +103,7 @@ flowchart LR
 （Dream / Loomerto 都在用）。
     - 判据：答案以原话落进本块的 run；解锁的块被改成对应状态（推送 / 不推送）。
     - run 2026-10-11 13:59 default blocked→blocked ① 已答：公开仓库 → flmaximwang/SkillWeave（已建 + 推送）。② 交付形态未答，块保持待批准。
+    - run 2026-10-11 14:04 you blocked→done ① 公开仓库 → flmaximwang/SkillWeave（已建+推送）。② 用户 2026-10-11 定：**做成 public skill —— 可被任意 agent 安装的 skill**，不是纯 CLI 仓库。原话：『T1B1 就做成 public skill 吧，做成可被任意 agent 安装的 skill，纯 cli 我觉得跑不完整个流程，例如文档拆分在缺少语言模型的辅助时不可能做』。
 - [x] `T-001#B-002` **docs/contract.md：文档树节点 schema 与「层」的定义** _impl_ — 已完成 @default
     - 做什么：【做什么】写死两件事，之后所有脚本与报告都按它读：
 
@@ -224,12 +230,14 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 ### T-004 优化：按度量的结果改结构 — 进行中
 @default
 - [ ] `T-004#B-001` **四类动作的提案器（默认只出提案）** _impl_ — 已认领 @default
-    - 做什么：【做什么】读 T-003 的报告，出**可执行的提案**（默认 `--dry-run`，只打印 diff 与影响面，不落盘）：
-- 拆：超过体积上限的节点 → 下沉到 `references/`，原位留一行转指；
-- 分：fanout 超最优点的一层 → 归入类目目录（并给出新路径清单）；
-- 并：同层近重复 → 合并方案（保留哪个、折进哪个、正文哪几段是重复的）；
-- 改写：description 缺「何时用」或缺触发词 → 给出改写稿（改完必须能重跑 T-005 证明更好）。
-`--apply` 才落盘，且落盘前对每个被改文件留 `.orig` 备份。
+    - 做什么：【做什么】按 T-007#B-003 定的形态拆成两半（用户 2026-10-11）：
+- **CLI 侧（可机械化）**：四类动作里能量化的部分 —— 超限节点清单、机械切分（按标题切开一份 SKILL.md）、
+  新路径清单、重跑对照表。默认 `--dry-run` 只出提案，`--apply` 才落盘且先留 `.orig` 备份。
+- **skill 侧（需要语言模型）**：判断「哪几段该下沉 / 这个散技能该进哪个类目 / 这两条是不是近重复该合并 /
+  description 的触发词改成什么」—— 这些写成 `skills/skillweave/SKILL.md` + `references/` 里的做法，
+  由安装了这个 skill 的 agent 执行。CLI 不假装能做这些判断。
+
+四类动作：拆（下沉 references + 原位留转指）· 分（归入类目压低 L1 条目数）· 并（近重复合并）· 改写（触发词）。
     - 判据：在 AgentSkill-UsingHermes 上跑 `--dry-run`：输出的每条提案带 `文件:行` 与 diff 形状；
 `--apply` 在一个**临时复制的 pack**上真跑一次，`git diff --stat` 与提案条数一致（贴输出）。
 - [ ] `T-004#B-002` **改完自动重跑审计并出前后对照** _impl_ — 等前置 @default
@@ -308,7 +316,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 `SKILL.md` 薄入口 + `references/` 下沉 + 无孤儿文档 + 体积极限，超限 exit 1。
     - 判据：`python3 scripts/selfcheck.py`（或等价命令）在仓库根跑出 exit 0，并把输出贴进 run。
     - 依赖：T-002#B-001
-- [ ] `T-007#B-003` **交付形态：纯 CLI 仓库，还是同时可安装的 skill** _impl_ — 待批准 @default
+- [x] `T-007#B-003` **交付形态：纯 CLI 仓库，还是同时可安装的 skill** _impl_ — 已完成 @default
     - 做什么：【做什么】按 T-001#B-001 第 2 问的答案落地：
 - 只做 CLI：README 写清 `python3 scripts/weave.py ...` 的用法即可；
 - 同时做 skill：加 `skills/skillweave/SKILL.md`（第一层薄、细节下沉、`name` + `description` 合规），
@@ -316,16 +324,40 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 判据：按答案落地后，`ls` 与 `head -20` 的输出贴进 run；若做了 skill，`SKILL.md` 的 description ≤1024 字符
 且含「做什么 + 何时用」。
     - 依赖：T-001#B-001
+    - run 2026-10-11 14:04 you blocked→done 定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。
+
+### T-008 SkillWeave skill 本体（可被任意 agent 安装） — 进行中
+@default
+- [ ] `T-008#B-001` **skills/skillweave/SKILL.md：第一层薄入口** _impl_ — 已认领 @default
+    - 做什么：【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`
++ `references/`）。第一层只放：**什么时候用** · **输入是 pack（一整套含 SKILL.md 的文件夹树）不是单个
+SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py tree` / `weave.py layers`）·
+**四类动作里哪些由 agent 用语言模型做、哪些机械动作由 CLI 做** · 每步一行转指到 `references/`。
+安装不依赖任何 agent 框架（没有 profile / lock / 安装器专属步骤）。
+    - 判据：① `skills/skillweave/SKILL.md` 存在，frontmatter `name`+`description`（≤1024 字符，含触发词）；
+② 正文在上限内（行数/字节）且每份 `references/*.md` 都被正文点名（无孤儿）；
+③ 在本仓库根跑 `python3 scripts/weave.py layers .`：L1 条目数在上限内 ✅（自托管自检）；
+④ 一个没有装任何 Hermes 组件的 agent 只靠本仓库文件就能照做（判据：命令与路径要么是仓库内相对路径、
+要么是通用工具，出现任何 profile/lock 概念即不通过）。
+- [ ] `T-008#B-002` **references/：四类动作的做法（要语言模型的那几段）** _impl_ — 等前置 @default
+    - 做什么：【做什么】四份 `references/`，每份回答「怎么判断 + 改完跑哪条命令重测」：
+`references/split.md`（拆：按标题切分；哪些段落该下沉、哪些必须留在第一层；留什么样的转指行）·
+`references/group.md`（分：散技能归入类目的两轴判据；类目名怎么起）·
+`references/merge.md`（并：近重复的取证方式；保留哪个、折进哪个、正文哪几段是重复的）·
+`references/rewrite.md`（改写：`description` 前 57 字符窗口、触发词优先、排除条款位置、改完必须重跑评测）。
+    - 判据：四份文件都存在且各被 SKILL.md 点名一次；每份含「判据」段与「改完重跑」段（命令可复制执行）；
+不出现「照经验改改」这类不可核验的说法。
+    - 依赖：T-008#B-001
+- [ ] `T-008#B-003` **端到端：agent + CLI 走完一个真实 pack** _impl_ — 等前置 @default
+    - 做什么：【做什么】照装好的 skill 走一遍完整流程（在**临时复制的** pack 上做，不动原仓库）：
+`layers` 出 L1/L2/L3 → 按 `references/` 的四类动作改 → 重跑 `layers` 出前后对照 → 跑 T-005 一轮评测证明路由不退化。
+    - 判据：临时 pack 上有真实 diff（不是提案）；`layers` 前后对照表（L1 条目数、常驻字符、L2 超限数、L3 孤儿数）
+四个数都在；评测那轮的判官输出落文件且行数 == 题面数。
+    - 依赖：T-008#B-002
+    - 依赖：T-004#B-003
 
 ## 日志（近 20 条）
 
-- `2026-10-11 13:42` **agent** [block] 新增块 T-005#B-001「判官输入生成器（候选只有 description）」
-- `2026-10-11 13:42` **agent** [block] 新增块 T-005#B-002「打分器：逐题矩阵 + 分组 + 校正随机分」
-- `2026-10-11 13:42` **agent** [block] 新增块 T-005#B-003「在真实 pack 上跑一轮并留档」
-- `2026-10-11 13:42` **agent** [task] 新增任务 T-006「在真实 pack 上验收」
-- `2026-10-11 13:42` **agent** [block] 新增块 T-006#B-001「首个 subject：AgentSkill-UsingHermes 完整审计报告」
-- `2026-10-11 13:42` **agent** [block] 新增块 T-006#B-002「独立子代理复核（不许自己验自己）」
-- `2026-10-11 13:42` **agent** [block] 新增块 T-006#B-003「第二个 pack 交叉验证（防过拟合）」
 - `2026-10-11 13:42` **agent** [task] 新增任务 T-007「仓库与交付」
 - `2026-10-11 13:42` **agent** [block] 新增块 T-007#B-001「提交本仓库：README / docs / plans 一起进版本」
 - `2026-10-11 13:42` **agent** [block] 新增块 T-007#B-002「本仓库自己的分层披露自检」
@@ -339,6 +371,13 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 - `2026-10-11 13:59` **agent** [block] 新增块 T-001#B-004「先例实勘：同类公开项目能不能直接用」
 - `2026-10-11 13:59` **agent** [block] 新增块 T-002#B-004「决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器」
 - `2026-10-11 13:59` **agent** [block] 新增块 T-004#B-003「L1 收敛：把入口层条目压到上限内」
+- `2026-10-11 14:04` **agent** [status] T-001#B-001: blocked → done（① 公开仓库 → flmaximwang/SkillWeave（已建+推送）。② 用户 2026-10-11 定：**做成 public skill —— 可被任意 agent 安装的 skill**，不是纯 CLI 仓库。原话：『T1B1 就做成 public skill 吧，做成可被任意 agent 安装的 skill，纯 cli 我觉得跑不完整个流程，例如文档拆分在缺少语言模型的辅助时不可能做』。）
+- `2026-10-11 14:04` **agent** [status] T-007#B-003: blocked → done（定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。）
+- `2026-10-11 14:04` **agent** [block] T-004#B-001 改了 做什么
+- `2026-10-11 14:04` **agent** [task] 新增任务 T-008「SkillWeave skill 本体（可被任意 agent 安装）」
+- `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-001「skills/skillweave/SKILL.md：第一层薄入口」
+- `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-002「references/：四类动作的做法（要语言模型的那几段）」
+- `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-003「端到端：agent + CLI 走完一个真实 pack」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

@@ -7,8 +7,8 @@
    "y": 40,
    "width": 300,
    "height": 110,
-   "color": "1",
-   "text": "### T-001#B-001\n决策：本仓库的落点与远端\n\n`blocked` · @you\n\n【问题】本仓库已在本地建成：`~/Repositories/Repo/SkillWeave`（`git init` 完成，**没有任何远端**，\n工作区只有 README.md / docs/prior-art.md / plans/）。要不要建 GitHub 远端，建的话叫什么、公开还是私有。\n\n1. 远端怎么定？\n"
+   "color": "4",
+   "text": "### T-001#B-001\n决策：本仓库的落点与远端\n\n`done` · @you\n\n【问题】本仓库已在本地建成：`~/Repositories/Repo/SkillWeave`（`git init` 完成，**没有任何远端**，\n工作区只有 README.md / docs/prior-art.md / plans/）。要不要建 GitHub 远端，建的话叫什么、公开还是私有。\n\n1. 远端怎么定？\n"
   },
   {
    "id": "T-001#B-002",
@@ -138,7 +138,7 @@
    "width": 300,
    "height": 110,
    "color": "0",
-   "text": "### T-004#B-001\n四类动作的提案器（默认只出提案）\n\n`claimed` · @default\n\n【做什么】读 T-003 的报告，出**可执行的提案**（默认 `--dry-run`，只打印 diff 与影响面，不落盘）：\n- 拆：超过体积上限的节点 → 下沉到 `references/`，原位留一行转指；\n- 分：fanout 超最优点的一层 → 归入类目目录（并给出新路径清单）；\n- 并：同层近重复 → 合并"
+   "text": "### T-004#B-001\n四类动作的提案器（默认只出提案）\n\n`claimed` · @default\n\n【做什么】按 T-007#B-003 定的形态拆成两半（用户 2026-10-11）：\n- **CLI 侧（可机械化）**：四类动作里能量化的部分 —— 超限节点清单、机械切分（按标题切开一份 SKILL.md）、\n  新路径清单、重跑对照表。默认 `--dry-run` 只出提案，`--apply` 才落盘且先留 `"
   },
   {
    "id": "T-004#B-002",
@@ -247,8 +247,38 @@
    "y": 1080,
    "width": 300,
    "height": 110,
-   "color": "1",
-   "text": "### T-007#B-003\n交付形态：纯 CLI 仓库，还是同时可安装的 skill\n\n`blocked` · @default\n\n【做什么】按 T-001#B-001 第 2 问的答案落地：\n- 只做 CLI：README 写清 `python3 scripts/weave.py ...` 的用法即可；\n- 同时做 skill：加 `skills/skillweave/SKILL.md`（第一层薄、细节下沉、`name` + `descripti"
+   "color": "4",
+   "text": "### T-007#B-003\n交付形态：纯 CLI 仓库，还是同时可安装的 skill\n\n`done` · @default\n\n【做什么】按 T-001#B-001 第 2 问的答案落地：\n- 只做 CLI：README 写清 `python3 scripts/weave.py ...` 的用法即可；\n- 同时做 skill：加 `skills/skillweave/SKILL.md`（第一层薄、细节下沉、`name` + `descripti"
+  },
+  {
+   "id": "T-008#B-001",
+   "type": "text",
+   "x": 40,
+   "y": 950,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-008#B-001\nskills/skillweave/SKILL.md：第一层薄入口\n\n`claimed` · @default\n\n【做什么】本仓库作为 pack 装出来的那个 skill（agentskills.io 形态：`skills/skillweave/SKILL.md`\n+ `references/`）。第一层只放：**什么时候用** · **输入是 pack（一整套含 SKILL.md 的文件夹树）不是单个\nSKILL.md** · "
+  },
+  {
+   "id": "T-008#B-002",
+   "type": "text",
+   "x": 380,
+   "y": 1210,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-008#B-002\nreferences/：四类动作的做法（要语言模型的那几段）\n\n`waiting` · @default\n\n【做什么】四份 `references/`，每份回答「怎么判断 + 改完跑哪条命令重测」：\n`references/split.md`（拆：按标题切分；哪些段落该下沉、哪些必须留在第一层；留什么样的转指行）·\n`references/group.md`（分：散技能归入类目的两轴判据；类目名怎么起）·\n`referenc"
+  },
+  {
+   "id": "T-008#B-003",
+   "type": "text",
+   "x": 1400,
+   "y": 170,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-008#B-003\n端到端：agent + CLI 走完一个真实 pack\n\n`waiting` · @default\n\n【做什么】照装好的 skill 走一遍完整流程（在**临时复制的** pack 上做，不动原仓库）：\n`layers` 出 L1/L2/L3 → 按 `references/` 的四类动作改 → 重跑 `layers` 出前后对照 → 跑 T-005 一轮评测证明路由不退化。"
   }
  ],
  "edges": [
@@ -418,6 +448,33 @@
    "id": "e18",
    "fromNode": "T-001#B-001",
    "toNode": "T-007#B-003",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e19",
+   "fromNode": "T-008#B-001",
+   "toNode": "T-008#B-002",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e20",
+   "fromNode": "T-008#B-002",
+   "toNode": "T-008#B-003",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e21",
+   "fromNode": "T-004#B-003",
+   "toNode": "T-008#B-003",
    "fromSide": "right",
    "toSide": "left",
    "label": "",
