@@ -40,6 +40,11 @@
 | `skill-tools` 的检查清单 | 20 条 spec 检查里的：引用文件存在、token 预算、BOM、二进制内容、`name` 与目录名一致；10 条 lint 里的：**无硬编码路径**、**无内嵌密钥**、description 用具体动词、正文含示例 | 前两类是**安全/可移植闸**（真会拦下坏 skill），且都是纯文本规则 |
 | `claude-skills-cli` 的量化告警 | 正文里代码块数、章节数、长段落（>100 词）数、TODO 占位符数 | 这正是「该拆」的可量信号，直接服务 `references/split.md` 的判断 |
 
+**内化后的对拍（2026-10-11）**：在 `research-paper-writing` 上，我们报 **`code_blocks=56`** /
+`sections=89` / `long_paragraphs=1` / `todos=4`；`claude-skills-cli` 报 **56 个代码示例** / 133 sections /
+12 lengthy paragraphs / 有 TODO。**代码块数逐字命中（56 = 56）**；`sections` 与 `long_paragraphs` 不一致
+是口径差（它把更多行算作 section、把带内联代码的段落也算长段落）—— 差异已记在这里，不作为判据混用。
+
 ## 4. 不内化的部分（以及为什么）
 
 - **不硬依赖 Node/npm**：`npx` 每次要联网解析包、冷启 1.5–6.6 s；本仓库要能被任意 agent 装上就跑，
