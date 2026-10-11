@@ -71,6 +71,9 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 `TODO.md`（**照着做的待办清单**：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判；悬空按文件聚合成一行）。命令行自检「表行数 == 节点数」（每个文档恰好出现一次）。
 **根的数量 = 形状**：多入口 = K 个根（每个 skill 的 `SKILL.md`）；单入口 = 1 个根。
 
+**只准在副本上跑（硬规矩）**：任何 pack 的实测一律在 `prepare` 出的副本上做，**不许动真包**；
+用户明说「进入 production 模式」才可以在真包上落改动。更新 SkillWeave 本身 ≠ 在真包上跑 —— 两件事别混。
+
 **派发**：`weave.py dispatch <pack>` 划批（单位 = skill 子树，≤10 个/批）+ 事实补全 + 落 `dispatch/*.prompt.md`；
 **验收**：`weave.py verify <pack> --state dispatch/state.json --expect-fixed <id…>` —— 集合级对账 + 拆分守恒 +
 回归拦截 + 梯子记账，失败就整批回滚重派（不许用相同 prompt 重派）。

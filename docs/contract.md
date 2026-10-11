@@ -74,6 +74,9 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 
 ## 0.7 派发与验收（第三步的机械部分）
 
+**只读真包、只改副本**：所有实测在 `prepare` 出的副本上进行；真包上落改动需用户明说「进入 production 模式」。
+
+
 两个命令，产物落在 `<pack>/dispatch/`：
 
 - **`dispatch <pack> [--batch-size 10]`** —— 派发前**事实补全** + 划批 + 落 prompt + 计数起点。
