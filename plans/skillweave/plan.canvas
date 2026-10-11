@@ -87,8 +87,8 @@
    "y": 430,
    "width": 300,
    "height": 110,
-   "color": "1",
-   "text": "### T-002#B-005\n可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）\n\n`blocked` · @default\n\n【做什么】`weave.py tree <pack> --from-asa` —— 本机有 Node 时逐 skill 调\n`npx -y -p agent-skill-analysis asa <skill> --json`，用它的 `sha256`/`digest`/`license`/`readme` 补进节点；"
+   "color": "0",
+   "text": "### T-002#B-005\n可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）\n\n`cancelled` · @default\n\n【做什么】`weave.py tree <pack> --from-asa` —— 本机有 Node 时逐 skill 调\n`npx -y -p agent-skill-analysis asa <skill> --json`，用它的 `sha256`/`digest`/`license`/`readme` 补进节点；"
   },
   {
    "id": "T-003#B-001",

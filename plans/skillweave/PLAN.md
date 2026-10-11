@@ -2,13 +2,12 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 9/33 块（27%） · 状态 `active` · 更新于 2026-10-11 14:09
+**进度** 9/32 块（28%） · 状态 `active` · 更新于 2026-10-11 14:09
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
-- `T-002#B-005` **可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）** — 待批准 · @default
 - `T-002#B-002` **可重建、可 diff** — 已认领 · @default
 - `T-002#B-003` **节点摘要的来源可追溯** — 已认领 · @default
 - `T-003#B-006` **内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积** — 已认领 · @default
@@ -89,8 +88,8 @@ flowchart LR
   class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-004,T-003_B-001,T-007_B-001,T-007_B-003 done;
   classDef claimed stroke-width:1px;
   class T-002_B-002,T-002_B-003,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
-  classDef blocked stroke-width:1px;
-  class T-002_B-005 blocked;
+  classDef cancelled stroke-width:1px;
+  class T-002_B-005 cancelled;
   classDef waiting stroke-width:1px;
   class T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-004_B-002,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-008_B-002,T-008_B-003 waiting;
 ```
@@ -202,7 +201,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 若选 2，本块 done 并把「与 asa 的口径兼容靠 docs/contract.md §1 的字段名」写进 note。
     - 产物：`docs/compare-tools.md`
     - run 2026-10-11 14:07 you blocked→done 用户问「谁更准、谁更快、能否内化」。**实测对拍后定**（证据 docs/compare-tools.md）：① 结构数字三家一致（文件 56 / heading 89 / 行 1611 / token 差 <1%）→ 我的实现可信；② 准确性的差异都在语义判断上：asa 不误报示例路径但有真 broken 漏报（skill-tools 独立报出 scripts/reproduce_table1.sh、scripts/make_figure2.py 真缺失），我的引用抽取把示例路径也算进 broken（6 条里 4 条误报）、孤儿规则过严（44 条里绝大多数是 templates/*，只在 templates/README.md 被点名）；③ 效率：asa 冷 6.58s / 热 1.46s（单 skill），skill-tools 11.38s，claude-skills-cli 7.22s；SkillWeave 整个 pack 126 skill / 1941 节点 3.06s，纯 stdlib 离线。**内化方式 = 内化它们的知识与检查清单（无依赖），不引 Node/npm 硬依赖**；另留一个可选适配器 `--from-asa`。落地块见 T-003#B-006 ~ B-009。
-- [ ] `T-002#B-005` **可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）** _impl_ — 待批准 @default
+- [ ] `T-002#B-005` **可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）** _impl_ — 已取消 @default
     - 做什么：【做什么】`weave.py tree <pack> --from-asa` —— 本机有 Node 时逐 skill 调
 `npx -y -p agent-skill-analysis asa <skill> --json`，用它的 `sha256`/`digest`/`license`/`readme` 补进节点；
 没装 Node 就整段跳过并打印一行说明。**不是必须路径**：默认仍是纯 stdlib。
@@ -412,7 +411,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 13:59` **agent** [status] T-002#B-001: pending → done（weave.py tree：AgentSkill-UsingHermes 实测 skills=126 / nodes=1941；抽 5 条 ref 边逐条回正文对行号，5/5 命中）
 - `2026-10-11 13:59` **agent** [status] T-003#B-001: pending → done（layers 子命令（三级披露）：L1 入口层 skills/ 摆出 69 项 = 散技能 52 + 类目 17，常驻 21302 字符 ≈ 6694 token，❌ 超上限 20；research/ 17、autonomous-ai-agents/ 15、productivity/ 13。另跑 Dream（2 项 ✅）与 AgentSkill-SoftwareDev（30 项 ❌）交叉验证）
 - `2026-10-11 13:59` **agent** [status] T-007#B-001: pending → done（公开远端已建并推送（gh repo create flmaximwang/SkillWeave --public）；plans/skillweave 随仓库提交；origin/main == HEAD）
 - `2026-10-11 13:59` **agent** [block] 新增块 T-001#B-004「先例实勘：同类公开项目能不能直接用」
@@ -432,6 +430,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-009「修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」」
 - `2026-10-11 14:07` **agent** [block] 新增块 T-002#B-005「可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）」
 - `2026-10-11 14:09` **default** [decision] 用户 2026-10-11 补充需求（依赖政策）：不引外部依赖。原话「agent-skill-analysis 只是一个科研项目，还没有在社区中得到广泛的应用，后续的优化更新会受限，所以我倾向于不使用外部依赖，只是在其他项目效果更好时将其内化」。落成 docs/contract.md §6：不引 Node/npm/第三方 Python 包；内化 = 把规则/检查清单/字段口径/判断方法搬进来自己实现（纯 stdlib），并在 docs/compare-tools.md 记来源与实测对照；只在实测更好时内化那一条。据此撤销 T-002#B-005（--from-asa 适配器），对拍只作为一次性取数脚本。
+- `2026-10-11 14:09` **agent** [status] T-002#B-005: blocked → cancelled（按 docs/contract.md §6 撤销：不引外部依赖，不保留 --from-asa 适配器。将来要重新对拍，用一次性脚本取数即可（不进主路径）。）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
