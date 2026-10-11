@@ -37,15 +37,26 @@ python3 scripts/weave.py tree   <pack 目录> [--out DIR]
 # 三级披露：L1 菜单与常驻成本 + L2 正文规模 + L3 孤儿与悬空；出 layers.json + LAYERS.md
 python3 scripts/weave.py layers <pack 目录> [--out DIR]
 
+# 审计四段：体积 / 孤儿悬空 / 同层抢题 / 成本两组数；出 audit.json
+python3 scripts/weave.py audit  <pack 目录> [--out DIR]
+
+# 安全与可移植检查（引用/预算/BOM/二进制/name/硬编码路径/内嵌密钥），命中即 exit 1
+python3 scripts/weave.py checks <pack 目录> [--out DIR]
+
+# 四类动作的提案（拆/分/并/改写）：默认 dry-run 只出提案，--apply 才落盘
+python3 scripts/weave.py propose <pack 目录> [--out DIR]
+python3 scripts/weave.py propose <pack 目录> --out DIR --apply                 # 只执行「可机械」的那几条
+python3 scripts/weave.py propose <pack 目录> --out DIR --apply-group map.json  # 执行你给的归位映射（git mv）
+
 # 自检（自带 fixture，不碰真实数据）
 python3 scripts/weave.py --self-test
 ```
 
-实测（2026-10-11）：
+实测（2026-10-11 · UsingHermes 基准 `b8298f4`，详见 `reports/2026-10-11-usinghermes/report-usinghermes.md`）：
 
 ```
-AgentSkill-UsingHermes  L1 技能=126 入口层摆出 69 项（散 52 + 类目 17）常驻 21302 字符 ≈ 6694 token ❌超上限20
-                        L2 超限 17 个（最大 21427 tok / 747 行）  L3 文件 470 · 孤儿 239 · 悬空 301
+AgentSkill-UsingHermes  L1 技能=125 入口层摆出 68 项（散 51 + 类目 17）常驻 20864 字符 ≈ 6443 token ❌超上限20
+                        L2 超限 16（token 单口径 14；最大 21427 tok / 747 行）  L3 468 文件 / 6.86 MB · 孤儿 104 · 悬空 46
 Dream                   L1 技能=2   入口层 2 项 · 常驻 ≈268 token ✅              L3 悬空 15
 AgentSkill-SoftwareDev  L1 技能=30  入口层 30 项（无类目）· ≈900 token ❌超上限20  L2 超限 9 个
 ```

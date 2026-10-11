@@ -45,11 +45,14 @@ PACK=<要分析的 pack 目录>                      # 例：某个 skill 仓库
 python3 "$SW" tree   "$PACK" --out /tmp/sw     # 文档树：pack → 类目 → skill → 章节/文件
 python3 "$SW" layers "$PACK" --out /tmp/sw     # 三级披露：L1 菜单与常驻成本 + L2 规模 + L3 孤儿/悬空
 python3 "$SW" audit  "$PACK" --out /tmp/sw     # 审计四段：体积 / 孤儿悬空 / 同层抢题 / 成本两组数
-python3 "$SW" checks "$PACK" --out /tmp/sw     # 六条检查（含硬编码路径、内嵌密钥；命中退 1）
+python3 "$SW" checks "$PACK" --out /tmp/sw     # 七条检查（含硬编码路径、内嵌密钥；命中退 1）
+python3 "$SW" propose "$PACK" --out /tmp/sw    # 四类动作的提案：**默认 dry-run，不改盘**
+python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json   # 只执行机械那部分
 ```
 
-产物落在 `--out`：`tree.json` / `LAYERS.md` / `audit.json` / `checks.json`。**先跑 `checks`**：
-它命中的硬编码路径/密钥是安全与可移植问题，先解决再谈结构。
+产物落在 `--out`：`tree.json` / `LAYERS.md` / `audit.json` / `checks.json` / `proposals.json` + `PROPOSALS.md`。
+**先跑 `checks`**：它命中的硬编码路径/密钥是安全与可移植问题，先解决再谈结构。
+`propose` 每条提案带 `文件:行` + diff 形状 + 是否 `auto_applyable`；`needs_model=True` 的那些**必须你来判断**。
 
 ## 四类动作：谁做什么（**判断靠你，机械靠 CLI**）
 
