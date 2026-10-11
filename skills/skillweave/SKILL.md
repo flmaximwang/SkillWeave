@@ -23,8 +23,10 @@ license: MIT
 - **一个 skill pack = 一个仓库或目录，含 1 个或多个 skill。**
 - **输入 = 一整套含 `SKILL.md` 的文件夹树**（整个 pack 目录），不是单个 `SKILL.md`。
 - 契约是 [agentskills.io 规范](https://agentskills.io/specification)：`<skill 名>/SKILL.md` + 可选
-  `scripts/` `references/` `assets/`。工具**不依赖任何 agent 框架**（没有 profile / 安装器 / lock 概念）。
+  `scripts/` `references/` `assets/`。工具**不依赖任何 agent 框架**：输入只有目录与文件，不认识任何
+  agent 侧的目录约定、安装器或状态文件。
 - pack 在 git 仓库里时只算 **git 跟踪**文件；目录里的未跟踪垃圾会被单列、不混进任何度量。
+  刚新建还没提交的技能目录也会被算作未跟踪 —— 先提交再量。
 
 ## 三级披露（本 skill 的核心概念）
 
