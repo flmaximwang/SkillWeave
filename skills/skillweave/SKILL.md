@@ -71,6 +71,8 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 `TODO.md`（**照着做的待办清单**：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判；悬空按文件聚合成一行）。命令行自检「表行数 == 节点数」（每个文档恰好出现一次）。
 **根的数量 = 形状**：多入口 = K 个根（每个 skill 的 `SKILL.md`）；单入口 = 1 个根。
 
+**流程见仓库里的 `docs/flow.md`（9 步，唯一来源）**，本 skill 只写怎么做。
+
 **只准在副本上跑（硬规矩）**：任何 pack 的实测一律在 `prepare` 出的副本上做，**不许动真包**；
 用户明说「进入 production 模式」才可以在真包上落改动。更新 SkillWeave 本身 ≠ 在真包上跑 —— 两件事别混。
 
