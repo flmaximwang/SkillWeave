@@ -1,0 +1,3 @@
+[propose] --apply：执行 52 条机械动作 → 声明 106 个目录 · git 报出 411 个路径
+[propose] 逐条自检 ✓ 全部落地；集合对账 ✓ 无未声明变更、无声明未发生
+ 209 files changed, 4 insertions(+), 1251 deletions(-)

@@ -1,5 +1,8 @@
 # 三轮对照：同一批题面、同一批金标、只改结构
 
+**基准快照**：三轮都跑在 `AgentSkill-UsingHermes` 的 `432c1f1` 快照上（同一份 base，所以三轮可比）；
+本目录 `PROPOSER-ACCEPTANCE.md` 的数字跑在当前 HEAD `b8298f4` 上，两者不要混着引用。
+
 **口径**：14 道题面从 r1 到 r3 **逐字未动**；每题 2 个独立判官；候选只有各技能 `description` 的前 57 字符；
 三轮都用**同一份 r3 金标**打分（第 1/2 轮判官的 picks 按搬迁表 `prompts-r3.json:move` **机械映射**到新路径后打分，
 原件 `round1/judge-*.txt`、`round2/judge-*.txt` 一个字未改；归一化副本在 `round3/score/*-norm.txt`）。

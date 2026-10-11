@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T15:50:18+08:00",
+  "updated_at": "2026-10-11T16:07:44+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -632,7 +632,7 @@
           "id": "T-004#B-001",
           "title": "四类动作的提案器（默认只出提案）",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】按 T-007#B-003 定的形态拆成两半（用户 2026-10-11）：\n- **CLI 侧（可机械化）**：四类动作里能量化的部分 —— 超限节点清单、机械切分（按标题切开一份 SKILL.md）、\n  新路径清单、重跑对照表。默认 `--dry-run` 只出提案，`--apply` 才落盘且先留 `.orig` 备份。\n- **skill 侧（需要语言模型）**：判断「哪几段该下沉 / 这个散技能该进哪个类目 / 这两条是不是近重复该合并 /\n  description 的触发词改成什么」—— 这些写成 `skills/skillweave/SKILL.md` + `references/` 里的做法，\n  由安装了这个 skill 的 agent 执行。CLI 不假装能做这些判断。\n\n四类动作：拆（下沉 references + 原位留转指）· 分（归入类目压低 L1 条目数）· 并（近重复合并）· 改写（触发词）。",
           "input": "",
@@ -641,13 +641,23 @@
           "done_when": [
             "在 AgentSkill-UsingHermes 上跑 `--dry-run`：输出的每条提案带 `文件:行` 与 diff 形状；\n`--apply` 在一个**临时复制的 pack**上真跑一次，`git diff --stat` 与提案条数一致（贴输出）。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/PROPOSER-ACCEPTANCE.md"
+          ],
           "deps": [],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "status_since": "2026-10-11T16:07:44+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T16:07:44+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "提案器落地并验收：dry-run 出 27 条（split 14 / rewrite 11 / merge 1 / group 1），每条带 文件:行 + diff 形状 + 证据 JSON；只有 1 条 auto_applyable，其余 26 条标 needs_model=True。--apply + --apply-group 在临时副本上真落盘：执行 52 条机械动作、逐条自检 ✓、路径集合级对账 ✓（git diff --stat = 209 files changed）。合并方向规则改为「身份取被引用更多的一方、同名文件取 version 更高的一方」。改后 L1 68→24 项、常驻 6311→6298 token、悬空 46→46（新增 0）、孤儿 101→101。踩到并修掉三个真 bug：① 合并身份按 id 排序（尾斜杠让 tushare-data 排前面，方向反了）② git status --porcelain -z 里 rename 的旧路径字段没有状态前缀，被多切 3 字符 ③ 中文路径 NFD/NFC 差异导致对账全是假差异。另记：15:46 的快照被别的 agent 推进过（a2d79b6），我一度把一条既有悬空误记成归位造成的，重取同 HEAD 基线后确认新增悬空 0 —— 基准必须同 HEAD 取。"
+            }
+          ]
         },
         {
           "id": "T-004#B-002",
@@ -1727,7 +1737,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-004「决策：L1 从 24 项再压到 ≤20 的路线」",
       "ref": "T-004#B-004"
+    },
+    {
+      "at": "2026-10-11T16:07:44+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-004#B-001: pending → done（提案器落地并验收：dry-run 出 27 条（split 14 / rewrite 11 / merge 1 / group 1），每条带 文件:行 + diff 形状 + 证据 JSON；只有 1 条 auto_applyable，其余 26 条标 needs_model=True。--apply + --apply-group 在临时副本上真落盘：执行 52 条机械动作、逐条自检 ✓、路径集合级对账 ✓（git diff --stat = 209 files changed）。合并方向规则改为「身份取被引用更多的一方、同名文件取 version 更高的一方」。改后 L1 68→24 项、常驻 6311→6298 token、悬空 46→46（新增 0）、孤儿 101→101。踩到并修掉三个真 bug：① 合并身份按 id 排序（尾斜杠让 tushare-data 排前面，方向反了）② git status --porcelain -z 里 rename 的旧路径字段没有状态前缀，被多切 3 字符 ③ 中文路径 NFD/NFC 差异导致对账全是假差异。另记：15:46 的快照被别的 agent 推进过（a2d79b6），我一度把一条既有悬空误记成归位造成的，重取同 HEAD 基线后确认新增悬空 0 —— 基准必须同 HEAD 取。）",
+      "ref": "T-004#B-001"
     }
   ],
-  "rev": "756755970858"
+  "rev": "ec81cd5ce21c"
 }

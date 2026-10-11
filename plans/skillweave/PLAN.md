@@ -2,14 +2,13 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 28/33 块（85%） · 状态 `active` · 更新于 2026-10-11 15:50
+**进度** 29/33 块（88%） · 状态 `active` · 更新于 2026-10-11 16:07
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
 - `T-004#B-004` **决策：L1 从 24 项再压到 ≤20 的路线** — 待批准 · @you
-- `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
 - `T-006#B-001` **首个 subject：AgentSkill-UsingHermes 完整审计报告** — 已认领 · @default
 - `T-008#B-003` **端到端：agent + CLI 走完一个真实 pack** — 已认领 · @default
 
@@ -78,13 +77,13 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
-  classDef claimed stroke-width:1px;
-  class T-004_B-001,T-006_B-001,T-008_B-003 claimed;
   classDef blocked stroke-width:1px;
   class T-004_B-004 blocked;
+  classDef claimed stroke-width:1px;
+  class T-006_B-001,T-008_B-003 claimed;
   classDef waiting stroke-width:1px;
   class T-006_B-002 waiting;
 ```
@@ -297,9 +296,9 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 产物：`reports/2026-10-11-usinghermes/LAYERS.md`
     - run 2026-10-11 14:53 default pending→done 修完并实测：broken 301→45（剩 45 条抽 3 真查盘、都真不存在）、孤儿 239→106；单 skill research-paper-writing 6→0 / 44→0；新增 example 一类（267 条）与 URL 不误当路径；--self-test 加了 3 条断言全过
 
-### T-004 优化：按度量的结果改结构 — 进行中
+### T-004 优化：按度量的结果改结构 — 待批准
 @default
-- [ ] `T-004#B-001` **四类动作的提案器（默认只出提案）** _impl_ — 已认领 @default
+- [x] `T-004#B-001` **四类动作的提案器（默认只出提案）** _impl_ — 已完成 @default
     - 做什么：【做什么】按 T-007#B-003 定的形态拆成两半（用户 2026-10-11）：
 - **CLI 侧（可机械化）**：四类动作里能量化的部分 —— 超限节点清单、机械切分（按标题切开一份 SKILL.md）、
   新路径清单、重跑对照表。默认 `--dry-run` 只出提案，`--apply` 才落盘且先留 `.orig` 备份。
@@ -310,6 +309,8 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 四类动作：拆（下沉 references + 原位留转指）· 分（归入类目压低 L1 条目数）· 并（近重复合并）· 改写（触发词）。
     - 判据：在 AgentSkill-UsingHermes 上跑 `--dry-run`：输出的每条提案带 `文件:行` 与 diff 形状；
 `--apply` 在一个**临时复制的 pack**上真跑一次，`git diff --stat` 与提案条数一致（贴输出）。
+    - 产物：`reports/2026-10-11-usinghermes/PROPOSER-ACCEPTANCE.md`
+    - run 2026-10-11 16:07 default pending→done 提案器落地并验收：dry-run 出 27 条（split 14 / rewrite 11 / merge 1 / group 1），每条带 文件:行 + diff 形状 + 证据 JSON；只有 1 条 auto_applyable，其余 26 条标 needs_model=True。--apply + --apply-group 在临时副本上真落盘：执行 52 条机械动作、逐条自检 ✓、路径集合级对账 ✓（git diff --stat = 209 files changed）。合并方向规则改为「身份取被引用更多的一方、同名文件取 version 更高的一方」。改后 L1 68→24 项、常驻 6311→6298 token、悬空 46→46（新增 0）、孤儿 101→101。踩到并修掉三个真 bug：① 合并身份按 id 排序（尾斜杠让 tushare-data 排前面，方向反了）② git status --porcelain -z 里 rename 的旧路径字段没有状态前缀，被多切 3 字符 ③ 中文路径 NFD/NFC 差异导致对账全是假差异。另记：15:46 的快照被别的 agent 推进过（a2d79b6），我一度把一条既有悬空误记成归位造成的，重取同 HEAD 基线后确认新增悬空 0 —— 基准必须同 HEAD 取。
 - [x] `T-004#B-002` **改完自动重跑审计并出前后对照** _impl_ — 已完成 @default
     - 做什么：【做什么】`--apply` 之后自动重跑 T-003 全套，输出「前 → 后」对照表（fanout 分布、超限条数、
 孤儿数、近重复对数、常驻成本）。没有对照表 = 这次优化没有证据。
@@ -457,7 +458,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:14` **agent** [status] T-003#B-004: pending → done（同层近重复进 audit dup 段（difflib，同父目录两两）：1672 对里相似度>0.5 的 12 对。**实测抓到一对 1.00 的重复技能**：skills/research/tushare/ ↔ skills/research/tushare-data/ —— description 逐字相同、各 4 个文件、只有 name 不同，路由必然掷硬币；另有 boc-statement↔ccb-statement 0.81）
 - `2026-10-11 15:14` **agent** [status] T-003#B-005: pending → done（成本两组数进 audit cost 段：常驻 21302 字符≈6694 token；L2 全体 391700 tok（中位 2307）；L3 470 文件/5996139 B）
 - `2026-10-11 15:14` **agent** [status] T-002#B-003: pending → done（摘要来源可追溯：有 description 的取 frontmatter.description（并把该摘要回源文件 frontmatter 校验命中），无 description 的取正文首段首句带行号，都没有的写 null；audit/tree 产物里每条 summary_source 都可回源定位）
 - `2026-10-11 15:17` **agent** [status] T-008#B-001: pending → done（第一层薄入口写好并自托管验过：layers . → 入口层 skills/ 摆出 1 项（✅上限内）· 常驻 171 字符≈118 token；L2 skills/skillweave/ 1556tok/72 行（不超限）；L3 4 文件 0 孤儿 0 悬空；checks rc=0（无硬编码路径/密钥）；grep profile|lock|hermes|.hub 0 命中。自托管自检当场抓到「新建未提交的 skills/ 被 git 跟踪口径排除」这个真问题，已写进 SKILL.md）
@@ -477,6 +477,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 15:48` **default** [summary] T-004#B-003 执行记录（副本 /tmp/pack-fix2）：按 group.md 两轴判据把 52 个散技能全部归入类目（断言每个都有唯一落点，含 2 个最初漏掉的：dispatch-work-to-another-profile→hermes-ops、leave-and-rejoin-a-discord-thread→social-media）。L1 从 69 项（散 52+类目 17）→ **24 项（散 0+类目 24）**，常驻成本不变 6548 token（归入类目不增加菜单成本），悬空 45 不变、孤儿 103 不变。过程中修了我工具的两个真 bug：① 入口层判定（分组后会错抓成第一个类目）② 引用按 pack 根解析写死 ../.. 的深度假设（加一层类目就误报 3 条悬空）。24 项仍 >上限 20：再往下压需要合并现有类目或改成二级命名，属**分类学决策**，留给你拍板。
 - `2026-10-11 15:50` **agent** [status] T-004#B-003: pending → done（L1 收敛执行完并跑第 3 轮证明不退化：r3 与 r2 分组分完全一致（应触发 16/16、不应触发 4/4、近邻混淆 8/8，BoR 全 1.0），而 L1 从 69 项压到 24 项（散技能 52→0）。常驻成本保持 6548 token。三轮题面逐字未动、金标统一用 r3 打分（第 1/2 轮 picks 按 move 表机械映射，原件未改））
 - `2026-10-11 15:50` **agent** [block] 新增块 T-004#B-004「决策：L1 从 24 项再压到 ≤20 的路线」
+- `2026-10-11 16:07` **agent** [status] T-004#B-001: pending → done（提案器落地并验收：dry-run 出 27 条（split 14 / rewrite 11 / merge 1 / group 1），每条带 文件:行 + diff 形状 + 证据 JSON；只有 1 条 auto_applyable，其余 26 条标 needs_model=True。--apply + --apply-group 在临时副本上真落盘：执行 52 条机械动作、逐条自检 ✓、路径集合级对账 ✓（git diff --stat = 209 files changed）。合并方向规则改为「身份取被引用更多的一方、同名文件取 version 更高的一方」。改后 L1 68→24 项、常驻 6311→6298 token、悬空 46→46（新增 0）、孤儿 101→101。踩到并修掉三个真 bug：① 合并身份按 id 排序（尾斜杠让 tushare-data 排前面，方向反了）② git status --porcelain -z 里 rename 的旧路径字段没有状态前缀，被多切 3 字符 ③ 中文路径 NFD/NFC 差异导致对账全是假差异。另记：15:46 的快照被别的 agent 推进过（a2d79b6），我一度把一条既有悬空误记成归位造成的，重取同 HEAD 基线后确认新增悬空 0 —— 基准必须同 HEAD 取。）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

@@ -22,6 +22,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 
 FENCE = ("```", "~~~")
 PATH_RE = re.compile(
@@ -678,6 +679,231 @@ def cmd_audit(root, out, top=20):
     return 0
 
 
+def section_spans(body, body_start_line):
+    """按标题切出小节 → [(title, 起始行, 结束行, 字符数)]。拆分的机械部分用它。"""
+    hs = headings(body, body_start_line)
+    lines = body.split("\n")
+    out = []
+    for i, h in enumerate(hs):
+        end = hs[i + 1]["line"] - 1 if i + 1 < len(hs) else body_start_line + len(lines) - 1
+        chunk = "\n".join(lines[h["line"] - body_start_line:end - body_start_line + 1])
+        out.append((h["title"], h["line"], max(h["line"], end), len(chunk)))
+    return out
+
+
+def propose_actions(root, cap=20, merge_at=0.97, rewrite_at=0.5):
+    """四类动作的**提案**（不改盘）：拆 / 分 / 并 / 改写。每条带 `文件:行`、diff 形状、是否可机械执行。
+    需要语言模型的判断（哪段该下沉、进哪个类目、触发词怎么改）一律 `needs_model=True`，CLI 不假装能做。"""
+    skills = []
+    tree = walk_dir(root, root, "", tracked_set(root), [], skills)
+    if tree is None:
+        return [{"kind": "none", "needs_model": False, "auto_applyable": False,
+                 "evidence": {}, "where": root, "action": "这个目录里没有任何 skill", "diff_shape": [], "paths": []}]
+    sr = skills_root(tree)
+    l1 = [c for c in sr["children"] if c["kind"] in ("skill", "category")]
+    props = []
+
+    # —— 并（近重复）：description 近乎逐字相同 → 合并候选
+    by_parent = {}
+    for s in skills:
+        by_parent.setdefault(s["parent"], []).append(s)
+    for parent, group in by_parent.items():
+        for i in range(len(group)):
+            for j in range(i + 1, len(group)):
+                a, b = sorted([group[i], group[j]], key=lambda s: s["id"])
+                sim = difflib.SequenceMatcher(None, a["description"], b["description"]).ratio()
+                if sim < rewrite_at:
+                    continue
+                # 身份取谁？旧写法按 id 排序 —— 尾斜杠会让 `x-data/` 排在 `x/` 前，纯属偶然。
+                # 改成 merge.md 的口径：全 pack 正文引用它的次数多的留下；并列取更短的名字。
+                def refcount(sid):
+                    base = os.path.basename(sid.rstrip("/"))
+                    n = 0
+                    for dp, _, fs in os.walk(os.path.join(root, "skills")):
+                        for f in fs:
+                            if f != "SKILL.md" or sid.rstrip("/") in dp:
+                                continue
+                            try:
+                                n += read_text(os.path.join(dp, f)).count(base)
+                            except OSError:
+                                pass
+                    return n
+                ra, rb = refcount(a["id"]), refcount(b["id"])
+                keep = a if (ra, -len(a["id"])) >= (rb, -len(b["id"])) else b
+                drop = b if keep is a else a
+                a, b = keep, drop
+                fa = sorted(os.path.relpath(os.path.join(dp, f), root)
+                            for dp, _, fs in os.walk(os.path.join(root, a["id"].rstrip("/"))) for f in fs)
+                fb = sorted(os.path.relpath(os.path.join(dp, f), root)
+                            for dp, _, fs in os.walk(os.path.join(root, b["id"].rstrip("/"))) for f in fs)
+                names_a = [os.path.basename(x) for x in fa]
+                names_b = [os.path.basename(x) for x in fb]
+                same_names = names_a == names_b
+                ver_a = parse_frontmatter(read_text(os.path.join(root, a["id"].rstrip("/"), "SKILL.md")))[0].get("version")
+                ver_b = parse_frontmatter(read_text(os.path.join(root, b["id"].rstrip("/"), "SKILL.md")))[0].get("version")
+                # 机械合并规则：文件名集合一致 + 两边都有 version → 身份取被引用更多的一方、同名文件取 version 高的一方。
+                auto = bool(same_names and ver_a and ver_b and ver_a != ver_b and sim >= merge_at)
+                kind = "merge" if sim >= merge_at else "rewrite"
+                winner = b if (auto and ver_a and ver_b and ver_b > ver_a) else a
+                props.append({
+                    "kind": kind, "needs_model": not auto,
+                    "auto_applyable": bool(auto and kind == "merge"),
+                    "evidence": {"sim_desc": round(sim, 3), "layer": parent, "same_names": same_names,
+                                 "refcount": {a["id"]: ra, b["id"]: rb},
+                                 "version": {a["id"]: ver_a, b["id"]: ver_b},
+                                 "b_skill_sha256": sha256_file(os.path.join(root, b["id"].rstrip("/"), "SKILL.md")),
+                                 "mechanical_rule": "身份取被引用更多的一方（并列取更短名字）、正文取 version 更高的一方"
+                                 if auto else None},
+                    "where": f"{a['id']}SKILL.md:1 · {b['id']}SKILL.md:1",
+                    "action": (f"保留 {a['id']}（身份），正文取 {winner['id']}（version {ver_b if winner is b else ver_a}）；"
+                               f"删 {b['id']}" + ("（机械可执行）" if auto else "（要人先看两边正文差异）"))
+                    if kind == "merge" else
+                    f"改写触发词把两者分开（当前 sim_desc={sim:.2f}）：{a['id']} / {b['id']}",
+                    "diff_shape": ([f"- {b['id']}/ (删)", f"~ {a['id']}/SKILL.md (正文取较高 version)"]
+                                   if kind == "merge" else [f"~ {a['id']}SKILL.md:1", f"~ {b['id']}SKILL.md:1"]),
+                    "paths": [a["id"].rstrip("/") + "/", b["id"].rstrip("/") + "/"] if kind == "merge" else [],
+                })
+
+    # —— 分（归入类目压低 L1）：按词根聚类，只出建议不做决定
+    if len(l1) > cap:
+        loose = [c["id"].rstrip("/").split("/")[-1] for c in l1 if c["kind"] == "skill"]
+        buckets = {}
+        for n in loose:
+            for tok in (n.split("-")[0], n.split("-")[1] if n.count("-") >= 1 else ""):
+                if tok and sum(1 for m in loose if m.startswith(tok + "-")) >= 3:
+                    buckets.setdefault(tok + "-*", []).append(n)
+                    break
+        props.append({
+            "kind": "group", "needs_model": True, "auto_applyable": False,
+            "evidence": {"L1_items": len(l1), "cap": cap, "loose": len(loose),
+                         "token_buckets": {k: v for k, v in buckets.items()}},
+            "where": f"{sr['id']}（入口层）",
+            "action": f"入口层摆出 {len(l1)} 项 > 上限 {cap}：把散技能按用途归入类目（类目名要人拍板）",
+            "diff_shape": [f"~ git mv skills/{n} skills/<类目>/{n}" for n in loose[:6]] + (["…"] if len(loose) > 6 else []),
+            "paths": [],
+        })
+
+    # —— 拆（正文超限）：给出该下沉的小节与目标文件名
+    for s in skills:
+        if s["est_tokens"] <= 5000:
+            continue
+        body = read_text(os.path.join(root, s["id"] + "SKILL.md"))
+        meta, b, start = parse_frontmatter(body)
+        spans = sorted(section_spans(b, start), key=lambda x: -x[3])[:4]
+        props.append({
+            "kind": "split", "needs_model": True, "auto_applyable": False,
+            "evidence": {"est_tokens": s["est_tokens"], "lines": s["body_lines"],
+                         "sections_by_size": [{"title": t, "lines": f"{a}-{z}", "chars": c} for t, a, z, c in spans]},
+            "where": f"{s['id']}SKILL.md:{spans[0][1] if spans else 1}",
+            "action": f"{s['est_tokens']} token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+            "diff_shape": [f"~ {s['id']}SKILL.md:{a}-{z} ({t}) → + {s['id']}references/<slug>.md"
+                           for t, a, z, c in spans[:2]],
+            "paths": [],
+        })
+    return props
+
+
+def cmd_propose(root, out, apply_changes=False, group_map=None):
+    """默认 `--dry-run` 只出提案；`--apply` 执行 auto_applyable 的合并；`--apply-group <map.json>` 执行人给的归位映射。"""
+    os.makedirs(out, exist_ok=True)
+    props = propose_actions(root)
+    with open(os.path.join(out, "proposals.json"), "w", encoding="utf-8") as f:
+        json.dump({"pack": os.path.basename(root), "count": len(props), "proposals": props},
+                  f, ensure_ascii=False, indent=2, sort_keys=True)
+    lines = [f"# 提案：{os.path.basename(root)}", "",
+             f"共 {len(props)} 条；其中可机械执行 {sum(1 for p in props if p['auto_applyable'])} 条、"
+             f"需语言模型判断 {sum(1 for p in props if p['needs_model'])} 条。", ""]
+    for i, p in enumerate(props, 1):
+        lines += [f"## {i}. [{p['kind']}] {p['where']}",
+                  f"- 判断：{p['action']}",
+                  f"- 证据：`{json.dumps(p['evidence'], ensure_ascii=False)}`",
+                  f"- diff 形状：" + " ；".join(f"`{d}`" for d in p["diff_shape"]),
+                  f"- 可机械执行：{'是' if p['auto_applyable'] else '否（要模型判断）'}", ""]
+    with open(os.path.join(out, "PROPOSALS.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    for p in props:
+        print(f"[propose] {p['kind']:<8} {p['where']:<58} auto={str(p['auto_applyable']):<5} | {p['action'][:64]}")
+    print(f"[propose] 出: {os.path.join(out, 'proposals.json')} / PROPOSALS.md")
+
+    if not apply_changes and not group_map:
+        print("[propose] dry-run：盘上未改任何文件（加 --apply / --apply-group 才落盘）")
+        return 0
+
+    touched, applied, oks = set(), 0, []
+    for p in props:
+        if not p["auto_applyable"]:
+            continue
+        a, b = [x.rstrip("/") for x in p["paths"]]
+        # ① 同名文件：非 SKILL.md 的用 b 覆盖 a；② SKILL.md 只取 b 的**正文**，frontmatter 保持 a 的身份
+        _, body_b, _ = parse_frontmatter(read_text(os.path.join(root, b, "SKILL.md")))
+        meta_a, _, _ = parse_frontmatter(read_text(os.path.join(root, a, "SKILL.md")))
+        for dp, _, fs in os.walk(os.path.join(root, b)):
+            for f in fs:
+                rel = os.path.relpath(os.path.join(dp, f), os.path.join(root, b))
+                if rel == "SKILL.md":
+                    continue
+                src_f = os.path.join(dp, f)
+                dst = os.path.join(root, a, rel)
+                if os.path.exists(dst) and sha256_file(dst) == sha256_file(src_f):
+                    continue                       # 内容相同 → 不复制、也不声明（否则对账会报「声明了却没变更」）
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src_f, dst)
+                touched.add(f"{a}/{rel}")
+        front = read_text(os.path.join(root, a, "SKILL.md")).split("---", 2)
+        vers = [v for v in (p["evidence"].get("version") or {}).values() if v]
+        ver_w = max(vers) if vers else None
+        head = front[1]
+        if ver_w:
+            head = re.sub(r"(?m)^version:.*$", f"version: {ver_w}", head)     # version 跟胜方走
+        open(os.path.join(root, a, "SKILL.md"), "w", encoding="utf-8").write("---" + head + "---" + body_b)
+        touched |= {f"{a}/", f"{b}/"}
+        subprocess.run(["git", "-C", root, "rm", "-r", "-q", b], capture_output=True)
+        if os.path.isdir(os.path.join(root, b)):
+            shutil.rmtree(os.path.join(root, b))
+        ok = not os.path.isdir(os.path.join(root, b))          # 验证：b 真没了
+        oks.append((p["kind"], ok))
+        applied += 1
+    if group_map:
+        mapping = json.load(open(group_map, encoding="utf-8"))
+        for old, new in sorted(mapping.items()):
+            src = os.path.join(root, old)
+            if not os.path.isdir(src):
+                print(f"[propose] 跳过（不存在）: {old}")
+                continue
+            os.makedirs(os.path.dirname(os.path.join(root, new)), exist_ok=True)
+            subprocess.run(["git", "-C", root, "mv", old, new], capture_output=True)
+            if os.path.isdir(src):
+                shutil.move(src, os.path.join(root, new))
+            ok = os.path.isdir(os.path.join(root, new)) and not os.path.isdir(src)
+            oks.append(("group:" + os.path.basename(old), ok))
+            touched |= {old.rstrip("/") + "/", new.rstrip("/") + "/"}
+            applied += 1
+    # 路径集合级对账：git 报出来的每个路径都必须落在我声明过的目录里（反之亦然）。
+    # 注意 macOS 上中文文件名可能是 NFD，git 索引里是 NFC —— 两边都归一化再比，否则全是假差异。
+    nfc = lambda s: unicodedata.normalize("NFC", s)
+    raw = subprocess.run(["git", "-C", root, "status", "--porcelain", "-z"], capture_output=True, text=True).stdout
+    fields = [x for x in raw.split("\0") if x]
+    actual, i = set(), 0
+    while i < len(fields):
+        st, path = fields[i][:2], fields[i][3:]
+        actual.add(nfc(path))
+        if st[0] in "RC" and i + 1 < len(fields):      # rename/copy：下一个字段是旧路径，**没**有状态前缀
+            actual.add(nfc(fields[i + 1]))
+            i += 1
+        i += 1
+    declared_prefix = tuple(nfc(t) for t in touched)
+    extra = sorted(a for a in actual if not a.startswith(declared_prefix))
+    missing = sorted(t for t in declared_prefix if not any(a.startswith(t) for a in actual))
+    bad = [k for k, ok in oks if not ok] + extra + missing
+    print(f"[propose] --apply：执行 {applied} 条机械动作 → 声明 {len(touched)} 个目录 · git 报出 {len(actual)} 个路径")
+    print(f"[propose] 逐条自检 {'✓ 全部落地' if not oks or all(ok for _, ok in oks) else '✗ 失败 '}"
+          f"；集合对账 {'✓ 无未声明变更、无声明未发生' if not extra and not missing else '✗ 差异 ' + str((extra + missing)[:5])}")
+    print("[propose] git diff --stat（原始输出）：")
+    print(subprocess.run(["git", "-C", root, "diff", "--stat", "-M", "HEAD"],
+                         capture_output=True, text=True).stdout.rstrip())
+    return 0 if not bad else 1
+
+
 def cmd_judge(root, prompts_path, out, trunc=57):
     """生成**一个纯文本判官输入**（候选只有 description 截断窗口）+ 独立的金标文件 + 任务书。
     判官只读 judge-input.txt；金标永远不进它。"""
@@ -761,10 +987,13 @@ def cmd_score(key_path, judge_paths, out):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
-    ap.add_argument("cmd", nargs="?", choices=["tree", "layers", "checks", "audit", "judge", "score"])
+    ap.add_argument("cmd", nargs="?",
+                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score"])
     ap.add_argument("--prompts", default=None)
     ap.add_argument("--key", default=None)
     ap.add_argument("--judge", nargs="*", default=[])
+    ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--apply-group", default=None)
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -787,6 +1016,10 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
         return cmd_audit(root, out)
+    if a.cmd == "propose":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        return cmd_propose(root, out, apply_changes=a.apply, group_map=a.apply_group)
     if a.cmd == "judge":
         root = os.path.abspath((a.pack or ".").rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
