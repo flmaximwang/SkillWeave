@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T22:17:51+08:00",
+  "updated_at": "2026-10-11T22:30:54+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -773,6 +773,27 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-11T22:17:34+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-006",
+          "title": "可选项：单入口形状（L1=1 入口 / L2=13 岛 / L3=39 篇）—— weave.py collapse",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "用户澄清：他说的分层是 **L2 = 13 个岛、L1 = 1 个入口**（我上一轮做成 L1=13 项，方向对但层级错位）。要求把这个形状做成 SkillWeave 的**可选项**。\n\n已做（weave.py 新子命令 collapse，默认 dry-run）：\n- dry-run 出 COLLAPSE.md：两层的账（现在 vs 单入口）+ 伞体草稿 + 要跑的 git mv 清单 + 每个岛的 INDEX.md 内容；\n- --apply 真塌：原 skill 目录整棵搬进 skills/<伞>/references/<岛>/<skill>/（内部相对引用不破），生成伞体 SKILL.md 与 13 份 INDEX.md；\n- 落盘后**回读自检**：技能数必须 = 1 且入口层必须 = 1，否则退 1；\n- 没 --description 时 --apply 直接退 2：那一条 description 是唯一的常驻触发词、是判断题，工具不许代笔。\n\n在 UsingHermes 的**副本**上实测（--entry-dir using-hermes）：\n常驻 3,310 → 58 tok（39 条 → 1 条）· 第一次点击 13 → 1 项 · 第二次点击 13 项（伞体 556 tok）·\n第三次点击 39 项（13 份 INDEX.md 合计 4,344 tok，均值 334）· L3 文件 149 → 162 · **独立可装 39 → 1**。\n两条口径陷阱写进契约 §7：① 单入口下孤儿/悬空归零（26/25 → 0/0）是**构造性假象**（伞体按目录点名了每个\nreferences/<岛>/，目录级点名全覆盖），指标失去分辨力，不是问题被修好；② 岛数依互指口径（11/10/13）。\nself-test 加三条断言（干跑算出 L1=1 / 缺 description 拒绝 / 真塌后回读通过）。\n真包未动：要不要在 UsingHermes 上真塌，等用户一句话。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "干跑给出两层账与可执行清单；--apply 回读技能=1 且入口层=1；缺 description 拒绝；self-test 全过"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T22:30:54+08:00",
           "runs": []
         }
       ],
@@ -1999,7 +2020,14 @@
       "kind": "status",
       "text": "T-008#B-005: done → done（done_when 已更新）",
       "ref": "T-008#B-005"
+    },
+    {
+      "at": "2026-10-11T22:30:54+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-006「可选项：单入口形状（L1=1 入口 / L2=13 岛 / L3=39 篇）—— weave.py collapse」",
+      "ref": "T-004#B-006"
     }
   ],
-  "rev": "edb674ea1880"
+  "rev": "4558dae639cd"
 }

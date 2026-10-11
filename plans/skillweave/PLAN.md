@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 37/37 块（100%） · 状态 `active` · 更新于 2026-10-11 22:17
+**进度** 38/38 块（100%） · 状态 `active` · 更新于 2026-10-11 22:30
 
 **参与方** 本人(human)
 
@@ -37,6 +37,7 @@ flowchart LR
   T-004_B-003["B-003 L1 收敛：把入口层条目压到上限内"]
   T-004_B-004["B-004 决策：L1 从 24 项再压到 ≤20 的路线"]
   T-004_B-005["B-005 L1 按互指岛的 13 个岛重排（入口层 28→13）+ 文档树可视化落进 UsingHermes 仓库"]
+  T-004_B-006["B-006 可选项：单入口形状（L1=1 入口 / L2=13 岛 / L3=39 篇）—— weave.py collapse"]
   T-005_B-001["B-001 判官输入生成器（候选只有 description）"]
   T-005_B-002["B-002 打分器：逐题矩阵 + 分组 + 校正随机分"]
   T-005_B-003["B-003 在真实 pack 上跑一轮并留档"]
@@ -79,7 +80,7 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-004_B-004,T-004_B-005,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005,T-008_B-006 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-004_B-004,T-004_B-005,T-004_B-006,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005,T-008_B-006 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
 ```
@@ -338,6 +339,23 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 - [x] `T-004#B-005` **L1 按互指岛的 13 个岛重排（入口层 28→13）+ 文档树可视化落进 UsingHermes 仓库** _impl_ — 已完成 @default
     - 做什么：在 UsingHermes 上执行（worktree skillweave/l1-islands，基于 0de1ca9）：34 个 skill 用 git mv 重排，清掉搬空的 autonomous-ai-agents/ 与 productivity/；39 个 skill 数不变、常驻 description 一字未改 = 3,310 tok 不变、L2 超限 0 不变、孤儿 26 不变、悬空 25 不变（悬空集合与改前逐条相同，只是路径前缀变了）。同时给 weave.py 加 visualize 子命令，产出 TREE.md（三级披露文本版）+ TREE.html（自包含离线 SVG：L1 菜单 → L2 正文 → L3 文件，互指岛画成圆环 + 弦、节点带编号 + 框内图例），两份落在 pack 根并由 README 指路。验证：self-test 全过（含新增两条可视化断言）；TREE.html 数据层核对 39 个节点 / 99 条边 / TREE.md 39 行，与 layers 同口径（入口层 13、常驻 3,310）；headless Chrome 截图后逐条目视（标题与卡片重叠、长名叠字已修）。落地：主 clone 以 --ff-only 合并并推送 origin/main = 980c79e；worktree 已 remove、分支已删、工作区 0 项。代价（已如实告知）：39 个 skill 的 install 标识符多了一层类目段（skills/<类别>/<name>），外部书签/文档会失效；同层近重复配对数 8 → 1 是**量测效应**（配对只在同层内比，跨类目的那几对被切开后不再可见），语义重复仍在。
     - 判据：入口层 ≤ 20 且常驻/孤儿/悬空不涨；TREE.md + TREE.html 落进 UsingHermes 并目视验过；worktree 已合并清理
+- [x] `T-004#B-006` **可选项：单入口形状（L1=1 入口 / L2=13 岛 / L3=39 篇）—— weave.py collapse** _impl_ — 已完成 @default
+    - 做什么：用户澄清：他说的分层是 **L2 = 13 个岛、L1 = 1 个入口**（我上一轮做成 L1=13 项，方向对但层级错位）。要求把这个形状做成 SkillWeave 的**可选项**。
+
+已做（weave.py 新子命令 collapse，默认 dry-run）：
+- dry-run 出 COLLAPSE.md：两层的账（现在 vs 单入口）+ 伞体草稿 + 要跑的 git mv 清单 + 每个岛的 INDEX.md 内容；
+- --apply 真塌：原 skill 目录整棵搬进 skills/<伞>/references/<岛>/<skill>/（内部相对引用不破），生成伞体 SKILL.md 与 13 份 INDEX.md；
+- 落盘后**回读自检**：技能数必须 = 1 且入口层必须 = 1，否则退 1；
+- 没 --description 时 --apply 直接退 2：那一条 description 是唯一的常驻触发词、是判断题，工具不许代笔。
+
+在 UsingHermes 的**副本**上实测（--entry-dir using-hermes）：
+常驻 3,310 → 58 tok（39 条 → 1 条）· 第一次点击 13 → 1 项 · 第二次点击 13 项（伞体 556 tok）·
+第三次点击 39 项（13 份 INDEX.md 合计 4,344 tok，均值 334）· L3 文件 149 → 162 · **独立可装 39 → 1**。
+两条口径陷阱写进契约 §7：① 单入口下孤儿/悬空归零（26/25 → 0/0）是**构造性假象**（伞体按目录点名了每个
+references/<岛>/，目录级点名全覆盖），指标失去分辨力，不是问题被修好；② 岛数依互指口径（11/10/13）。
+self-test 加三条断言（干跑算出 L1=1 / 缺 description 拒绝 / 真塌后回读通过）。
+真包未动：要不要在 UsingHermes 上真塌，等用户一句话。
+    - 判据：干跑给出两层账与可执行清单；--apply 回读技能=1 且入口层=1；缺 description 拒绝；self-test 全过
 
 ### T-005 路由评测：框架无关、可校正随机 — 已完成
 @default
@@ -504,7 +522,6 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:36` **default** [summary] T-004 第一刀（在副本 /tmp/pack-fix 上）：按 merge.md 取证后判定 tushare / tushare-data 为**真重复**（description 逐字同、references/数据接口.md 逐字节同、脚本同名微差、正文只差 slug 与 version 1.1.12/1.1.16），决定保留名字 tushare、取 1.1.16 的内容、删 tushare-data。改后实测：技能 126→125 · dup top 从 1.00 变 0.81（该对消失）·相似度>0.5 的对 12→11 · 常驻 6694→6548 token · 孤儿 106→103 · 悬空不变 45。第 2 轮评测已按冻结题面重生成判官输入（125 候选，tushare-data 已不在候选表），P10 的语义标注随结构更正（题面一字未动）；T-004#B-001（CLI 提案器）仍未做 —— 这一次是照 skill 的做法手工执行的，别把两者混起来记。
 - `2026-10-11 15:38` **agent** [status] T-004#B-002: pending → done（改完重跑出前后对照（同题面同金标）：should_trigger 0.938→1.0 · near_confusion 0.75→1.0 · should_not_trigger 1.0→1.0（BoR 0.937/0.748→全 1.0）；结构侧 dup top 1.00→0.81、常驻 6694→6548 token、技能 126→125。第 1 轮那 3 处错误全部落在被修的那一对上，改后零错误且无退化）
 - `2026-10-11 15:48` **default** [summary] T-004#B-003 执行记录（副本 /tmp/pack-fix2）：按 group.md 两轴判据把 52 个散技能全部归入类目（断言每个都有唯一落点，含 2 个最初漏掉的：dispatch-work-to-another-profile→hermes-ops、leave-and-rejoin-a-discord-thread→social-media）。L1 从 69 项（散 52+类目 17）→ **24 项（散 0+类目 24）**，常驻成本不变 6548 token（归入类目不增加菜单成本），悬空 45 不变、孤儿 103 不变。过程中修了我工具的两个真 bug：① 入口层判定（分组后会错抓成第一个类目）② 引用按 pack 根解析写死 ../.. 的深度假设（加一层类目就误报 3 条悬空）。24 项仍 >上限 20：再往下压需要合并现有类目或改成二级命名，属**分类学决策**，留给你拍板。
 - `2026-10-11 15:50` **agent** [status] T-004#B-003: pending → done（L1 收敛执行完并跑第 3 轮证明不退化：r3 与 r2 分组分完全一致（应触发 16/16、不应触发 4/4、近邻混淆 8/8，BoR 全 1.0），而 L1 从 69 项压到 24 项（散技能 52→0）。常驻成本保持 6548 token。三轮题面逐字未动、金标统一用 r3 打分（第 1/2 轮 picks 按 move 表机械映射，原件未改））
@@ -524,6 +541,7 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 - `2026-10-11 22:17` **agent** [status] T-004#B-004: blocked → done（决策（用户 2026-10-11 拍板）：L1 就定为互指图的 13 个岛，不再往 20 上削。依据：① 互指图（谁在正文/引用里点到谁的目录名）忽略方向后得 13 个连通分量 = 21/4/3/2 + 九个 1；② description 词面两两 Jaccard 最高只有 0.12 —— 词面数据完全不支持任何「该分几组」的结论，分组只能靠关系或靠人；③ 岛数对口径敏感（只看 SKILL.md 的 name 互指 → 11；再加引用边 → 10；扫全文件按目录名 → 13），所以口径写进 contract §3，报数必须连口径一起报。落法：4 个多成员岛 → 类目目录（hermes-ops / housekeeping / extensions-and-source / authoring-and-discovery），9 个单成员岛 → 留作散项，入口层 = 4 + 9 = 13 项（≤20，❌ 旗标消失）。20 本身在 contract §4 定为**参考线不是硬闸**（出处是 Dream 的常量，不是规范）。）
 - `2026-10-11 22:17` **default** [block] 新增块 T-004#B-005「L1 按互指岛的 13 个岛重排（入口层 28→13）+ 文档树可视化落进 UsingHermes 仓库」
 - `2026-10-11 22:17` **agent** [status] T-008#B-005: done → done（done_when 已更新）
+- `2026-10-11 22:30` **default** [block] 新增块 T-004#B-006「可选项：单入口形状（L1=1 入口 / L2=13 岛 / L3=39 篇）—— weave.py collapse」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
