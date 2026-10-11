@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T15:18:12+08:00",
+  "updated_at": "2026-10-11T15:28:30+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -710,7 +710,7 @@
           "id": "T-005#B-001",
           "title": "判官输入生成器（候选只有 description）",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】输入 pack + 一份冻结的题面集 → 输出**一个纯文本文件** `judge-input.txt`：\n候选表（每行 `路径 | description 截断窗口`）+ 题面（编号）。任何 agent / 人都能拿它跑判官。\n同时输出 `judge-key.json`（每题的金标：归属节点 + 题型），**不进判官输入**。\n三类题：① 大池检索（该选谁）② 近邻混淆（两个相似节点里选对的）③ 诱饵（不该选任何一个）。",
           "input": "",
@@ -719,19 +719,29 @@
           "done_when": [
             "生成器在 AgentSkill-UsingHermes 上跑出两个文件；`judge-input.txt` 里不含金标字段\n（`grep` 验证）；候选条数 == 该 pack 节点数（实测数字）。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/round1/judge-input.txt"
+          ],
           "deps": [],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "status_since": "2026-10-11T15:28:29+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T15:28:29+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "judge 子命令：候选=126 个技能 description 前 57 字符；题面 14 条（冻结在 prompts-r1.json）；金标单独落 judge-key.json，自检断言 gold 字段/金标行不泄进判官输入（grep 0 命中）；金标全部在候选表内已验证"
+            }
+          ]
         },
         {
           "id": "T-005#B-002",
           "title": "打分器：逐题矩阵 + 分组 + 校正随机分",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】吃「判官输出 + 金标」出逐题矩阵，按三类题分组给分；并给**校正随机**分\n（Meta 的 BoR 口径：在该层 fanout 下，比随机选好多少），因为 fanout=30 的一层和 fanout=5 的一层\n的裸成功率不可直接比。",
           "input": "",
@@ -740,21 +750,31 @@
           "done_when": [
             "用 T-005#B-003 的真实判官输出打一遍分：逐题矩阵 + 三组分数 + 校正随机分都在报告里；\n口径（随机基线怎么算）写清。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "scripts/weave.py"
+          ],
           "deps": [
             "T-005#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "status_since": "2026-10-11T15:28:30+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T15:28:30+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "score 子命令：逐题矩阵（P<n>/kind/gold/picks/✓✗）+ 按题型分组（should_trigger / should_not_trigger / near_confusion）+ 校正随机分 BoR=(acc-1/N)/(1-1/N)；假判官回放验证过（自检里也留了一条 judge→score 往返断言）"
+            }
+          ]
         },
         {
           "id": "T-005#B-003",
           "title": "在真实 pack 上跑一轮并留档",
           "kind": "impl",
-          "status": "pending",
+          "status": "running",
           "owner": "default",
           "doc": "【做什么】用 `delegate_task` 发独立判官（不共享上下文），跑 AgentSkill-UsingHermes 一轮；\n判官输出落文件（批次摘要会截断长输出，必须落盘）。判官输出是**原件**，事后一个字都不改。",
           "input": "",
@@ -769,9 +789,24 @@
           ],
           "review_of": "",
           "feedback": "",
-          "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "exec": {
+            "by": "default",
+            "started": "2026-10-11T15:28:30+08:00",
+            "delegation": "deleg_8d657a16",
+            "task_index": 0,
+            "transcript": "/Users/maxim/.hermes/cache/delegation/live/deleg_8d657a16/task-0.log",
+            "note": "已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改"
+          },
+          "status_since": "2026-10-11T15:28:30+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T15:28:30+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "running",
+              "note": "已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改"
+            }
+          ]
         }
       ],
       "note": "",
@@ -1546,7 +1581,35 @@
       "kind": "status",
       "text": "T-008#B-001: done → done（更正上一条 run：当时写「grep profile|lock|hermes 0 命中」是错的 —— references/group.md 里有 2 处把某 skill 名当反面例子（含框架名）。已改成中性例子并重跑：grep 0 命中，checks rc=0。判据本身不变）",
       "ref": "T-008#B-001"
+    },
+    {
+      "at": "2026-10-11T15:28:29+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-005#B-001: pending → done（judge 子命令：候选=126 个技能 description 前 57 字符；题面 14 条（冻结在 prompts-r1.json）；金标单独落 judge-key.json，自检断言 gold 字段/金标行不泄进判官输入（grep 0 命中）；金标全部在候选表内已验证）",
+      "ref": "T-005#B-001"
+    },
+    {
+      "at": "2026-10-11T15:28:30+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-005#B-002: pending → done（score 子命令：逐题矩阵（P<n>/kind/gold/picks/✓✗）+ 按题型分组（should_trigger / should_not_trigger / near_confusion）+ 校正随机分 BoR=(acc-1/N)/(1-1/N)；假判官回放验证过（自检里也留了一条 judge→score 往返断言））",
+      "ref": "T-005#B-002"
+    },
+    {
+      "at": "2026-10-11T15:28:30+08:00",
+      "actor": "agent",
+      "kind": "exec",
+      "text": "T-005#B-003: 登记线程 deleg_8d657a16#0 @default · 转录 /Users/maxim/.hermes/cache/delegation/live/deleg_8d657a16/task-0.log（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）",
+      "ref": "T-005#B-003"
+    },
+    {
+      "at": "2026-10-11T15:28:30+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-005#B-003: pending → running（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）",
+      "ref": "T-005#B-003"
     }
   ],
-  "rev": "2ea7bf488e32"
+  "rev": "5cb44d2cb11b"
 }

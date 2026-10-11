@@ -2,15 +2,15 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 22/32 块（69%） · 状态 `active` · 更新于 2026-10-11 15:18
+**进度** 24/32 块（75%） · 状态 `active` · 更新于 2026-10-11 15:28
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
+- `T-005#B-003` **在真实 pack 上跑一轮并留档** — 进行中 · @default · 在做 @default（线程 deleg_8d657a16#0）
 - `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
 - `T-004#B-003` **L1 收敛：把入口层条目压到上限内** — 已认领 · @default
-- `T-005#B-001` **判官输入生成器（候选只有 description）** — 已认领 · @default
 - `T-006#B-003` **第二个 pack 交叉验证（防过拟合）** — 已认领 · @default
 
 ## 图
@@ -77,13 +77,15 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-005_B-001,T-005_B-002,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
   classDef claimed stroke-width:1px;
-  class T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003 claimed;
+  class T-004_B-001,T-004_B-003,T-006_B-003 claimed;
   classDef waiting stroke-width:1px;
-  class T-004_B-002,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-008_B-003 waiting;
+  class T-004_B-002,T-006_B-001,T-006_B-002,T-008_B-003 waiting;
+  classDef running stroke-width:1px;
+  class T-005_B-003 running;
 ```
 
 ## 任务
@@ -326,25 +328,31 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 
 ### T-005 路由评测：框架无关、可校正随机 — 进行中
 @default
-- [ ] `T-005#B-001` **判官输入生成器（候选只有 description）** _impl_ — 已认领 @default
+- [x] `T-005#B-001` **判官输入生成器（候选只有 description）** _impl_ — 已完成 @default
     - 做什么：【做什么】输入 pack + 一份冻结的题面集 → 输出**一个纯文本文件** `judge-input.txt`：
 候选表（每行 `路径 | description 截断窗口`）+ 题面（编号）。任何 agent / 人都能拿它跑判官。
 同时输出 `judge-key.json`（每题的金标：归属节点 + 题型），**不进判官输入**。
 三类题：① 大池检索（该选谁）② 近邻混淆（两个相似节点里选对的）③ 诱饵（不该选任何一个）。
     - 判据：生成器在 AgentSkill-UsingHermes 上跑出两个文件；`judge-input.txt` 里不含金标字段
 （`grep` 验证）；候选条数 == 该 pack 节点数（实测数字）。
-- [ ] `T-005#B-002` **打分器：逐题矩阵 + 分组 + 校正随机分** _impl_ — 等前置 @default
+    - 产物：`reports/2026-10-11-usinghermes/round1/judge-input.txt`
+    - run 2026-10-11 15:28 default pending→done judge 子命令：候选=126 个技能 description 前 57 字符；题面 14 条（冻结在 prompts-r1.json）；金标单独落 judge-key.json，自检断言 gold 字段/金标行不泄进判官输入（grep 0 命中）；金标全部在候选表内已验证
+- [x] `T-005#B-002` **打分器：逐题矩阵 + 分组 + 校正随机分** _impl_ — 已完成 @default
     - 做什么：【做什么】吃「判官输出 + 金标」出逐题矩阵，按三类题分组给分；并给**校正随机**分
 （Meta 的 BoR 口径：在该层 fanout 下，比随机选好多少），因为 fanout=30 的一层和 fanout=5 的一层
 的裸成功率不可直接比。
     - 判据：用 T-005#B-003 的真实判官输出打一遍分：逐题矩阵 + 三组分数 + 校正随机分都在报告里；
 口径（随机基线怎么算）写清。
     - 依赖：T-005#B-001
-- [ ] `T-005#B-003` **在真实 pack 上跑一轮并留档** _impl_ — 等前置 @default
+    - 产物：`scripts/weave.py`
+    - run 2026-10-11 15:28 default pending→done score 子命令：逐题矩阵（P<n>/kind/gold/picks/✓✗）+ 按题型分组（should_trigger / should_not_trigger / near_confusion）+ 校正随机分 BoR=(acc-1/N)/(1-1/N)；假判官回放验证过（自检里也留了一条 judge→score 往返断言）
+- [ ] `T-005#B-003` **在真实 pack 上跑一轮并留档** _impl_ — 进行中 @default
     - 做什么：【做什么】用 `delegate_task` 发独立判官（不共享上下文），跑 AgentSkill-UsingHermes 一轮；
 判官输出落文件（批次摘要会截断长输出，必须落盘）。判官输出是**原件**，事后一个字都不改。
     - 判据：`<批次目录>/judge-*.txt` 存在且行数 == 题面数；打分结果落 `round-1-score.txt`；三处路径贴进 run。
     - 依赖：T-005#B-001
+    - 在做：@default · 线程 deleg_8d657a16#0 · `/Users/maxim/.hermes/cache/delegation/live/deleg_8d657a16/task-0.log`
+    - run 2026-10-11 15:28 default pending→running 已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改
 
 ### T-006 在真实 pack 上验收 — 进行中
 @default
@@ -432,10 +440,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-007「内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥」
-- `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-008「内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数」
-- `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-009「修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」」
-- `2026-10-11 14:07` **agent** [block] 新增块 T-002#B-005「可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）」
 - `2026-10-11 14:09` **default** [decision] 用户 2026-10-11 补充需求（依赖政策）：不引外部依赖。原话「agent-skill-analysis 只是一个科研项目，还没有在社区中得到广泛的应用，后续的优化更新会受限，所以我倾向于不使用外部依赖，只是在其他项目效果更好时将其内化」。落成 docs/contract.md §6：不引 Node/npm/第三方 Python 包；内化 = 把规则/检查清单/字段口径/判断方法搬进来自己实现（纯 stdlib），并在 docs/compare-tools.md 记来源与实测对照；只在实测更好时内化那一条。据此撤销 T-002#B-005（--from-asa 适配器），对拍只作为一次性取数脚本。
 - `2026-10-11 14:09` **agent** [status] T-002#B-005: blocked → cancelled（按 docs/contract.md §6 撤销：不引外部依赖，不保留 --from-asa 适配器。将来要重新对拍，用一次性脚本取数即可（不进主路径）。）
 - `2026-10-11 14:53` **agent** [status] T-003#B-009: pending → done（修完并实测：broken 301→45（剩 45 条抽 3 真查盘、都真不存在）、孤儿 239→106；单 skill research-paper-writing 6→0 / 44→0；新增 example 一类（267 条）与 URL 不误当路径；--self-test 加了 3 条断言全过）
@@ -452,6 +456,10 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 15:17` **agent** [status] T-008#B-002: pending → done（四份 references 齐全且都被 SKILL.md 点名（孤儿 0）：split（切分界线/该下沉标准/转指写法/前后对照三数）· group（两轴判据/类目命名 3-8 个/四个验收数）· merge（五项取证→真重复合并非重复写界限→dup 段必须消失）· rewrite（57 字符窗口/触发词优先/排除条款位置/分组+校正随机重测））
 - `2026-10-11 15:17` **agent** [status] T-007#B-002: pending → done（本仓库的分层披露自检可用 `python3 scripts/weave.py layers .` + `checks .` 自查（自托管跑通，上面两组数字即证据））
 - `2026-10-11 15:18` **agent** [status] T-008#B-001: done → done（更正上一条 run：当时写「grep profile|lock|hermes 0 命中」是错的 —— references/group.md 里有 2 处把某 skill 名当反面例子（含框架名）。已改成中性例子并重跑：grep 0 命中，checks rc=0。判据本身不变）
+- `2026-10-11 15:28` **agent** [status] T-005#B-001: pending → done（judge 子命令：候选=126 个技能 description 前 57 字符；题面 14 条（冻结在 prompts-r1.json）；金标单独落 judge-key.json，自检断言 gold 字段/金标行不泄进判官输入（grep 0 命中）；金标全部在候选表内已验证）
+- `2026-10-11 15:28` **agent** [status] T-005#B-002: pending → done（score 子命令：逐题矩阵（P<n>/kind/gold/picks/✓✗）+ 按题型分组（should_trigger / should_not_trigger / near_confusion）+ 校正随机分 BoR=(acc-1/N)/(1-1/N)；假判官回放验证过（自检里也留了一条 judge→score 往返断言））
+- `2026-10-11 15:28` **agent** [exec] T-005#B-003: 登记线程 deleg_8d657a16#0 @default · 转录 /Users/maxim/.hermes/cache/delegation/live/deleg_8d657a16/task-0.log（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）
+- `2026-10-11 15:28` **agent** [status] T-005#B-003: pending → running（已发 2 个独立判官（deleg_8d657a16#0/#1），各只读 round1/judge-input.txt、输出写 judge-A.txt / judge-B.txt；判官输出是原件，事后不改）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。
