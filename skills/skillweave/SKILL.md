@@ -73,8 +73,9 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 
 **流程见仓库里的 `docs/flow.md`（9 步，唯一来源）**，本 skill 只写怎么做。
 
-**只准在副本上跑（硬规矩）**：任何 pack 的实测一律在 `prepare` 出的副本上做，**不许动真包**；
-用户明说「进入 production 模式」才可以在真包上落改动。更新 SkillWeave 本身 ≠ 在真包上跑 —— 两件事别混。
+**只改副本（硬规矩）**：工作区一律是 `prepare` 出的副本，真包只读（副本内 git 化后可回滚）。
+开发/试跑只在副本上做；**真跑 SkillWeave 本身就是 production 模式，不需要额外批准**。
+形状是**启动参数**（`--shape single|multi`），在准备之前就定 —— 不让用户等到中途拍板。
 
 **派发**：`weave.py dispatch <pack>` 划批（单位 = skill 子树，≤10 个/批）+ 事实补全 + 落 `dispatch/*.prompt.md`；
 **验收**：`weave.py verify <pack> --state dispatch/state.json --expect-fixed <id…>` —— 集合级对账 + 拆分守恒 +
