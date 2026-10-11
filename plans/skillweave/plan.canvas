@@ -67,8 +67,8 @@
    "y": 300,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-002#B-003\n节点摘要的来源可追溯\n\n`claimed` · @default\n\n【做什么】每个节点的 `summary` 必须带 `summary_source`（如 `SKILL.md:3 frontmatter.description`），\n空的要显式写 `null`（不许编）。"
+   "color": "4",
+   "text": "### T-002#B-003\n节点摘要的来源可追溯\n\n`done` · @default\n\n【做什么】每个节点的 `summary` 必须带 `summary_source`（如 `SKILL.md:3 frontmatter.description`），\n空的要显式写 `null`（不许编）。"
   },
   {
    "id": "T-002#B-004",
@@ -107,8 +107,8 @@
    "y": 170,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-003#B-002\n节点体积与规范建议值对照\n\n`claimed` · @default\n\n【做什么】逐节点报 `bytes` / `est_tokens`，对照 `SKILL.md` < 5000 token 与 `description` ≤ 1024 字符；\n超限的按超出比例排序输出清单。"
+   "color": "4",
+   "text": "### T-003#B-002\n节点体积与规范建议值对照\n\n`done` · @default\n\n【做什么】逐节点报 `bytes` / `est_tokens`，对照 `SKILL.md` < 5000 token 与 `description` ≤ 1024 字符；\n超限的按超出比例排序输出清单。"
   },
   {
    "id": "T-003#B-003",
@@ -117,8 +117,8 @@
    "y": 300,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-003#B-003\n孤儿文件与悬空引用\n\n`claimed` · @default\n\n【做什么】两个方向都查：\n① 孤儿：没有任何祖先节点点名过的文件（含 `references/` 里没被 SKILL.md 提到的、`assets/` 里没人用的）；\n② 悬空：正文点名了但路径不存在的引用（相对路径解析 + 同 pack 技能名解析）。"
+   "color": "4",
+   "text": "### T-003#B-003\n孤儿文件与悬空引用\n\n`done` · @default\n\n【做什么】两个方向都查：\n① 孤儿：没有任何祖先节点点名过的文件（含 `references/` 里没被 SKILL.md 提到的、`assets/` 里没人用的）；\n② 悬空：正文点名了但路径不存在的引用（相对路径解析 + 同 pack 技能名解析）。"
   },
   {
    "id": "T-003#B-004",
@@ -127,8 +127,8 @@
    "y": 430,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-003#B-004\n近重复 / 互相抢题的节点\n\n`claimed` · @default\n\n【做什么】同层节点两两比 description 与正文首段（纯 stdlib：difflib / token-shingle Jaccard），\n输出 top-N 相似对 + 相似度，标出「同层且相似度高」的对 —— 这是路由最容易错的形态\n（SkillRouter 在 80K 候选上实测：正文是必需信号，近重复是主"
+   "color": "4",
+   "text": "### T-003#B-004\n近重复 / 互相抢题的节点\n\n`done` · @default\n\n【做什么】同层节点两两比 description 与正文首段（纯 stdlib：difflib / token-shingle Jaccard），\n输出 top-N 相似对 + 相似度，标出「同层且相似度高」的对 —— 这是路由最容易错的形态\n（SkillRouter 在 80K 候选上实测：正文是必需信号，近重复是主"
   },
   {
    "id": "T-003#B-005",
@@ -137,8 +137,8 @@
    "y": 560,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-003#B-005\n成本报告：常驻成本 + 多出的调用数\n\n`claimed` · @default\n\n【做什么】报两组数（Workday 报告的口径：分层披露提升检索质量、轻微增加延迟）：\n① 常驻成本 = 全部 `description` 的字节/估算 token（每个 agent 每次会话都要付的那份）；\n② 索引/激活成本 = `SKILL.md` 总量与「按需读一个文件」多出的一次调用数估算。"
+   "color": "4",
+   "text": "### T-003#B-005\n成本报告：常驻成本 + 多出的调用数\n\n`done` · @default\n\n【做什么】报两组数（Workday 报告的口径：分层披露提升检索质量、轻微增加延迟）：\n① 常驻成本 = 全部 `description` 的字节/估算 token（每个 agent 每次会话都要付的那份）；\n② 索引/激活成本 = `SKILL.md` 总量与「按需读一个文件」多出的一次调用数估算。"
   },
   {
    "id": "T-003#B-006",

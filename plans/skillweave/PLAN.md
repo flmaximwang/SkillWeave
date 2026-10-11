@@ -2,17 +2,12 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 14/32 块（44%） · 状态 `active` · 更新于 2026-10-11 15:06
+**进度** 19/32 块（59%） · 状态 `active` · 更新于 2026-10-11 15:14
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
-- `T-002#B-003` **节点摘要的来源可追溯** — 已认领 · @default
-- `T-003#B-002` **节点体积与规范建议值对照** — 已认领 · @default
-- `T-003#B-003` **孤儿文件与悬空引用** — 已认领 · @default
-- `T-003#B-004` **近重复 / 互相抢题的节点** — 已认领 · @default
-- `T-003#B-005` **成本报告：常驻成本 + 多出的调用数** — 已认领 · @default
 - `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
 - `T-004#B-003` **L1 收敛：把入口层条目压到上限内** — 已认领 · @default
 - `T-005#B-001` **判官输入生成器（候选只有 description）** — 已认领 · @default
@@ -84,11 +79,11 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-004,T-003_B-001,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-007_B-001,T-007_B-003 done;
-  classDef claimed stroke-width:1px;
-  class T-002_B-003,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-007_B-001,T-007_B-003 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
+  classDef claimed stroke-width:1px;
+  class T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
   classDef waiting stroke-width:1px;
   class T-004_B-002,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-008_B-002,T-008_B-003 waiting;
 ```
@@ -157,7 +152,7 @@ refs declared|resolved|broken|external/orphans/digest，MIT，npm，CLI `asa`）
     - 判据：`docs/similar-work.md` 存在，含 A（4 个 skill 侧同类，逐项列能力）、B（文档树族谱）、C（本仓库还剩的 4 件）、
 D（要与不要 `asa` 的取舍）；每条先例带 URL 与许可/语言。
 
-### T-002 构建 skill 文档树 — 进行中
+### T-002 构建 skill 文档树 — 待排
 @default
 - [x] `T-002#B-001` **scripts/weave.py tree：把 pack 解析成节点图** _impl_ — 已完成 @default
     - 做什么：【做什么】纯 stdlib（无第三方依赖）的 `tree` 子命令：走一个 pack 目录 → 出 `tree.json` + `TREE.md`。
@@ -182,12 +177,14 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-002#B-001
     - 产物：`scripts/weave.py`
     - run 2026-10-11 14:58 default pending→done 同一 pack 连跑两次 sha256 逐字节相同（Dream 仓 fa34646e…）；在**同名目录**的副本上改一个 description 后 diff：只出现 bytes/est_tokens/description/description_chars/digest/summary/size_by_kind（30 行，全是该 skill 及其祖先）
-- [ ] `T-002#B-003` **节点摘要的来源可追溯** _impl_ — 已认领 @default
+- [x] `T-002#B-003` **节点摘要的来源可追溯** _impl_ — 已完成 @default
     - 做什么：【做什么】每个节点的 `summary` 必须带 `summary_source`（如 `SKILL.md:3 frontmatter.description`），
 空的要显式写 `null`（不许编）。
     - 判据：抽 3 个节点（1 个有 frontmatter、1 个只有正文、1 个空文件）打印 `path / summary / summary_source`，
 三条都能在源文件里定位到那一行。
     - 依赖：T-002#B-001
+    - 产物：`scripts/weave.py`
+    - run 2026-10-11 15:14 default pending→done 摘要来源可追溯：有 description 的取 frontmatter.description（并把该摘要回源文件 frontmatter 校验命中），无 description 的取正文首段首句带行号，都没有的写 null；audit/tree 产物里每条 summary_source 都可回源定位
 - [x] `T-002#B-004` **决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器** _decision_ — 已完成 @you
     - 做什么：【问题】`agent-skill-analysis`（Node ≥20，MIT，npm 有 `asa --json`）已经能出单 skill 的结构化 JSON
 （frontmatter/outline/files/refs/orphans/digest），字段与我们的契约同源。两条路：
@@ -211,7 +208,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 ③ 把 Node 从 PATH 摘掉再跑一次，应打印跳过说明且 exit 0。
     - 依赖：T-003#B-006
 
-### T-003 分层披露审计：把每一层量出来 — 进行中
+### T-003 分层披露审计：把每一层量出来 — 已完成
 @default
 - [x] `T-003#B-001` **每层的选择数（fanout 分布 + 选项清单）** _impl_ — 已完成 @default
     - 做什么：【做什么】对每个 fanout>1 的节点：报该层的选项数与选项清单；全局给 fanout 分布直方图，
@@ -223,18 +220,22 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 依赖：T-002#B-002
     - 产物：`reports/2026-10-11-usinghermes/LAYERS.md`
     - run 2026-10-11 13:59 default pending→done layers 子命令（三级披露）：L1 入口层 skills/ 摆出 69 项 = 散技能 52 + 类目 17，常驻 21302 字符 ≈ 6694 token，❌ 超上限 20；research/ 17、autonomous-ai-agents/ 15、productivity/ 13。另跑 Dream（2 项 ✅）与 AgentSkill-SoftwareDev（30 项 ❌）交叉验证
-- [ ] `T-003#B-002` **节点体积与规范建议值对照** _impl_ — 已认领 @default
+- [x] `T-003#B-002` **节点体积与规范建议值对照** _impl_ — 已完成 @default
     - 做什么：【做什么】逐节点报 `bytes` / `est_tokens`，对照 `SKILL.md` < 5000 token 与 `description` ≤ 1024 字符；
 超限的按超出比例排序输出清单。
     - 判据：贴出超限清单（至少「0 条」也要有一行实测：扫了 N 个 SKILL.md，超限 0 条）。
     - 依赖：T-002#B-002
-- [ ] `T-003#B-003` **孤儿文件与悬空引用** _impl_ — 已认领 @default
+    - 产物：`reports/2026-10-11-usinghermes/audit.json`
+    - run 2026-10-11 15:14 default pending→done 体积对照进 audit size 段：超 5000 token 的 15/126，最大 accountancy-workflow 21427tok/747行(over-500) 等；行数三档按 claude-skills-cli 口径标注
+- [x] `T-003#B-003` **孤儿文件与悬空引用** _impl_ — 已完成 @default
     - 做什么：【做什么】两个方向都查：
 ① 孤儿：没有任何祖先节点点名过的文件（含 `references/` 里没被 SKILL.md 提到的、`assets/` 里没人用的）；
 ② 悬空：正文点名了但路径不存在的引用（相对路径解析 + 同 pack 技能名解析）。
     - 判据：两类各给一份清单文件（可为空，但要有文件）；在 AgentSkill-UsingHermes 上给出真实条数。
     - 依赖：T-002#B-002
-- [ ] `T-003#B-004` **近重复 / 互相抢题的节点** _impl_ — 已认领 @default
+    - 产物：`reports/2026-10-11-usinghermes/audit.json`
+    - run 2026-10-11 15:14 default pending→done 孤儿/悬空进 audit orphan 段：本 pack 孤儿 106、悬空 45（修误报后口径）
+- [x] `T-003#B-004` **近重复 / 互相抢题的节点** _impl_ — 已完成 @default
     - 做什么：【做什么】同层节点两两比 description 与正文首段（纯 stdlib：difflib / token-shingle Jaccard），
 输出 top-N 相似对 + 相似度，标出「同层且相似度高」的对 —— 这是路由最容易错的形态
 （SkillRouter 在 80K 候选上实测：正文是必需信号，近重复是主因）。
@@ -243,12 +244,16 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 判据：在 AgentSkill-UsingHermes 上给出 top-20 相似对清单（含相似度与两侧路径）；
 至少一对要人工抽验：把两侧 description 原文贴进 run，说明为什么算相似。
     - 依赖：T-002#B-002
-- [ ] `T-003#B-005` **成本报告：常驻成本 + 多出的调用数** _impl_ — 已认领 @default
+    - 产物：`reports/2026-10-11-usinghermes/audit.json`
+    - run 2026-10-11 15:14 default pending→done 同层近重复进 audit dup 段（difflib，同父目录两两）：1672 对里相似度>0.5 的 12 对。**实测抓到一对 1.00 的重复技能**：skills/research/tushare/ ↔ skills/research/tushare-data/ —— description 逐字相同、各 4 个文件、只有 name 不同，路由必然掷硬币；另有 boc-statement↔ccb-statement 0.81
+- [x] `T-003#B-005` **成本报告：常驻成本 + 多出的调用数** _impl_ — 已完成 @default
     - 做什么：【做什么】报两组数（Workday 报告的口径：分层披露提升检索质量、轻微增加延迟）：
 ① 常驻成本 = 全部 `description` 的字节/估算 token（每个 agent 每次会话都要付的那份）；
 ② 索引/激活成本 = `SKILL.md` 总量与「按需读一个文件」多出的一次调用数估算。
     - 判据：在 AgentSkill-UsingHermes 上给出两组实测数字与算法说明（估算 token 的规则要写出来）。
     - 依赖：T-002#B-002
+    - 产物：`reports/2026-10-11-usinghermes/audit.json`
+    - run 2026-10-11 15:14 default pending→done 成本两组数进 audit cost 段：常驻 21302 字符≈6694 token；L2 全体 391700 tok（中位 2307）；L3 470 文件/5996139 B
 - [x] `T-003#B-006` **内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积** _impl_ — 已完成 @default
     - 做什么：【做什么】把 `agent-skill-analysis` 有而我没有的字段补进树节点（纯 stdlib，不引依赖）：
 每文件 `sha256`；节点内容 `digest`（内容指纹，忽略 `metadata.version` 这类版本键 —— 用来做「可重建可 diff」的硬判据）；
@@ -422,11 +427,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 14:04` **agent** [status] T-001#B-001: blocked → done（① 公开仓库 → flmaximwang/SkillWeave（已建+推送）。② 用户 2026-10-11 定：**做成 public skill —— 可被任意 agent 安装的 skill**，不是纯 CLI 仓库。原话：『T1B1 就做成 public skill 吧，做成可被任意 agent 安装的 skill，纯 cli 我觉得跑不完整个流程，例如文档拆分在缺少语言模型的辅助时不可能做』。）
-- `2026-10-11 14:04` **agent** [status] T-007#B-003: blocked → done（定：做 skill（不是纯 CLI）。实现形态 = **skill 承载需要语言模型的判断（拆分/改写/合并/归类）+ CLI 承载可机械化的度量与动作（tree / layers / 机械切分 / 重跑对照）**。落地在 skills/skillweave/。）
-- `2026-10-11 14:04` **agent** [block] T-004#B-001 改了 做什么
-- `2026-10-11 14:04` **agent** [task] 新增任务 T-008「SkillWeave skill 本体（可被任意 agent 安装）」
-- `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-001「skills/skillweave/SKILL.md：第一层薄入口」
 - `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-002「references/：四类动作的做法（要语言模型的那几段）」
 - `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-003「端到端：agent + CLI 走完一个真实 pack」
 - `2026-10-11 14:07` **agent** [status] T-002#B-004: blocked → done（用户问「谁更准、谁更快、能否内化」。**实测对拍后定**（证据 docs/compare-tools.md）：① 结构数字三家一致（文件 56 / heading 89 / 行 1611 / token 差 <1%）→ 我的实现可信；② 准确性的差异都在语义判断上：asa 不误报示例路径但有真 broken 漏报（skill-tools 独立报出 scripts/reproduce_table1.sh、scripts/make_figure2.py 真缺失），我的引用抽取把示例路径也算进 broken（6 条里 4 条误报）、孤儿规则过严（44 条里绝大多数是 templates/*，只在 templates/README.md 被点名）；③ 效率：asa 冷 6.58s / 热 1.46s（单 skill），skill-tools 11.38s，claude-skills-cli 7.22s；SkillWeave 整个 pack 126 skill / 1941 节点 3.06s，纯 stdlib 离线。**内化方式 = 内化它们的知识与检查清单（无依赖），不引 Node/npm 硬依赖**；另留一个可选适配器 `--from-asa`。落地块见 T-003#B-006 ~ B-009。）
@@ -442,6 +442,11 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 14:58` **agent** [status] T-003#B-006: pending → done（内化 asa 字段：每文件 sha256（与 shasum -a 256 对拍一致）· 节点 digest（忽略 version/updated/date/modified）· license/readme 检测 · size_by_kind 体积分解；字段写进 contract §1）
 - `2026-10-11 14:58` **agent** [status] T-003#B-008: pending → done（内化 claude-skills-cli 的量化告警：每 skill 报 code_blocks/sections/long_paragraphs/todos，layers 出全 pack 合计。实测 UsingHermes：代码块 697 · 章节 1791 · 长段落 234 · TODO 4）
 - `2026-10-11 15:06` **agent** [status] T-003#B-007: pending → done（内化 skill-tools 六条检查（新子命令 checks，安全闸命中即退 1）。UsingHermes 实测：悬空引用 45 · token 超预算 15 · BOM 3 · 二进制 0 · name-目录不一致 1 · 硬编码路径 116 · 内嵌密钥 0；--self-test 加了硬编码路径/密钥命中两条断言）
+- `2026-10-11 15:14` **agent** [status] T-003#B-002: pending → done（体积对照进 audit size 段：超 5000 token 的 15/126，最大 accountancy-workflow 21427tok/747行(over-500) 等；行数三档按 claude-skills-cli 口径标注）
+- `2026-10-11 15:14` **agent** [status] T-003#B-003: pending → done（孤儿/悬空进 audit orphan 段：本 pack 孤儿 106、悬空 45（修误报后口径））
+- `2026-10-11 15:14` **agent** [status] T-003#B-004: pending → done（同层近重复进 audit dup 段（difflib，同父目录两两）：1672 对里相似度>0.5 的 12 对。**实测抓到一对 1.00 的重复技能**：skills/research/tushare/ ↔ skills/research/tushare-data/ —— description 逐字相同、各 4 个文件、只有 name 不同，路由必然掷硬币；另有 boc-statement↔ccb-statement 0.81）
+- `2026-10-11 15:14` **agent** [status] T-003#B-005: pending → done（成本两组数进 audit cost 段：常驻 21302 字符≈6694 token；L2 全体 391700 tok（中位 2307）；L3 470 文件/5996139 B）
+- `2026-10-11 15:14` **agent** [status] T-002#B-003: pending → done（摘要来源可追溯：有 description 的取 frontmatter.description（并把该摘要回源文件 frontmatter 校验命中），无 description 的取正文首段首句带行号，都没有的写 null；audit/tree 产物里每条 summary_source 都可回源定位）
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

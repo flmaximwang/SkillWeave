@@ -13,6 +13,7 @@ ponytail: 只做「树 + 每层 fanout」，不做语义索引/向量；规模�
           pack 数到几千个 skill 时仍是秒级。
 """
 import argparse
+import difflib
 import hashlib
 import json
 import os
@@ -606,9 +607,80 @@ def cmd_checks(root, out):
     return 1 if gate else 0
 
 
+def cmd_audit(root, out, top=20):
+    """审计四段：size（体积对照）· orphan（孤儿/悬空）· dup（同层近重复抢题）· cost（两组成本）。"""
+    skills, skipped = [], []
+    tracked = tracked_set(root)
+    tree = walk_dir(root, "", tracked, skipped, skills)
+    if tree is None:
+        print("[audit] FAIL 这个目录里没有任何 skill")
+        return 1
+    os.makedirs(out, exist_ok=True)
+    rep = {"pack": os.path.basename(root), "skills": len(skills)}
+
+    # —— size：正文体积 vs 规范建议值（<5000 est_token；行数三档 50/150/500）
+    rep["size"] = sorted(
+        [{"id": s["id"], "est_tokens": s["est_tokens"], "lines": s["body_lines"],
+          "over_token": s["est_tokens"] > 5000, "line_mode": ("default" if s["body_lines"] <= 50 else
+                                                              "lenient" if s["body_lines"] <= 150 else
+                                                              "loose" if s["body_lines"] <= 500 else "over-500")}
+         for s in skills], key=lambda r: -r["est_tokens"])
+
+    # —— orphan：孤儿文件 + 悬空引用
+    rep["orphan"] = {"orphans": [f"{s['id']}{o}" for s in skills for o in s["orphans"]],
+                     "broken": [f"{s['id']}{b}" for s in skills for b in s["broken"]]}
+
+    # —— dup：**同一层**（同一父目录）两两比 description 与摘要，找互相抢题的节点
+    # ponytail: 层内 O(n²)，最大一层 52 项 ≈ 1.3k 次比较；单层上千项时再换 shingle+倒排。
+    by_parent = {}
+    for s in skills:
+        by_parent.setdefault(s["parent"], []).append(s)
+    pairs = []
+    for parent, group in by_parent.items():
+        for i in range(len(group)):
+            for j in range(i + 1, len(group)):
+                a, b = group[i], group[j]
+                d = difflib.SequenceMatcher(None, a["description"], b["description"]).ratio()
+                m = difflib.SequenceMatcher(None, a["summary"] or "", b["summary"] or "").ratio()
+                pairs.append({"sim_desc": round(d, 3), "sim_summary": round(m, 3),
+                              "score": round(max(d, m), 3), "layer": parent,
+                              "a": a["id"], "b": b["id"]})
+    rep["dup"] = {"pairs_top": sorted(pairs, key=lambda p: -p["score"])[:top],
+                  "pairs_over_050": sum(1 for p in pairs if p["score"] > 0.5),
+                  "pairs_total": len(pairs)}
+
+    # —— cost：常驻（L1 菜单）+ 激活（L2 正文）+ 按需（L3）
+    resident_text = "\n".join(s["description"] for s in skills)
+    l3 = [f for s in skills for f in s["files"] if f["kind"] != "instructions"]
+    rep["cost"] = {"resident_chars": sum(len(s["description"]) for s in skills),
+                   "resident_est_tokens": est_tokens(resident_text),
+                   "l2_est_tokens_all": sum(s["est_tokens"] for s in skills),
+                   "l2_est_tokens_median": sorted(s["est_tokens"] for s in skills)[len(skills) // 2],
+                   "l3_files": len(l3), "l3_bytes": sum(f["bytes"] for f in l3)}
+
+    with open(os.path.join(out, "audit.json"), "w", encoding="utf-8") as f:
+        json.dump(rep, f, ensure_ascii=False, indent=2, sort_keys=True)
+
+    print(f"[audit] pack={rep['pack']} skills={len(skills)}")
+    over = [r for r in rep["size"] if r["over_token"]]
+    print(f"[audit] size  超 5000 token 的 skill = {len(over)}/{len(skills)}；最大 "
+          + "; ".join(f"{r['id'].rstrip('/')}={r['est_tokens']}tok/{r['lines']}行({r['line_mode']})"
+                      for r in rep["size"][:3]))
+    print(f"[audit] orphan  孤儿 {len(rep['orphan']['orphans'])} · 悬空 {len(rep['orphan']['broken'])}")
+    print(f"[audit] dup  同层比较 {rep['dup']['pairs_total']} 对（同层），相似度>0.5 的 {rep['dup']['pairs_over_050']} 对；top:")
+    for p in rep["dup"]["pairs_top"][:5]:
+        print(f"    {p['score']:.2f} desc={p['sim_desc']:.2f} | {p['a']}  ↔  {p['b']}")
+    c = rep["cost"]
+    print(f"[audit] cost  常驻 {c['resident_chars']} 字符 ≈ {c['resident_est_tokens']} token · "
+          f"L2 全体 {c['l2_est_tokens_all']} tok（中位 {c['l2_est_tokens_median']}）· "
+          f"L3 {c['l3_files']} 文件 / {c['l3_bytes']} B")
+    print(f"[audit] 出: {os.path.join(out, 'audit.json')}")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
-    ap.add_argument("cmd", nargs="?", choices=["tree", "layers", "checks"])
+    ap.add_argument("cmd", nargs="?", choices=["tree", "layers", "checks", "audit"])
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -626,6 +698,10 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
         return cmd_checks(root, out)
+    if a.cmd == "audit":
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        return cmd_audit(root, out)
     root = os.path.abspath(a.pack.rstrip("/"))
     if not os.path.isdir(root):
         print(f"[tree] FAIL 目录不存在: {root}")
