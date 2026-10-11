@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T13:42:07+08:00",
+  "updated_at": "2026-10-11T13:59:28+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -44,14 +44,22 @@
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "status_since": "2026-10-11T13:59:28+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T13:59:28+08:00",
+              "by": "default",
+              "from": "blocked",
+              "to": "blocked",
+              "note": "① 已答：公开仓库 → flmaximwang/SkillWeave（已建 + 推送）。② 交付形态未答，块保持待批准。"
+            }
+          ]
         },
         {
           "id": "T-001#B-002",
           "title": "docs/contract.md：文档树节点 schema 与「层」的定义",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】写死两件事，之后所有脚本与报告都按它读：\n\n① 节点 schema：每个节点带 `path` / `kind`（`pack|category|skill|section|reference|script|asset`）/\n`bytes` / `est_tokens` / `summary` / `summary_source`（frontmatter description | 首段首句 | 空）/\n`refs`（该节点正文里真实出现的引用目标）。\n② 「层」的定义：从 pack 入口到某个需求，**路上遇到的每个 fanout>1 的节点就是一层**；\n层的度量 = 该节点的选项数（fanout）+ 该层被选中后的成功率（T-005 给）。\n\n【命令】`python3 scripts/weave.py tree <pack 目录> --out <dir>` 产出的 `tree.json` 就是本 schema 的实例。\n\n【口径】summary 只允许来自文件自身内容，禁止手写；refs 只记正文里真实出现的路径/技能名（记行号）。",
           "input": "",
@@ -60,19 +68,29 @@
           "done_when": [
             "`docs/contract.md` 存在，含：schema 每个字段的来源（frontmatter / 正文 / 文件系统）、\n一份 tree.json 的最小示例（≥3 个节点、含一条引用边）、以及「层」的定义原文；\n用 `python3 -c` 读示例 JSON 能过 `json.loads`。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "docs/contract.md"
+          ],
           "deps": [],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "status_since": "2026-10-11T13:59:28+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T13:59:28+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "contract.md：节点 schema + 三级披露（L1/L2/L3）定义 + caps 表 + 最小示例"
+            }
+          ]
         },
         {
           "id": "T-001#B-003",
           "title": "caps 表：上限常量与它们的出处",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】把上限写成**一张常量表**（供 T-003 逐条判），每条都必须引 prior-art 的出处与口径：\n- 节点体积：`SKILL.md` 建议 < 5000 token（另报字节）；`description` ≤ 1024 字符（规范硬约束）。\n- fanout：**不设死值**；报分布 + 该层的校正随机成功率（Meta BoR 口径），阈值只在报告里给「实测最优点」。\n- 孤儿：任何文件必须被至少一个祖先点名（0 容忍）。\n- depth-to-needle：从入口到最深处文件的跳数，超 N 需给转指链。\n每条常量落到 `docs/contract.md` 的一张表里，附来源 URL 与口径（榜单规模 / 指标名）。",
           "input": "",
@@ -81,14 +99,45 @@
           "done_when": [
             "`docs/contract.md` 里出现该表；每一行的「来源」列都能点到 `docs/prior-art.md` 的对应小节；\n表中不含没有任何出处的自创数字。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "docs/contract.md"
+          ],
           "deps": [
             "T-001#B-002"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
+          "status_since": "2026-10-11T13:59:28+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T13:59:28+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "caps 表 = contract §4，每条带出处；第一层上限 20 沿用 Dream 的 MAX_FIRST_LAYER_SKILLS"
+            }
+          ]
+        },
+        {
+          "id": "T-001#B-004",
+          "title": "先例实勘：同类公开项目能不能直接用",
+          "kind": "research",
+          "status": "done",
+          "owner": "default",
+          "doc": "【做什么】核同类公开项目的能力边界，定本仓库还剩什么（用户 2026-10-11 追问「文档树不是新需求」）。\n实测四个：`tanker327/agent-skill-analysis`（单 skill 目录 → SkillAnalysis JSON：frontmatter/outline/files/kind/\nrefs declared|resolved|broken|external/orphans/digest，MIT，npm，CLI `asa`）、`skill-tools/skill-tools`\n（20 spec 检查 + 10 lint + 0-100 分含 Progressive Disclosure 维度 + BM25 路由，Apache-2.0）、\n`spences10/claude-skills-cli`（L1 <200 字符 / L2 ≈50 行 / L3 不限的硬闸，validate 三档 50/150/500）、\n以及文档树族谱（Sphinx toctree、Docling、PageIndex/ReasonTree/Psi-RAG、aider repo map）。\n\n【结论】判定表与「本仓库还剩什么」写在 docs/similar-work.md C 节：per-skill 分析与文档树**已有现成实现**；\n**pack 层**（多 skill 的母树、L1 菜单选项数、同层抢题、判官式路由评测、按度量重构并重测）是空的。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "`docs/similar-work.md` 存在，含 A（4 个 skill 侧同类，逐项列能力）、B（文档树族谱）、C（本仓库还剩的 4 件）、\nD（要与不要 `asa` 的取舍）；每条先例带 URL 与许可/语言。"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T13:59:28+08:00",
           "runs": []
         }
       ],
@@ -106,7 +155,7 @@
           "id": "T-002#B-001",
           "title": "scripts/weave.py tree：把 pack 解析成节点图",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】纯 stdlib（无第三方依赖）的 `tree` 子命令：走一个 pack 目录 → 出 `tree.json` + `TREE.md`。\n- 解析 frontmatter：`name` / `description`（要为 `description: >-` 这类折叠块兜底，不能只用正则抓首行）。\n- 节点：pack → 类目目录 → 技能目录（有 SKILL.md）→ 正文标题 → 被点名的文件。\n- 边：`parent` / `ref`（正文里出现的相对路径）/ `mention`（正文里出现的同 pack 技能名）。\n- 跳数：从 pack 入口算每个节点的最短跳数（BFS，供 T-003 用）。\n\n【命令】\n```\npython3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --out /tmp/sw-usinghermes\n```",
           "input": "",
@@ -115,13 +164,23 @@
           "done_when": [
             "在 AgentSkill-UsingHermes 上跑出 `tree.json`：`json.loads` 能读；节点数 ≥ 该 pack 的 SKILL.md 数；\n随机抽 5 条 `ref` 边，逐条能在正文里找到那一行（行号对得上）；命令与输出贴进本块的 run。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/TREE.md"
+          ],
           "deps": [],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "status_since": "2026-10-11T13:59:28+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T13:59:28+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "weave.py tree：AgentSkill-UsingHermes 实测 skills=126 / nodes=1941；抽 5 条 ref 边逐条回正文对行号，5/5 命中"
+            }
+          ]
         },
         {
           "id": "T-002#B-002",
@@ -168,6 +227,27 @@
           "exec": {},
           "status_since": "2026-10-11T13:42:06+08:00",
           "runs": []
+        },
+        {
+          "id": "T-002#B-004",
+          "title": "决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器",
+          "kind": "decision",
+          "status": "blocked",
+          "owner": "you",
+          "doc": "【问题】`agent-skill-analysis`（Node ≥20，MIT，npm 有 `asa --json`）已经能出单 skill 的结构化 JSON\n（frontmatter/outline/files/refs/orphans/digest），字段与我们的契约同源。两条路：\n\n1. **依赖 asa**：per-skill 节点数据直接吃 `asa --json`，SkillWeave 只做 pack 层与评测层。\n   代价：引入 Node 依赖；跟它的 schema 走（0.x）；它没有 pack 概念，母树仍要自己搭。\n2. **自带最小解析器**（现状，已实现 190 行 stdlib）：字段名与 kind 分类沿用它的口径，替换点是一个函数\n   `analyze_skill()`。代价：与它重叠实现；收益：零依赖，任何机器可跑，且能被 `--self-test` 完全验证。\n\n【现状】已按 2 实现并跑通（126 skills）。选 1 时只需替换 `analyze_skill()` 一个函数。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "答案以原话落进本块的 run；若选 1，另开一块记「把 analyze_skill 换成 asa 适配器」并给出 Node 依赖的安装判据；\n若选 2，本块 done 并把「与 asa 的口径兼容靠 docs/contract.md §1 的字段名」写进 note。"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T13:59:28+08:00",
+          "runs": []
         }
       ],
       "note": "",
@@ -184,7 +264,7 @@
           "id": "T-003#B-001",
           "title": "每层的选择数（fanout 分布 + 选项清单）",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】对每个 fanout>1 的节点：报该层的选项数与选项清单；全局给 fanout 分布直方图，\n并标出超出该层实测最优点的层（最优点来自 T-005，未跑时留空不猜）。\n\n【命令】`python3 scripts/weave.py audit <pack> --section fanout`",
           "input": "",
@@ -193,15 +273,25 @@
           "done_when": [
             "在 AgentSkill-UsingHermes 上，`skills/` 这一层报到实测的条目数与分类目录数、以及每个类目下的\n技能数（贴命令输出）；直方图数据落 `<out>/fanout.json`。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "reports/2026-10-11-usinghermes/LAYERS.md"
+          ],
           "deps": [
             "T-002#B-002"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:06+08:00",
-          "runs": []
+          "status_since": "2026-10-11T13:59:28+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T13:59:28+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "layers 子命令（三级披露）：L1 入口层 skills/ 摆出 69 项 = 散技能 52 + 类目 17，常驻 21302 字符 ≈ 6694 token，❌ 超上限 20；research/ 17、autonomous-ai-agents/ 15、productivity/ 13。另跑 Dream（2 项 ✅）与 AgentSkill-SoftwareDev（30 项 ❌）交叉验证"
+            }
+          ]
         },
         {
           "id": "T-003#B-002",
@@ -348,6 +438,29 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-11T13:42:06+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-003",
+          "title": "L1 收敛：把入口层条目压到上限内",
+          "kind": "impl",
+          "status": "pending",
+          "owner": "default",
+          "doc": "【做什么】按 layers 的实测做收敛方案（先出提案，--apply 才落盘）：\n① 44 个散技能多是工具轴（`skills/install-hermes-skills` 这类），按**两轴**归入类目：主语是软件/工具 → 类目\n按用途（install/maintain/troubleshoot…），主语是一类任务 → 类目按主题；② 同层近重复（T-003#B-004 的清单）\n合并或改名；③ `description` 改写的先触发词后排除条款，改完跑 T-005 证明更好。\n\n【基线】入口层 69 项（散 52 + 类目 17）· 常驻 21302 字符 ≈ 6694 token · 上限 20。\n【判据】改完 `layers` 的 L1 条目数 ≤ 上限，且常驻字符数不升；两个数都要贴前后对照。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "在 UsingHermes 上给出提案（含每个散技能的目标类目与 diff 形状）；在临时复制的 pack 上 `--apply` 一次，\n重跑 `layers` 出「前 → 后」对照表（入口层条目数、常驻字符、类目数），并跑 T-005 一轮证明路由不退化。"
+          ],
+          "artifacts": [],
+          "deps": [
+            "T-003#B-001"
+          ],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T13:59:28+08:00",
           "runs": []
         }
       ],
@@ -522,7 +635,7 @@
           "id": "T-007#B-001",
           "title": "提交本仓库：README / docs / plans 一起进版本",
           "kind": "impl",
-          "status": "pending",
+          "status": "done",
           "owner": "default",
           "doc": "【做什么】按决策块 T-001#B-001 的答案建远端（或不建）并提交推送。\n本仓库自身守同一套规矩：`plans/skillweave/` 随仓库提交（`git add plans/`），README 给一行\n`file:///Users/maxim/Repositories/Repo/SkillWeave/plans/skillweave/plan.html` 与几条只读命令。",
           "input": "",
@@ -531,15 +644,25 @@
           "done_when": [
             "`git show --stat` 里能看到 `plans/skillweave/plan.json` 与 `plan.html`；若已建远端，\n`git log origin/main -1` 的 sha 与本地 HEAD 相同。"
           ],
-          "artifacts": [],
+          "artifacts": [
+            "https://github.com/flmaximwang/SkillWeave"
+          ],
           "deps": [
             "T-001#B-001"
           ],
           "review_of": "",
           "feedback": "",
           "exec": {},
-          "status_since": "2026-10-11T13:42:07+08:00",
-          "runs": []
+          "status_since": "2026-10-11T13:59:28+08:00",
+          "runs": [
+            {
+              "at": "2026-10-11T13:59:28+08:00",
+              "by": "default",
+              "from": "pending",
+              "to": "done",
+              "note": "公开远端已建并推送（gh repo create flmaximwang/SkillWeave --public）；plans/skillweave 随仓库提交；origin/main == HEAD"
+            }
+          ]
         },
         {
           "id": "T-007#B-002",
@@ -801,7 +924,70 @@
       "kind": "block",
       "text": "新增块 T-007#B-003「交付形态：纯 CLI 仓库，还是同时可安装的 skill」",
       "ref": "T-007#B-003"
+    },
+    {
+      "at": "2026-10-11T13:59:28+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-001#B-001: blocked → blocked（① 已答：公开仓库 → flmaximwang/SkillWeave（已建 + 推送）。② 交付形态未答，块保持待批准。）",
+      "ref": "T-001#B-001"
+    },
+    {
+      "at": "2026-10-11T13:59:28+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-001#B-002: pending → done（contract.md：节点 schema + 三级披露（L1/L2/L3）定义 + caps 表 + 最小示例）",
+      "ref": "T-001#B-002"
+    },
+    {
+      "at": "2026-10-11T13:59:28+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-001#B-003: pending → done（caps 表 = contract §4，每条带出处；第一层上限 20 沿用 Dream 的 MAX_FIRST_LAYER_SKILLS）",
+      "ref": "T-001#B-003"
+    },
+    {
+      "at": "2026-10-11T13:59:28+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-002#B-001: pending → done（weave.py tree：AgentSkill-UsingHermes 实测 skills=126 / nodes=1941；抽 5 条 ref 边逐条回正文对行号，5/5 命中）",
+      "ref": "T-002#B-001"
+    },
+    {
+      "at": "2026-10-11T13:59:28+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-003#B-001: pending → done（layers 子命令（三级披露）：L1 入口层 skills/ 摆出 69 项 = 散技能 52 + 类目 17，常驻 21302 字符 ≈ 6694 token，❌ 超上限 20；research/ 17、autonomous-ai-agents/ 15、productivity/ 13。另跑 Dream（2 项 ✅）与 AgentSkill-SoftwareDev（30 项 ❌）交叉验证）",
+      "ref": "T-003#B-001"
+    },
+    {
+      "at": "2026-10-11T13:59:28+08:00",
+      "actor": "agent",
+      "kind": "status",
+      "text": "T-007#B-001: pending → done（公开远端已建并推送（gh repo create flmaximwang/SkillWeave --public）；plans/skillweave 随仓库提交；origin/main == HEAD）",
+      "ref": "T-007#B-001"
+    },
+    {
+      "at": "2026-10-11T13:59:28+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "新增块 T-001#B-004「先例实勘：同类公开项目能不能直接用」",
+      "ref": "T-001#B-004"
+    },
+    {
+      "at": "2026-10-11T13:59:28+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "新增块 T-002#B-004「决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器」",
+      "ref": "T-002#B-004"
+    },
+    {
+      "at": "2026-10-11T13:59:28+08:00",
+      "actor": "agent",
+      "kind": "block",
+      "text": "新增块 T-004#B-003「L1 收敛：把入口层条目压到上限内」",
+      "ref": "T-004#B-003"
     }
   ],
-  "rev": "f9aa72df73d5"
+  "rev": "84d982481d04"
 }

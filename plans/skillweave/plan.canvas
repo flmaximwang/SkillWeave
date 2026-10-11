@@ -17,8 +17,8 @@
    "y": 170,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-001#B-002\ndocs/contract.md：文档树节点 schema 与「层」的定义\n\n`claimed` · @default\n\n【做什么】写死两件事，之后所有脚本与报告都按它读：\n\n① 节点 schema：每个节点带 `path` / `kind`（`pack|category|skill|section|reference|script|asset`）/\n`bytes` / `est_tokens` / `summary` / `summar"
+   "color": "4",
+   "text": "### T-001#B-002\ndocs/contract.md：文档树节点 schema 与「层」的定义\n\n`done` · @default\n\n【做什么】写死两件事，之后所有脚本与报告都按它读：\n\n① 节点 schema：每个节点带 `path` / `kind`（`pack|category|skill|section|reference|script|asset`）/\n`bytes` / `est_tokens` / `summary` / `summar"
   },
   {
    "id": "T-001#B-003",
@@ -27,18 +27,28 @@
    "y": 40,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-001#B-003\ncaps 表：上限常量与它们的出处\n\n`waiting` · @default\n\n【做什么】把上限写成**一张常量表**（供 T-003 逐条判），每条都必须引 prior-art 的出处与口径：\n- 节点体积：`SKILL.md` 建议 < 5000 token（另报字节）；`description` ≤ 1024 字符（规范硬约束）。\n- fanout：**不设死值**；报分布 + 该层的校正随"
+   "color": "4",
+   "text": "### T-001#B-003\ncaps 表：上限常量与它们的出处\n\n`done` · @default\n\n【做什么】把上限写成**一张常量表**（供 T-003 逐条判），每条都必须引 prior-art 的出处与口径：\n- 节点体积：`SKILL.md` 建议 < 5000 token（另报字节）；`description` ≤ 1024 字符（规范硬约束）。\n- fanout：**不设死值**；报分布 + 该层的校正随"
   },
   {
-   "id": "T-002#B-001",
+   "id": "T-001#B-004",
    "type": "text",
    "x": 40,
    "y": 300,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-002#B-001\nscripts/weave.py tree：把 pack 解析成节点图\n\n`claimed` · @default\n\n【做什么】纯 stdlib（无第三方依赖）的 `tree` 子命令：走一个 pack 目录 → 出 `tree.json` + `TREE.md`。\n- 解析 frontmatter：`name` / `description`（要为 `description: >-` 这类折叠块兜底，不能只用正则抓首行）。\n- 节点"
+   "color": "4",
+   "text": "### T-001#B-004\n先例实勘：同类公开项目能不能直接用\n\n`done` · @default\n\n【做什么】核同类公开项目的能力边界，定本仓库还剩什么（用户 2026-10-11 追问「文档树不是新需求」）。\n实测四个：`tanker327/agent-skill-analysis`（单 skill 目录 → SkillAnalysis JSON：frontmatter/outline/files/kind/\nre"
+  },
+  {
+   "id": "T-002#B-001",
+   "type": "text",
+   "x": 40,
+   "y": 430,
+   "width": 300,
+   "height": 110,
+   "color": "4",
+   "text": "### T-002#B-001\nscripts/weave.py tree：把 pack 解析成节点图\n\n`done` · @default\n\n【做什么】纯 stdlib（无第三方依赖）的 `tree` 子命令：走一个 pack 目录 → 出 `tree.json` + `TREE.md`。\n- 解析 frontmatter：`name` / `description`（要为 `description: >-` 这类折叠块兜底，不能只用正则抓首行）。\n- 节点"
   },
   {
    "id": "T-002#B-002",
@@ -48,7 +58,7 @@
    "width": 300,
    "height": 110,
    "color": "0",
-   "text": "### T-002#B-002\n可重建、可 diff\n\n`waiting` · @default\n\n【做什么】同一 pack 连跑两次，产物逐字节相同（排序稳定、无时间戳）；\n改动 pack 里一个文件后，diff 只出现在相关节点及其祖先的 `bytes`/`est_tokens` 上。"
+   "text": "### T-002#B-002\n可重建、可 diff\n\n`claimed` · @default\n\n【做什么】同一 pack 连跑两次，产物逐字节相同（排序稳定、无时间戳）；\n改动 pack 里一个文件后，diff 只出现在相关节点及其祖先的 `bytes`/`est_tokens` 上。"
   },
   {
    "id": "T-002#B-003",
@@ -58,7 +68,17 @@
    "width": 300,
    "height": 110,
    "color": "0",
-   "text": "### T-002#B-003\n节点摘要的来源可追溯\n\n`waiting` · @default\n\n【做什么】每个节点的 `summary` 必须带 `summary_source`（如 `SKILL.md:3 frontmatter.description`），\n空的要显式写 `null`（不许编）。"
+   "text": "### T-002#B-003\n节点摘要的来源可追溯\n\n`claimed` · @default\n\n【做什么】每个节点的 `summary` 必须带 `summary_source`（如 `SKILL.md:3 frontmatter.description`），\n空的要显式写 `null`（不许编）。"
+  },
+  {
+   "id": "T-002#B-004",
+   "type": "text",
+   "x": 40,
+   "y": 560,
+   "width": 300,
+   "height": 110,
+   "color": "1",
+   "text": "### T-002#B-004\n决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器\n\n`blocked` · @you\n\n【问题】`agent-skill-analysis`（Node ≥20，MIT，npm 有 `asa --json`）已经能出单 skill 的结构化 JSON\n（frontmatter/outline/files/refs/orphans/digest），字段与我们的契约同源。两条路：\n\n1. **依赖 asa**："
   },
   {
    "id": "T-003#B-001",
@@ -67,8 +87,8 @@
    "y": 40,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-003#B-001\n每层的选择数（fanout 分布 + 选项清单）\n\n`waiting` · @default\n\n【做什么】对每个 fanout>1 的节点：报该层的选项数与选项清单；全局给 fanout 分布直方图，\n并标出超出该层实测最优点的层（最优点来自 T-005，未跑时留空不猜）。\n\n【命令】`python3 scripts/weave.py audit <pack> --section fanout`"
+   "color": "4",
+   "text": "### T-003#B-001\n每层的选择数（fanout 分布 + 选项清单）\n\n`done` · @default\n\n【做什么】对每个 fanout>1 的节点：报该层的选项数与选项清单；全局给 fanout 分布直方图，\n并标出超出该层实测最优点的层（最优点来自 T-005，未跑时留空不猜）。\n\n【命令】`python3 scripts/weave.py audit <pack> --section fanout`"
   },
   {
    "id": "T-003#B-002",
@@ -114,7 +134,7 @@
    "id": "T-004#B-001",
    "type": "text",
    "x": 40,
-   "y": 430,
+   "y": 690,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -131,10 +151,20 @@
    "text": "### T-004#B-002\n改完自动重跑审计并出前后对照\n\n`waiting` · @default\n\n【做什么】`--apply` 之后自动重跑 T-003 全套，输出「前 → 后」对照表（fanout 分布、超限条数、\n孤儿数、近重复对数、常驻成本）。没有对照表 = 这次优化没有证据。"
   },
   {
+   "id": "T-004#B-003",
+   "type": "text",
+   "x": 1060,
+   "y": 40,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-004#B-003\nL1 收敛：把入口层条目压到上限内\n\n`claimed` · @default\n\n【做什么】按 layers 的实测做收敛方案（先出提案，--apply 才落盘）：\n① 44 个散技能多是工具轴（`skills/install-hermes-skills` 这类），按**两轴**归入类目：主语是软件/工具 → 类目\n按用途（install/maintain/troubleshoot…），主语是一类任"
+  },
+  {
    "id": "T-005#B-001",
    "type": "text",
    "x": 40,
-   "y": 560,
+   "y": 820,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -164,7 +194,7 @@
    "id": "T-006#B-001",
    "type": "text",
    "x": 1060,
-   "y": 40,
+   "y": 170,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -184,11 +214,11 @@
    "id": "T-006#B-003",
    "type": "text",
    "x": 1060,
-   "y": 170,
+   "y": 300,
    "width": 300,
    "height": 110,
    "color": "0",
-   "text": "### T-006#B-003\n第二个 pack 交叉验证（防过拟合）\n\n`waiting` · @default\n\n【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，\n证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。"
+   "text": "### T-006#B-003\n第二个 pack 交叉验证（防过拟合）\n\n`claimed` · @default\n\n【做什么】换一个形状不同的 pack（类目层级更深 / 技能更少 / 有大量 `references/`）跑一遍，\n证明报告不是只对 UsingHermes 成立。候选：`AgentSkill-DoingSAXS`、`Dream`、`AgentSkill-LabProject`。"
   },
   {
    "id": "T-007#B-001",
@@ -197,8 +227,8 @@
    "y": 820,
    "width": 300,
    "height": 110,
-   "color": "0",
-   "text": "### T-007#B-001\n提交本仓库：README / docs / plans 一起进版本\n\n`waiting` · @default\n\n【做什么】按决策块 T-001#B-001 的答案建远端（或不建）并提交推送。\n本仓库自身守同一套规矩：`plans/skillweave/` 随仓库提交（`git add plans/`），README 给一行\n`file:///Users/maxim/Repositories/Repo/SkillWeave/pla"
+   "color": "4",
+   "text": "### T-007#B-001\n提交本仓库：README / docs / plans 一起进版本\n\n`done` · @default\n\n【做什么】按决策块 T-001#B-001 的答案建远端（或不建）并提交推送。\n本仓库自身守同一套规矩：`plans/skillweave/` 随仓库提交（`git add plans/`），README 给一行\n`file:///Users/maxim/Repositories/Repo/SkillWeave/pla"
   },
   {
    "id": "T-007#B-002",
@@ -208,7 +238,7 @@
    "width": 300,
    "height": 110,
    "color": "0",
-   "text": "### T-007#B-002\n本仓库自己的分层披露自检\n\n`waiting` · @default\n\n【做什么】本仓库也是 skill pack 的一种形态，给自己留一条自检：\n`SKILL.md` 薄入口 + `references/` 下沉 + 无孤儿文档 + 体积极限，超限 exit 1。"
+   "text": "### T-007#B-002\n本仓库自己的分层披露自检\n\n`claimed` · @default\n\n【做什么】本仓库也是 skill pack 的一种形态，给自己留一条自检：\n`SKILL.md` 薄入口 + `references/` 下沉 + 无孤儿文档 + 体积极限，超限 exit 1。"
   },
   {
    "id": "T-007#B-003",
@@ -305,8 +335,8 @@
   },
   {
    "id": "e9",
-   "fromNode": "T-005#B-001",
-   "toNode": "T-005#B-002",
+   "fromNode": "T-003#B-001",
+   "toNode": "T-004#B-003",
    "fromSide": "right",
    "toSide": "left",
    "label": "",
@@ -315,7 +345,7 @@
   {
    "id": "e10",
    "fromNode": "T-005#B-001",
-   "toNode": "T-005#B-003",
+   "toNode": "T-005#B-002",
    "fromSide": "right",
    "toSide": "left",
    "label": "",
@@ -323,6 +353,15 @@
   },
   {
    "id": "e11",
+   "fromNode": "T-005#B-001",
+   "toNode": "T-005#B-003",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e12",
    "fromNode": "T-003#B-005",
    "toNode": "T-006#B-001",
    "fromSide": "right",
@@ -331,7 +370,7 @@
    "color": "6"
   },
   {
-   "id": "e12",
+   "id": "e13",
    "fromNode": "T-004#B-002",
    "toNode": "T-006#B-001",
    "fromSide": "right",
@@ -340,7 +379,7 @@
    "color": "6"
   },
   {
-   "id": "e13",
+   "id": "e14",
    "fromNode": "T-006#B-001",
    "toNode": "T-006#B-002",
    "fromSide": "right",
@@ -349,7 +388,7 @@
    "color": "6"
   },
   {
-   "id": "e14",
+   "id": "e15",
    "fromNode": "T-003#B-001",
    "toNode": "T-006#B-003",
    "fromSide": "right",
@@ -358,7 +397,7 @@
    "color": "6"
   },
   {
-   "id": "e15",
+   "id": "e16",
    "fromNode": "T-001#B-001",
    "toNode": "T-007#B-001",
    "fromSide": "right",
@@ -367,7 +406,7 @@
    "color": "6"
   },
   {
-   "id": "e16",
+   "id": "e17",
    "fromNode": "T-002#B-001",
    "toNode": "T-007#B-002",
    "fromSide": "right",
@@ -376,7 +415,7 @@
    "color": "6"
   },
   {
-   "id": "e17",
+   "id": "e18",
    "fromNode": "T-001#B-001",
    "toNode": "T-007#B-003",
    "fromSide": "right",
