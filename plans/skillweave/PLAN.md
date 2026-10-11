@@ -2,15 +2,19 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 8/28 块（29%） · 状态 `active` · 更新于 2026-10-11 14:04
+**进度** 9/33 块（27%） · 状态 `active` · 更新于 2026-10-11 14:07
 
 **参与方** 本人(human)
 
 ## 现在该谁动（NOW / NEXT）
 
-- `T-002#B-004` **决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器** — 待批准 · @you
+- `T-002#B-005` **可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）** — 待批准 · @default
 - `T-002#B-002` **可重建、可 diff** — 已认领 · @default
 - `T-002#B-003` **节点摘要的来源可追溯** — 已认领 · @default
+- `T-003#B-006` **内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积** — 已认领 · @default
+- `T-003#B-007` **内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥** — 已认领 · @default
+- `T-003#B-008` **内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数** — 已认领 · @default
+- `T-003#B-009` **修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」** — 已认领 · @default
 - `T-004#B-001` **四类动作的提案器（默认只出提案）** — 已认领 · @default
 - `T-004#B-003` **L1 收敛：把入口层条目压到上限内** — 已认领 · @default
 - `T-005#B-001` **判官输入生成器（候选只有 description）** — 已认领 · @default
@@ -30,11 +34,16 @@ flowchart LR
   T-002_B-002["B-002 可重建、可 diff"]
   T-002_B-003["B-003 节点摘要的来源可追溯"]
   T-002_B-004["B-004 决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器"]
+  T-002_B-005["B-005 可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）"]
   T-003_B-001["B-001 每层的选择数（fanout 分布 + 选项清单）"]
   T-003_B-002["B-002 节点体积与规范建议值对照"]
   T-003_B-003["B-003 孤儿文件与悬空引用"]
   T-003_B-004["B-004 近重复 / 互相抢题的节点"]
   T-003_B-005["B-005 成本报告：常驻成本 + 多出的调用数"]
+  T-003_B-006["B-006 内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积"]
+  T-003_B-007["B-007 内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥"]
+  T-003_B-008["B-008 内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数"]
+  T-003_B-009["B-009 修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」"]
   T-004_B-001["B-001 四类动作的提案器（默认只出提案）"]
   T-004_B-002["B-002 改完自动重跑审计并出前后对照"]
   T-004_B-003["B-003 L1 收敛：把入口层条目压到上限内"]
@@ -53,11 +62,15 @@ flowchart LR
   T-001_B-002 --> T-001_B-003
   T-002_B-001 --> T-002_B-002
   T-002_B-001 --> T-002_B-003
+  T-003_B-006 --> T-002_B-005
   T-002_B-002 --> T-003_B-001
   T-002_B-002 --> T-003_B-002
   T-002_B-002 --> T-003_B-003
   T-002_B-002 --> T-003_B-004
   T-002_B-002 --> T-003_B-005
+  T-002_B-001 --> T-003_B-007
+  T-002_B-001 --> T-003_B-008
+  T-002_B-001 --> T-003_B-009
   T-004_B-001 --> T-004_B-002
   T-003_B-001 --> T-004_B-003
   T-005_B-001 --> T-005_B-002
@@ -73,11 +86,11 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-003_B-001,T-007_B-001,T-007_B-003 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-004,T-003_B-001,T-007_B-001,T-007_B-003 done;
   classDef claimed stroke-width:1px;
-  class T-002_B-002,T-002_B-003,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
+  class T-002_B-002,T-002_B-003,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-003,T-005_B-001,T-006_B-003,T-007_B-002,T-008_B-001 claimed;
   classDef blocked stroke-width:1px;
-  class T-002_B-004 blocked;
+  class T-002_B-005 blocked;
   classDef waiting stroke-width:1px;
   class T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-004_B-002,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-008_B-002,T-008_B-003 waiting;
 ```
@@ -175,7 +188,7 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
     - 判据：抽 3 个节点（1 个有 frontmatter、1 个只有正文、1 个空文件）打印 `path / summary / summary_source`，
 三条都能在源文件里定位到那一行。
     - 依赖：T-002#B-001
-- [ ] `T-002#B-004` **决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器** _decision_ — 待批准 @you
+- [x] `T-002#B-004` **决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器** _decision_ — 已完成 @you
     - 做什么：【问题】`agent-skill-analysis`（Node ≥20，MIT，npm 有 `asa --json`）已经能出单 skill 的结构化 JSON
 （frontmatter/outline/files/refs/orphans/digest），字段与我们的契约同源。两条路：
 
@@ -187,8 +200,18 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 【现状】已按 2 实现并跑通（126 skills）。选 1 时只需替换 `analyze_skill()` 一个函数。
     - 判据：答案以原话落进本块的 run；若选 1，另开一块记「把 analyze_skill 换成 asa 适配器」并给出 Node 依赖的安装判据；
 若选 2，本块 done 并把「与 asa 的口径兼容靠 docs/contract.md §1 的字段名」写进 note。
+    - 产物：`docs/compare-tools.md`
+    - run 2026-10-11 14:07 you blocked→done 用户问「谁更准、谁更快、能否内化」。**实测对拍后定**（证据 docs/compare-tools.md）：① 结构数字三家一致（文件 56 / heading 89 / 行 1611 / token 差 <1%）→ 我的实现可信；② 准确性的差异都在语义判断上：asa 不误报示例路径但有真 broken 漏报（skill-tools 独立报出 scripts/reproduce_table1.sh、scripts/make_figure2.py 真缺失），我的引用抽取把示例路径也算进 broken（6 条里 4 条误报）、孤儿规则过严（44 条里绝大多数是 templates/*，只在 templates/README.md 被点名）；③ 效率：asa 冷 6.58s / 热 1.46s（单 skill），skill-tools 11.38s，claude-skills-cli 7.22s；SkillWeave 整个 pack 126 skill / 1941 节点 3.06s，纯 stdlib 离线。**内化方式 = 内化它们的知识与检查清单（无依赖），不引 Node/npm 硬依赖**；另留一个可选适配器 `--from-asa`。落地块见 T-003#B-006 ~ B-009。
+- [ ] `T-002#B-005` **可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）** _impl_ — 待批准 @default
+    - 做什么：【做什么】`weave.py tree <pack> --from-asa` —— 本机有 Node 时逐 skill 调
+`npx -y -p agent-skill-analysis asa <skill> --json`，用它的 `sha256`/`digest`/`license`/`readme` 补进节点；
+没装 Node 就整段跳过并打印一行说明。**不是必须路径**：默认仍是纯 stdlib。
+    - 判据：① 不带 `--from-asa` 时行为与现在完全一致（同 pack 的 tree.json 逐字节不变）；
+② 带参数时打印「补了 N 个 skill 的字段」，且抽查 1 个 skill 的 sha256 与 `shasum -a 256` 一致；
+③ 把 Node 从 PATH 摘掉再跑一次，应打印跳过说明且 exit 0。
+    - 依赖：T-003#B-006
 
-### T-003 分层披露审计：把每一层量出来 — 待排
+### T-003 分层披露审计：把每一层量出来 — 进行中
 @default
 - [x] `T-003#B-001` **每层的选择数（fanout 分布 + 选项清单）** _impl_ — 已完成 @default
     - 做什么：【做什么】对每个 fanout>1 的节点：报该层的选项数与选项清单；全局给 fanout 分布直方图，
@@ -226,6 +249,37 @@ python3 scripts/weave.py tree ~/Documents/AgentSkill/AgentSkill-UsingHermes --ou
 ② 索引/激活成本 = `SKILL.md` 总量与「按需读一个文件」多出的一次调用数估算。
     - 判据：在 AgentSkill-UsingHermes 上给出两组实测数字与算法说明（估算 token 的规则要写出来）。
     - 依赖：T-002#B-002
+- [ ] `T-003#B-006` **内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积** _impl_ — 已认领 @default
+    - 做什么：【做什么】把 `agent-skill-analysis` 有而我没有的字段补进树节点（纯 stdlib，不引依赖）：
+每文件 `sha256`；节点内容 `digest`（内容指纹，忽略 `metadata.version` 这类版本键 —— 用来做「可重建可 diff」的硬判据）；
+`license` / `readme` 检测；`size.byKind`（指令重量 vs 资源重量）；产物里写明 token 口径。
+字段名沿用 asa 的写法（`docs/similar-work.md` A1 / `docs/contract.md` §1），便于将来 `--from-asa` 对齐。
+    - 判据：在 UsingHermes 上重跑：① 同一 pack 连跑两次 `digest` 逐字节相同；② 改一个 `references/*.md` 后只有该 skill
+及其祖先的 digest 变；③ `sha256` 与 `shasum -a 256` 抽查 3 个文件一致；④ contract.md §1 的字段表补上这四个字段。
+- [ ] `T-003#B-007` **内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥** _impl_ — 已认领 @default
+    - 做什么：【做什么】把这批**纯文本规则**做成 audit 的一段（stdlib 即可），每条给命中行号：
+① 引用文件存在（同 T-003#B-003 的 broken，但要去掉示例误报）；② `SKILL.md` 估算 token 超 5000；
+③ BOM / 二进制内容；④ `name` 与目录名不一致；⑤ 硬编码绝对路径（`/Users/...`、`/home/...`、`C:\\`）；
+⑥ 内嵌密钥形状（`sk-`/`ghp_`/`AKIA`/长 base64 赋值）。⑤⑥ 是安全/可移植闸，命中即列出文件与行。
+    - 判据：在 UsingHermes 上跑一遍，逐条给出命中数（0 也要有一行实测）；对 ⑤⑥ 手工构造一个含 `/Users/x` 与一个
+`sk-` 假值的 fixture，断言两条都能命中（自检写进 `--self-test`）。
+    - 依赖：T-002#B-001
+- [ ] `T-003#B-008` **内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数** _impl_ — 已认领 @default
+    - 做什么：【做什么】在 L2 段给每个 skill 报四个数：正文里代码块数、章节（heading）数、>100 词的长段落数、
+`TODO`/`FIXME` 占位符数 —— 这正是 `references/split.md` 判断「该拆」的可量信号
+（`claude-skills-cli` 在同一个 skill 上报：56 代码示例 / 133 章节 / 12 长段落 / 有 TODO）。
+    - 判据：这四个数出现在 `layers` 的 L2 段（或 `layers.json` 的 L2 节点里）；在 research-paper-writing 上与
+`claude-skills-cli` 报的同一 skill 对照（数量级一致即可，口径差异写进报告）。
+    - 依赖：T-002#B-001
+- [ ] `T-003#B-009` **修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」** _impl_ — 已认领 @default
+    - 做什么：【做什么】对拍实测出的两处误报（`docs/compare-tools.md` §5）：
+① 引用抽取区分「示例」与「真引用」：代码围栏内出现的路径、以及演示用的 `` ``run.py`` `` 这类，
+标 `example`（不进 `broken`）；只有正文散文里指向真实文件的才算 declared。
+② 孤儿规则加「目录级点名」：`templates/README.md` 被点名 ⇒ 该目录下的模板算被点名（现状 44 条孤儿里绝大多数是 `templates/*`）。
+修完 broken 应从 6 降到 2（= skill-tools 独立报出的 `scripts/reproduce_table1.sh`、`scripts/make_figure2.py`），孤儿应显著下降。
+    - 判据：修前后两个数都实测贴出：broken 6 → 2（且剩的 2 条与 skill-tools 报的一致）；孤儿 44 → 实测值；
+`--self-test` 增加「围栏内示例路径不算 broken」的断言并通过。
+    - 依赖：T-002#B-001
 
 ### T-004 优化：按度量的结果改结构 — 进行中
 @default
@@ -358,12 +412,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 13:42` **agent** [task] 新增任务 T-007「仓库与交付」
-- `2026-10-11 13:42` **agent** [block] 新增块 T-007#B-001「提交本仓库：README / docs / plans 一起进版本」
-- `2026-10-11 13:42` **agent** [block] 新增块 T-007#B-002「本仓库自己的分层披露自检」
-- `2026-10-11 13:42` **agent** [block] 新增块 T-007#B-003「交付形态：纯 CLI 仓库，还是同时可安装的 skill」
-- `2026-10-11 13:59` **agent** [status] T-001#B-001: blocked → blocked（① 已答：公开仓库 → flmaximwang/SkillWeave（已建 + 推送）。② 交付形态未答，块保持待批准。）
-- `2026-10-11 13:59` **agent** [status] T-001#B-002: pending → done（contract.md：节点 schema + 三级披露（L1/L2/L3）定义 + caps 表 + 最小示例）
 - `2026-10-11 13:59` **agent** [status] T-001#B-003: pending → done（caps 表 = contract §4，每条带出处；第一层上限 20 沿用 Dream 的 MAX_FIRST_LAYER_SKILLS）
 - `2026-10-11 13:59` **agent** [status] T-002#B-001: pending → done（weave.py tree：AgentSkill-UsingHermes 实测 skills=126 / nodes=1941；抽 5 条 ref 边逐条回正文对行号，5/5 命中）
 - `2026-10-11 13:59` **agent** [status] T-003#B-001: pending → done（layers 子命令（三级披露）：L1 入口层 skills/ 摆出 69 项 = 散技能 52 + 类目 17，常驻 21302 字符 ≈ 6694 token，❌ 超上限 20；research/ 17、autonomous-ai-agents/ 15、productivity/ 13。另跑 Dream（2 项 ✅）与 AgentSkill-SoftwareDev（30 项 ❌）交叉验证）
@@ -378,6 +426,12 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-001「skills/skillweave/SKILL.md：第一层薄入口」
 - `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-002「references/：四类动作的做法（要语言模型的那几段）」
 - `2026-10-11 14:04` **agent** [block] 新增块 T-008#B-003「端到端：agent + CLI 走完一个真实 pack」
+- `2026-10-11 14:07` **agent** [status] T-002#B-004: blocked → done（用户问「谁更准、谁更快、能否内化」。**实测对拍后定**（证据 docs/compare-tools.md）：① 结构数字三家一致（文件 56 / heading 89 / 行 1611 / token 差 <1%）→ 我的实现可信；② 准确性的差异都在语义判断上：asa 不误报示例路径但有真 broken 漏报（skill-tools 独立报出 scripts/reproduce_table1.sh、scripts/make_figure2.py 真缺失），我的引用抽取把示例路径也算进 broken（6 条里 4 条误报）、孤儿规则过严（44 条里绝大多数是 templates/*，只在 templates/README.md 被点名）；③ 效率：asa 冷 6.58s / 热 1.46s（单 skill），skill-tools 11.38s，claude-skills-cli 7.22s；SkillWeave 整个 pack 126 skill / 1941 节点 3.06s，纯 stdlib 离线。**内化方式 = 内化它们的知识与检查清单（无依赖），不引 Node/npm 硬依赖**；另留一个可选适配器 `--from-asa`。落地块见 T-003#B-006 ~ B-009。）
+- `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-006「内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积」
+- `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-007「内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥」
+- `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-008「内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数」
+- `2026-10-11 14:07` **agent** [block] 新增块 T-003#B-009「修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」」
+- `2026-10-11 14:07` **agent** [block] 新增块 T-002#B-005「可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

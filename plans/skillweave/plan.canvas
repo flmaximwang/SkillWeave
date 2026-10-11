@@ -77,8 +77,18 @@
    "y": 560,
    "width": 300,
    "height": 110,
+   "color": "4",
+   "text": "### T-002#B-004\n决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器\n\n`done` · @you\n\n【问题】`agent-skill-analysis`（Node ≥20，MIT，npm 有 `asa --json`）已经能出单 skill 的结构化 JSON\n（frontmatter/outline/files/refs/orphans/digest），字段与我们的契约同源。两条路：\n\n1. **依赖 asa**："
+  },
+  {
+   "id": "T-002#B-005",
+   "type": "text",
+   "x": 380,
+   "y": 430,
+   "width": 300,
+   "height": 110,
    "color": "1",
-   "text": "### T-002#B-004\n决策：per-skill 分析吃 agent-skill-analysis(asa) 还是自带最小解析器\n\n`blocked` · @you\n\n【问题】`agent-skill-analysis`（Node ≥20，MIT，npm 有 `asa --json`）已经能出单 skill 的结构化 JSON\n（frontmatter/outline/files/refs/orphans/digest），字段与我们的契约同源。两条路：\n\n1. **依赖 asa**："
+   "text": "### T-002#B-005\n可选适配器：--from-asa（有 Node 时吃 asa 的 JSON 补字段）\n\n`blocked` · @default\n\n【做什么】`weave.py tree <pack> --from-asa` —— 本机有 Node 时逐 skill 调\n`npx -y -p agent-skill-analysis asa <skill> --json`，用它的 `sha256`/`digest`/`license`/`readme` 补进节点；"
   },
   {
    "id": "T-003#B-001",
@@ -131,10 +141,50 @@
    "text": "### T-003#B-005\n成本报告：常驻成本 + 多出的调用数\n\n`waiting` · @default\n\n【做什么】报两组数（Workday 报告的口径：分层披露提升检索质量、轻微增加延迟）：\n① 常驻成本 = 全部 `description` 的字节/估算 token（每个 agent 每次会话都要付的那份）；\n② 索引/激活成本 = `SKILL.md` 总量与「按需读一个文件」多出的一次调用数估算。"
   },
   {
-   "id": "T-004#B-001",
+   "id": "T-003#B-006",
    "type": "text",
    "x": 40,
    "y": 690,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-003#B-006\n内化 asa 的字段：sha256 / digest / license·readme 检测 / 按 kind 体积\n\n`claimed` · @default\n\n【做什么】把 `agent-skill-analysis` 有而我没有的字段补进树节点（纯 stdlib，不引依赖）：\n每文件 `sha256`；节点内容 `digest`（内容指纹，忽略 `metadata.version` 这类版本键 —— 用来做「可重建可 diff」的硬判据）；\n`license` / `rea"
+  },
+  {
+   "id": "T-003#B-007",
+   "type": "text",
+   "x": 380,
+   "y": 560,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-003#B-007\n内化 skill-tools 的检查：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥\n\n`claimed` · @default\n\n【做什么】把这批**纯文本规则**做成 audit 的一段（stdlib 即可），每条给命中行号：\n① 引用文件存在（同 T-003#B-003 的 broken，但要去掉示例误报）；② `SKILL.md` 估算 token 超 5000；\n③ BOM / 二进制内容；④ `name` 与目录名不一致；⑤ 硬编码绝对"
+  },
+  {
+   "id": "T-003#B-008",
+   "type": "text",
+   "x": 380,
+   "y": 690,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-003#B-008\n内化 claude-skills-cli 的量化告警：代码块 / 章节 / 长段落 / TODO 计数\n\n`claimed` · @default\n\n【做什么】在 L2 段给每个 skill 报四个数：正文里代码块数、章节（heading）数、>100 词的长段落数、\n`TODO`/`FIXME` 占位符数 —— 这正是 `references/split.md` 判断「该拆」的可量信号\n（`claude-skills-cli` 在同一个 skill 上报：56 代"
+  },
+  {
+   "id": "T-003#B-009",
+   "type": "text",
+   "x": 380,
+   "y": 820,
+   "width": 300,
+   "height": 110,
+   "color": "0",
+   "text": "### T-003#B-009\n修两个对拍暴露的 bug：示例引用误报 + 孤儿缺「目录级点名」\n\n`claimed` · @default\n\n【做什么】对拍实测出的两处误报（`docs/compare-tools.md` §5）：\n① 引用抽取区分「示例」与「真引用」：代码围栏内出现的路径、以及演示用的 `` ``run.py`` `` 这类，\n标 `example`（不进 `broken`）；只有正文散文里指向真实文件的才算 declared。\n② 孤儿规"
+  },
+  {
+   "id": "T-004#B-001",
+   "type": "text",
+   "x": 40,
+   "y": 820,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -144,7 +194,7 @@
    "id": "T-004#B-002",
    "type": "text",
    "x": 380,
-   "y": 430,
+   "y": 950,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -164,7 +214,7 @@
    "id": "T-005#B-001",
    "type": "text",
    "x": 40,
-   "y": 820,
+   "y": 950,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -174,7 +224,7 @@
    "id": "T-005#B-002",
    "type": "text",
    "x": 380,
-   "y": 560,
+   "y": 1080,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -184,7 +234,7 @@
    "id": "T-005#B-003",
    "type": "text",
    "x": 380,
-   "y": 690,
+   "y": 1210,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -224,7 +274,7 @@
    "id": "T-007#B-001",
    "type": "text",
    "x": 380,
-   "y": 820,
+   "y": 1340,
    "width": 300,
    "height": 110,
    "color": "4",
@@ -234,7 +284,7 @@
    "id": "T-007#B-002",
    "type": "text",
    "x": 380,
-   "y": 950,
+   "y": 1470,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -244,7 +294,7 @@
    "id": "T-007#B-003",
    "type": "text",
    "x": 380,
-   "y": 1080,
+   "y": 1600,
    "width": 300,
    "height": 110,
    "color": "4",
@@ -254,7 +304,7 @@
    "id": "T-008#B-001",
    "type": "text",
    "x": 40,
-   "y": 950,
+   "y": 1080,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -264,7 +314,7 @@
    "id": "T-008#B-002",
    "type": "text",
    "x": 380,
-   "y": 1210,
+   "y": 1730,
    "width": 300,
    "height": 110,
    "color": "0",
@@ -311,8 +361,8 @@
   },
   {
    "id": "e3",
-   "fromNode": "T-002#B-002",
-   "toNode": "T-003#B-001",
+   "fromNode": "T-003#B-006",
+   "toNode": "T-002#B-005",
    "fromSide": "right",
    "toSide": "left",
    "label": "",
@@ -321,7 +371,7 @@
   {
    "id": "e4",
    "fromNode": "T-002#B-002",
-   "toNode": "T-003#B-002",
+   "toNode": "T-003#B-001",
    "fromSide": "right",
    "toSide": "left",
    "label": "",
@@ -330,7 +380,7 @@
   {
    "id": "e5",
    "fromNode": "T-002#B-002",
-   "toNode": "T-003#B-003",
+   "toNode": "T-003#B-002",
    "fromSide": "right",
    "toSide": "left",
    "label": "",
@@ -339,7 +389,7 @@
   {
    "id": "e6",
    "fromNode": "T-002#B-002",
-   "toNode": "T-003#B-004",
+   "toNode": "T-003#B-003",
    "fromSide": "right",
    "toSide": "left",
    "label": "",
@@ -348,7 +398,7 @@
   {
    "id": "e7",
    "fromNode": "T-002#B-002",
-   "toNode": "T-003#B-005",
+   "toNode": "T-003#B-004",
    "fromSide": "right",
    "toSide": "left",
    "label": "",
@@ -356,6 +406,42 @@
   },
   {
    "id": "e8",
+   "fromNode": "T-002#B-002",
+   "toNode": "T-003#B-005",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e9",
+   "fromNode": "T-002#B-001",
+   "toNode": "T-003#B-007",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e10",
+   "fromNode": "T-002#B-001",
+   "toNode": "T-003#B-008",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e11",
+   "fromNode": "T-002#B-001",
+   "toNode": "T-003#B-009",
+   "fromSide": "right",
+   "toSide": "left",
+   "label": "",
+   "color": "6"
+  },
+  {
+   "id": "e12",
    "fromNode": "T-004#B-001",
    "toNode": "T-004#B-002",
    "fromSide": "right",
@@ -364,7 +450,7 @@
    "color": "6"
   },
   {
-   "id": "e9",
+   "id": "e13",
    "fromNode": "T-003#B-001",
    "toNode": "T-004#B-003",
    "fromSide": "right",
@@ -373,7 +459,7 @@
    "color": "6"
   },
   {
-   "id": "e10",
+   "id": "e14",
    "fromNode": "T-005#B-001",
    "toNode": "T-005#B-002",
    "fromSide": "right",
@@ -382,7 +468,7 @@
    "color": "6"
   },
   {
-   "id": "e11",
+   "id": "e15",
    "fromNode": "T-005#B-001",
    "toNode": "T-005#B-003",
    "fromSide": "right",
@@ -391,7 +477,7 @@
    "color": "6"
   },
   {
-   "id": "e12",
+   "id": "e16",
    "fromNode": "T-003#B-005",
    "toNode": "T-006#B-001",
    "fromSide": "right",
@@ -400,7 +486,7 @@
    "color": "6"
   },
   {
-   "id": "e13",
+   "id": "e17",
    "fromNode": "T-004#B-002",
    "toNode": "T-006#B-001",
    "fromSide": "right",
@@ -409,7 +495,7 @@
    "color": "6"
   },
   {
-   "id": "e14",
+   "id": "e18",
    "fromNode": "T-006#B-001",
    "toNode": "T-006#B-002",
    "fromSide": "right",
@@ -418,7 +504,7 @@
    "color": "6"
   },
   {
-   "id": "e15",
+   "id": "e19",
    "fromNode": "T-003#B-001",
    "toNode": "T-006#B-003",
    "fromSide": "right",
@@ -427,7 +513,7 @@
    "color": "6"
   },
   {
-   "id": "e16",
+   "id": "e20",
    "fromNode": "T-001#B-001",
    "toNode": "T-007#B-001",
    "fromSide": "right",
@@ -436,7 +522,7 @@
    "color": "6"
   },
   {
-   "id": "e17",
+   "id": "e21",
    "fromNode": "T-002#B-001",
    "toNode": "T-007#B-002",
    "fromSide": "right",
@@ -445,7 +531,7 @@
    "color": "6"
   },
   {
-   "id": "e18",
+   "id": "e22",
    "fromNode": "T-001#B-001",
    "toNode": "T-007#B-003",
    "fromSide": "right",
@@ -454,7 +540,7 @@
    "color": "6"
   },
   {
-   "id": "e19",
+   "id": "e23",
    "fromNode": "T-008#B-001",
    "toNode": "T-008#B-002",
    "fromSide": "right",
@@ -463,7 +549,7 @@
    "color": "6"
   },
   {
-   "id": "e20",
+   "id": "e24",
    "fromNode": "T-008#B-002",
    "toNode": "T-008#B-003",
    "fromSide": "right",
@@ -472,7 +558,7 @@
    "color": "6"
   },
   {
-   "id": "e21",
+   "id": "e25",
    "fromNode": "T-004#B-003",
    "toNode": "T-008#B-003",
    "fromSide": "right",
