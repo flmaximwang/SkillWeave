@@ -1,0 +1,184 @@
+{
+  "L1": {
+    "first_layer_categories": 2,
+    "first_layer_entries": 28,
+    "first_layer_loose_skills": 26,
+    "menu_entries": [
+      "skills/autonomous-ai-agents/",
+      "skills/diagnose-a-failed-hermes-update/",
+      "skills/dispatch-work-to-another-profile/",
+      "skills/hermes-browser-lane-repair/",
+      "skills/hermes-desktop-plugins/",
+      "skills/hermes-session-routing-forensics/",
+      "skills/hermes-themes/",
+      "skills/install-a-hermes-plugin/",
+      "skills/install-hermes-skills/",
+      "skills/load-external-skill-index/",
+      "skills/maintain-hermes-desktop-app/",
+      "skills/maintain-hermes-gateway/",
+      "skills/maintain-hermes-memory/",
+      "skills/maintain-hermes-models/",
+      "skills/maintain-hermes-node/",
+      "skills/maintain-hermes-profile/",
+      "skills/maintain-hermes-profile-skill-parity/",
+      "skills/maintain-hermes-profiles/",
+      "skills/maintain-hermes-skill-cards/",
+      "skills/maintain-hermes-skills/",
+      "skills/manage-global-heartbeat/",
+      "skills/manage-hermes-cron-jobs/",
+      "skills/productivity/",
+      "skills/recruit-learning-in-profile/",
+      "skills/recruit-learning-in-session/",
+      "skills/remove-a-hermes-plugin/",
+      "skills/remove-hermes-skills/",
+      "skills/update-hermes-skills/"
+    ],
+    "over_1024_chars": [],
+    "resident_chars": 11611,
+    "resident_est_tokens": 3310,
+    "skills": 39,
+    "skills_root": "skills/"
+  },
+  "L2": {
+    "counts_totals": {
+      "code_blocks": 183,
+      "long_paragraphs": 110,
+      "sections": 431,
+      "todos": 0
+    },
+    "counts_worst": [
+      {
+        "code_blocks": 3,
+        "id": "skills/manage-hermes-cron-jobs/",
+        "long_paragraphs": 10,
+        "sections": 14,
+        "todos": 0
+      },
+      {
+        "code_blocks": 2,
+        "id": "skills/maintain-hermes-profile/",
+        "long_paragraphs": 8,
+        "sections": 14,
+        "todos": 0
+      },
+      {
+        "code_blocks": 1,
+        "id": "skills/autonomous-ai-agents/hermes-profile-housekeeping/",
+        "long_paragraphs": 8,
+        "sections": 13,
+        "todos": 0
+      },
+      {
+        "code_blocks": 8,
+        "id": "skills/hermes-session-routing-forensics/",
+        "long_paragraphs": 5,
+        "sections": 15,
+        "todos": 0
+      },
+      {
+        "code_blocks": 5,
+        "id": "skills/recruit-learning-in-profile/",
+        "long_paragraphs": 5,
+        "sections": 10,
+        "todos": 0
+      }
+    ],
+    "max_many": [
+      {
+        "est_tokens": 4993,
+        "id": "skills/update-hermes-skills/",
+        "lines": 301
+      },
+      {
+        "est_tokens": 4928,
+        "id": "skills/maintain-hermes-profile/",
+        "lines": 287
+      },
+      {
+        "est_tokens": 4792,
+        "id": "skills/maintain-hermes-memory/",
+        "lines": 244
+      },
+      {
+        "est_tokens": 4547,
+        "id": "skills/install-hermes-skills/",
+        "lines": 255
+      },
+      {
+        "est_tokens": 4380,
+        "id": "skills/autonomous-ai-agents/hermes-profile-housekeeping/",
+        "lines": 253
+      }
+    ],
+    "over_limit": [],
+    "over_token": [],
+    "sibling_mentions_max": [
+      {
+        "id": "skills/autonomous-ai-agents/gateway-session-list/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/autonomous-ai-agents/hermes-community-extensions/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/autonomous-ai-agents/hermes-mcp-server-integration/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/autonomous-ai-agents/hermes-profile-authoring/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/autonomous-ai-agents/hermes-profile-configuration/",
+        "mentions": 0
+      }
+    ]
+  },
+  "L3": {
+    "broken": 25,
+    "bytes": 2888018,
+    "files": 149,
+    "largest": [
+      {
+        "bytes": 675049,
+        "kind": "asset",
+        "orphan": false,
+        "path": "assets/maintain-hermes-memory.architecture.html",
+        "sha256": "7c6fa3d585a55bd3decb6d4d8af8f01f6141d747b31f947db5fdc0a8a0d0ee9a"
+      },
+      {
+        "bytes": 667833,
+        "kind": "asset",
+        "orphan": false,
+        "path": "assets/recruit-learning-in-session.workflow.html",
+        "sha256": "60a271f350a926367c178f5aced683dd33792d3430ff3af795f49375d3d20901"
+      },
+      {
+        "bytes": 276567,
+        "kind": "asset",
+        "orphan": false,
+        "path": "assets/recruit-learning-in-session.workflow.png",
+        "sha256": "fa8434304c9673b81bde52dcc731d1e04da478568025df76089e4fd6a150d532"
+      },
+      {
+        "bytes": 234641,
+        "kind": "asset",
+        "orphan": false,
+        "path": "assets/maintain-hermes-memory.architecture.png",
+        "sha256": "8a1e404a349a100e8f1a53bf63a324073d3e77fcc26ea8431f1825c35c595f61"
+      },
+      {
+        "bytes": 38752,
+        "kind": "reference",
+        "orphan": false,
+        "path": "references/install-hermes-skills-from-github.md",
+        "sha256": "de2d86c91030fcbb1dab37e8899daf0746c460f96b962999ca653393e47baf4c"
+      }
+    ],
+    "orphans": 26
+  },
+  "member_mode": "git-tracked",
+  "pack": "AgentSkill-UsingHermes-skillweave",
+  "untracked_skill_dirs": []
+}

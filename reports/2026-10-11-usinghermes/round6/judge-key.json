@@ -1,0 +1,131 @@
+{
+  "candidates": [
+    "skills/autonomous-ai-agents/gateway-session-list",
+    "skills/autonomous-ai-agents/hermes-community-extensions",
+    "skills/autonomous-ai-agents/hermes-mcp-server-integration",
+    "skills/autonomous-ai-agents/hermes-profile-authoring",
+    "skills/autonomous-ai-agents/hermes-profile-configuration",
+    "skills/autonomous-ai-agents/hermes-profile-housekeeping",
+    "skills/autonomous-ai-agents/hermes-projects",
+    "skills/autonomous-ai-agents/hermes-pycache-cleanup",
+    "skills/autonomous-ai-agents/hermes-skill-card-maintenance",
+    "skills/autonomous-ai-agents/hermes-skills-management",
+    "skills/autonomous-ai-agents/hermes-source-hotfix",
+    "skills/autonomous-ai-agents/kimi-moonshot-brotli-fix",
+    "skills/diagnose-a-failed-hermes-update",
+    "skills/dispatch-work-to-another-profile",
+    "skills/hermes-browser-lane-repair",
+    "skills/hermes-desktop-plugins",
+    "skills/hermes-session-routing-forensics",
+    "skills/hermes-themes",
+    "skills/install-a-hermes-plugin",
+    "skills/install-hermes-skills",
+    "skills/load-external-skill-index",
+    "skills/maintain-hermes-desktop-app",
+    "skills/maintain-hermes-gateway",
+    "skills/maintain-hermes-memory",
+    "skills/maintain-hermes-models",
+    "skills/maintain-hermes-node",
+    "skills/maintain-hermes-profile",
+    "skills/maintain-hermes-profile-skill-parity",
+    "skills/maintain-hermes-profiles",
+    "skills/maintain-hermes-skill-cards",
+    "skills/maintain-hermes-skills",
+    "skills/manage-global-heartbeat",
+    "skills/manage-hermes-cron-jobs",
+    "skills/productivity/session-librarian",
+    "skills/recruit-learning-in-profile",
+    "skills/recruit-learning-in-session",
+    "skills/remove-a-hermes-plugin",
+    "skills/remove-hermes-skills",
+    "skills/update-hermes-skills"
+  ],
+  "pack": "AgentSkill-UsingHermes-skillweave",
+  "prompts": [
+    {
+      "gold": "skills/autonomous-ai-agents/hermes-mcp-server-integration",
+      "id": 1,
+      "kind": "should_trigger",
+      "text": "我想把公司内部的一个 MCP server 接到我的某个 Hermes profile 上，让那个 profile 能用它的工具。该改哪里、怎么验证接上了？"
+    },
+    {
+      "gold": "skills/maintain-hermes-profile",
+      "id": 2,
+      "kind": "should_trigger",
+      "text": "我这个 profile 里技能太多了，想一次性关掉十几个不常用的、再开几个新的，不想一个个点。"
+    },
+    {
+      "gold": "skills/diagnose-a-failed-hermes-update",
+      "id": 3,
+      "kind": "should_trigger",
+      "text": "Hermes Desktop 点 Update 之后退出码 2，重启完版本号也没变。怎么查？"
+    },
+    {
+      "gold": "skills/autonomous-ai-agents/hermes-pycache-cleanup",
+      "id": 4,
+      "kind": "should_trigger",
+      "text": "Hermes 自己更新完之后，某个命令一跑就报 ImportError，昨天还是好的。"
+    },
+    {
+      "gold": "skills/install-hermes-skills",
+      "id": 5,
+      "kind": "should_trigger",
+      "text": "我要装一个 GitHub 上别人写的 skill 到我的 profile 里，命令该怎么写？"
+    },
+    {
+      "gold": "skills/hermes-themes",
+      "id": 6,
+      "kind": "should_trigger",
+      "text": "我想给 Hermes 换个配色，自己写一个主题，把界面所有面板都刷成我的色板。"
+    },
+    {
+      "gold": "skills/manage-global-heartbeat",
+      "id": 7,
+      "kind": "should_trigger",
+      "text": "哪些对话挂着自动心跳？我想把其中一个从会话外面直接清掉。"
+    },
+    {
+      "gold": "skills/maintain-hermes-node",
+      "id": 8,
+      "kind": "should_not_trigger",
+      "text": "我这个 vite 项目本地构建特别慢，两分钟才能起来，怎么定位？"
+    },
+    {
+      "gold": "skills/autonomous-ai-agents/hermes-mcp-server-integration",
+      "id": 9,
+      "kind": "should_not_trigger",
+      "text": "我要用 Python 从零写一个 MCP server，暴露三个内部 API 给任意 MCP 客户端用。"
+    },
+    {
+      "gold": "skills/hermes-browser-lane-repair",
+      "id": 10,
+      "kind": "should_not_trigger",
+      "text": "我的 Mac 上 Chrome 一点图标就闪退，重装也没用。"
+    },
+    {
+      "gold": "skills/autonomous-ai-agents/hermes-profile-authoring",
+      "id": 11,
+      "kind": "near_confusion",
+      "text": "我想改我这个 profile 的 SOUL.md，把它的说话风格和身份定位调一下。"
+    },
+    {
+      "gold": "skills/autonomous-ai-agents/hermes-profile-configuration",
+      "id": 12,
+      "kind": "near_confusion",
+      "text": "我这个 profile 名字起得不好，想改名，改名之后哪些地方要跟着改？"
+    },
+    {
+      "gold": "skills/manage-hermes-cron-jobs",
+      "id": 13,
+      "kind": "near_confusion",
+      "text": "我有个每天定时跑的任务，想把它的投递目标从 A 频道换到 B 频道，顺便换个模型。"
+    },
+    {
+      "gold": "skills/autonomous-ai-agents/gateway-session-list",
+      "id": 14,
+      "kind": "near_confusion",
+      "text": "我想按 profile 看各个 gateway 现在是开着还是停了，怎么起停、怎么看状态？"
+    }
+  ],
+  "trunc": 57
+}

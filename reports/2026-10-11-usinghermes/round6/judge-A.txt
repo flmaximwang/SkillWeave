@@ -1,0 +1,15 @@
+P1 skills/autonomous-ai-agents/hermes-mcp-server-integration
+P2 skills/maintain-hermes-profile
+P3 skills/diagnose-a-failed-hermes-update
+P4 skills/autonomous-ai-agents/hermes-pycache-cleanup
+P5 skills/install-hermes-skills
+P6 skills/hermes-themes
+P7 skills/manage-global-heartbeat
+P8 none
+P9 none
+P10 none
+P11 skills/autonomous-ai-agents/hermes-profile-authoring
+P12 skills/autonomous-ai-agents/hermes-profile-configuration
+P13 skills/manage-hermes-cron-jobs
+P14 skills/autonomous-ai-agents/gateway-session-list
+DONE

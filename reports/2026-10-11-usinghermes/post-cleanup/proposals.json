@@ -1,0 +1,458 @@
+{
+  "count": 14,
+  "pack": "AgentSkill-UsingHermes-skillweave",
+  "proposals": [
+    {
+      "action": "改写触发词把两者分开（当前 sim_desc=0.52）：skills/autonomous-ai-agents/hermes-skills-management/ / skills/autonomous-ai-agents/hermes-community-extensions/",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/autonomous-ai-agents/hermes-skills-management/SKILL.md:1",
+        "~ skills/autonomous-ai-agents/hermes-community-extensions/SKILL.md:1"
+      ],
+      "evidence": {
+        "b_skill_sha256": "51374cf6fd2c1c829b99065529990aab554560c61b76e8f38f0bb8ac3e32a3df",
+        "layer": "skills/autonomous-ai-agents/",
+        "mechanical_rule": null,
+        "refcount": {
+          "skills/autonomous-ai-agents/hermes-community-extensions/": 1,
+          "skills/autonomous-ai-agents/hermes-skills-management/": 1
+        },
+        "same_names": false,
+        "sim_desc": 0.519,
+        "version": {
+          "skills/autonomous-ai-agents/hermes-community-extensions/": "1.0.0",
+          "skills/autonomous-ai-agents/hermes-skills-management/": "1.0.0"
+        }
+      },
+      "kind": "rewrite",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/autonomous-ai-agents/hermes-skills-management/SKILL.md:1 · skills/autonomous-ai-agents/hermes-community-extensions/SKILL.md:1"
+    },
+    {
+      "action": "改写触发词把两者分开（当前 sim_desc=0.65）：skills/autonomous-ai-agents/hermes-mcp-server-integration/ / skills/autonomous-ai-agents/hermes-profile-authoring/",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/autonomous-ai-agents/hermes-mcp-server-integration/SKILL.md:1",
+        "~ skills/autonomous-ai-agents/hermes-profile-authoring/SKILL.md:1"
+      ],
+      "evidence": {
+        "b_skill_sha256": "aa5dc8c26db9250fc317dd82312d93249efa4994c9ea9221c3b0930d7a6ec7a6",
+        "layer": "skills/autonomous-ai-agents/",
+        "mechanical_rule": null,
+        "refcount": {
+          "skills/autonomous-ai-agents/hermes-mcp-server-integration/": 2,
+          "skills/autonomous-ai-agents/hermes-profile-authoring/": 1
+        },
+        "same_names": false,
+        "sim_desc": 0.646,
+        "version": {
+          "skills/autonomous-ai-agents/hermes-mcp-server-integration/": "1.0.0",
+          "skills/autonomous-ai-agents/hermes-profile-authoring/": "1.0.0"
+        }
+      },
+      "kind": "rewrite",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/autonomous-ai-agents/hermes-mcp-server-integration/SKILL.md:1 · skills/autonomous-ai-agents/hermes-profile-authoring/SKILL.md:1"
+    },
+    {
+      "action": "改写触发词把两者分开（当前 sim_desc=0.72）：skills/autonomous-ai-agents/hermes-mcp-server-integration/ / skills/autonomous-ai-agents/hermes-profile-configuration/",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/autonomous-ai-agents/hermes-mcp-server-integration/SKILL.md:1",
+        "~ skills/autonomous-ai-agents/hermes-profile-configuration/SKILL.md:1"
+      ],
+      "evidence": {
+        "b_skill_sha256": "1ef957d33b4dff6746225aa760d0fad7be04a8148c3d59cfddd9fbc174e150a2",
+        "layer": "skills/autonomous-ai-agents/",
+        "mechanical_rule": null,
+        "refcount": {
+          "skills/autonomous-ai-agents/hermes-mcp-server-integration/": 2,
+          "skills/autonomous-ai-agents/hermes-profile-configuration/": 0
+        },
+        "same_names": false,
+        "sim_desc": 0.721,
+        "version": {
+          "skills/autonomous-ai-agents/hermes-mcp-server-integration/": "1.0.0",
+          "skills/autonomous-ai-agents/hermes-profile-configuration/": "1.0.0"
+        }
+      },
+      "kind": "rewrite",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/autonomous-ai-agents/hermes-mcp-server-integration/SKILL.md:1 · skills/autonomous-ai-agents/hermes-profile-configuration/SKILL.md:1"
+    },
+    {
+      "action": "改写触发词把两者分开（当前 sim_desc=0.56）：skills/autonomous-ai-agents/hermes-mcp-server-integration/ / skills/autonomous-ai-agents/hermes-projects/",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/autonomous-ai-agents/hermes-mcp-server-integration/SKILL.md:1",
+        "~ skills/autonomous-ai-agents/hermes-projects/SKILL.md:1"
+      ],
+      "evidence": {
+        "b_skill_sha256": "84f971588c5e69705d2e50840bcf2b5960641f097cf28819dc7f32684c658b5e",
+        "layer": "skills/autonomous-ai-agents/",
+        "mechanical_rule": null,
+        "refcount": {
+          "skills/autonomous-ai-agents/hermes-mcp-server-integration/": 2,
+          "skills/autonomous-ai-agents/hermes-projects/": 0
+        },
+        "same_names": false,
+        "sim_desc": 0.56,
+        "version": {
+          "skills/autonomous-ai-agents/hermes-mcp-server-integration/": "1.0.0",
+          "skills/autonomous-ai-agents/hermes-projects/": "1.0.0"
+        }
+      },
+      "kind": "rewrite",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/autonomous-ai-agents/hermes-mcp-server-integration/SKILL.md:1 · skills/autonomous-ai-agents/hermes-projects/SKILL.md:1"
+    },
+    {
+      "action": "改写触发词把两者分开（当前 sim_desc=0.60）：skills/autonomous-ai-agents/hermes-profile-authoring/ / skills/autonomous-ai-agents/hermes-profile-configuration/",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/autonomous-ai-agents/hermes-profile-authoring/SKILL.md:1",
+        "~ skills/autonomous-ai-agents/hermes-profile-configuration/SKILL.md:1"
+      ],
+      "evidence": {
+        "b_skill_sha256": "1ef957d33b4dff6746225aa760d0fad7be04a8148c3d59cfddd9fbc174e150a2",
+        "layer": "skills/autonomous-ai-agents/",
+        "mechanical_rule": null,
+        "refcount": {
+          "skills/autonomous-ai-agents/hermes-profile-authoring/": 1,
+          "skills/autonomous-ai-agents/hermes-profile-configuration/": 0
+        },
+        "same_names": false,
+        "sim_desc": 0.602,
+        "version": {
+          "skills/autonomous-ai-agents/hermes-profile-authoring/": "1.0.0",
+          "skills/autonomous-ai-agents/hermes-profile-configuration/": "1.0.0"
+        }
+      },
+      "kind": "rewrite",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/autonomous-ai-agents/hermes-profile-authoring/SKILL.md:1 · skills/autonomous-ai-agents/hermes-profile-configuration/SKILL.md:1"
+    },
+    {
+      "action": "改写触发词把两者分开（当前 sim_desc=0.72）：skills/autonomous-ai-agents/hermes-profile-authoring/ / skills/autonomous-ai-agents/hermes-projects/",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/autonomous-ai-agents/hermes-profile-authoring/SKILL.md:1",
+        "~ skills/autonomous-ai-agents/hermes-projects/SKILL.md:1"
+      ],
+      "evidence": {
+        "b_skill_sha256": "84f971588c5e69705d2e50840bcf2b5960641f097cf28819dc7f32684c658b5e",
+        "layer": "skills/autonomous-ai-agents/",
+        "mechanical_rule": null,
+        "refcount": {
+          "skills/autonomous-ai-agents/hermes-profile-authoring/": 1,
+          "skills/autonomous-ai-agents/hermes-projects/": 0
+        },
+        "same_names": false,
+        "sim_desc": 0.717,
+        "version": {
+          "skills/autonomous-ai-agents/hermes-profile-authoring/": "1.0.0",
+          "skills/autonomous-ai-agents/hermes-projects/": "1.0.0"
+        }
+      },
+      "kind": "rewrite",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/autonomous-ai-agents/hermes-profile-authoring/SKILL.md:1 · skills/autonomous-ai-agents/hermes-projects/SKILL.md:1"
+    },
+    {
+      "action": "改写触发词把两者分开（当前 sim_desc=0.59）：skills/autonomous-ai-agents/hermes-profile-housekeeping/ / skills/autonomous-ai-agents/hermes-profile-configuration/",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/autonomous-ai-agents/hermes-profile-housekeeping/SKILL.md:1",
+        "~ skills/autonomous-ai-agents/hermes-profile-configuration/SKILL.md:1"
+      ],
+      "evidence": {
+        "b_skill_sha256": "1ef957d33b4dff6746225aa760d0fad7be04a8148c3d59cfddd9fbc174e150a2",
+        "layer": "skills/autonomous-ai-agents/",
+        "mechanical_rule": null,
+        "refcount": {
+          "skills/autonomous-ai-agents/hermes-profile-configuration/": 1,
+          "skills/autonomous-ai-agents/hermes-profile-housekeeping/": 0
+        },
+        "same_names": false,
+        "sim_desc": 0.591,
+        "version": {
+          "skills/autonomous-ai-agents/hermes-profile-configuration/": "1.0.0",
+          "skills/autonomous-ai-agents/hermes-profile-housekeeping/": "1.0.0"
+        }
+      },
+      "kind": "rewrite",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/autonomous-ai-agents/hermes-profile-housekeeping/SKILL.md:1 · skills/autonomous-ai-agents/hermes-profile-configuration/SKILL.md:1"
+    },
+    {
+      "action": "改写触发词把两者分开（当前 sim_desc=0.52）：skills/autonomous-ai-agents/hermes-projects/ / skills/autonomous-ai-agents/hermes-profile-configuration/",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/autonomous-ai-agents/hermes-projects/SKILL.md:1",
+        "~ skills/autonomous-ai-agents/hermes-profile-configuration/SKILL.md:1"
+      ],
+      "evidence": {
+        "b_skill_sha256": "1ef957d33b4dff6746225aa760d0fad7be04a8148c3d59cfddd9fbc174e150a2",
+        "layer": "skills/autonomous-ai-agents/",
+        "mechanical_rule": null,
+        "refcount": {
+          "skills/autonomous-ai-agents/hermes-profile-configuration/": 0,
+          "skills/autonomous-ai-agents/hermes-projects/": 0
+        },
+        "same_names": false,
+        "sim_desc": 0.523,
+        "version": {
+          "skills/autonomous-ai-agents/hermes-profile-configuration/": "1.0.0",
+          "skills/autonomous-ai-agents/hermes-projects/": "1.0.0"
+        }
+      },
+      "kind": "rewrite",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/autonomous-ai-agents/hermes-projects/SKILL.md:1 · skills/autonomous-ai-agents/hermes-profile-configuration/SKILL.md:1"
+    },
+    {
+      "action": "入口层摆出 28 项 > 上限 20：把散技能按用途归入类目（类目名要人拍板）",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ git mv skills/diagnose-a-failed-hermes-update skills/<类目>/diagnose-a-failed-hermes-update",
+        "~ git mv skills/dispatch-work-to-another-profile skills/<类目>/dispatch-work-to-another-profile",
+        "~ git mv skills/hermes-browser-lane-repair skills/<类目>/hermes-browser-lane-repair",
+        "~ git mv skills/hermes-desktop-plugins skills/<类目>/hermes-desktop-plugins",
+        "~ git mv skills/hermes-session-routing-forensics skills/<类目>/hermes-session-routing-forensics",
+        "~ git mv skills/hermes-themes skills/<类目>/hermes-themes",
+        "…"
+      ],
+      "evidence": {
+        "L1_items": 28,
+        "cap": 20,
+        "loose": 26,
+        "token_buckets": {
+          "hermes-*": [
+            "hermes-browser-lane-repair",
+            "hermes-desktop-plugins",
+            "hermes-session-routing-forensics",
+            "hermes-themes",
+            "install-hermes-skills",
+            "manage-hermes-cron-jobs",
+            "remove-hermes-skills",
+            "update-hermes-skills"
+          ],
+          "maintain-*": [
+            "maintain-hermes-desktop-app",
+            "maintain-hermes-gateway",
+            "maintain-hermes-memory",
+            "maintain-hermes-models",
+            "maintain-hermes-node",
+            "maintain-hermes-profile",
+            "maintain-hermes-profile-skill-parity",
+            "maintain-hermes-profiles",
+            "maintain-hermes-skill-cards",
+            "maintain-hermes-skills"
+          ]
+        }
+      },
+      "kind": "group",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/（入口层）"
+    },
+    {
+      "action": "9925 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/autonomous-ai-agents/hermes-profile-housekeeping/SKILL.md:227-345 (9. \"I can't turn this skill off\" / \"why does it list N skills?\") → + skills/autonomous-ai-agents/hermes-profile-housekeeping/references/<slug>.md",
+        "~ skills/autonomous-ai-agents/hermes-profile-housekeeping/SKILL.md:412-458 (13. Adopting an external skill/plugin pack) → + skills/autonomous-ai-agents/hermes-profile-housekeeping/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 9925,
+        "lines": 542,
+        "sections_by_size": [
+          {
+            "chars": 10239,
+            "lines": "227-345",
+            "title": "9. \"I can't turn this skill off\" / \"why does it list N skills?\""
+          },
+          {
+            "chars": 3566,
+            "lines": "412-458",
+            "title": "13. Adopting an external skill/plugin pack"
+          },
+          {
+            "chars": 3121,
+            "lines": "82-132",
+            "title": "4. Back up, then delete, then verify"
+          },
+          {
+            "chars": 3116,
+            "lines": "492-531",
+            "title": "15. Editing a profile's own context files (SOUL.md, README.md)"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/autonomous-ai-agents/hermes-profile-housekeeping/SKILL.md:227"
+    },
+    {
+      "action": "6542 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/install-hermes-skills/SKILL.md:38-125 (Non-negotiables (user rules)) → + skills/install-hermes-skills/references/<slug>.md",
+        "~ skills/install-hermes-skills/SKILL.md:146-192 (Route by what you were handed) → + skills/install-hermes-skills/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 6542,
+        "lines": 341,
+        "sections_by_size": [
+          {
+            "chars": 8109,
+            "lines": "38-125",
+            "title": "Non-negotiables (user rules)"
+          },
+          {
+            "chars": 4893,
+            "lines": "146-192",
+            "title": "Route by what you were handed"
+          },
+          {
+            "chars": 2664,
+            "lines": "219-265",
+            "title": "The commands"
+          },
+          {
+            "chars": 1831,
+            "lines": "193-218",
+            "title": "Replacing an installed skill with a better bloodline"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/install-hermes-skills/SKILL.md:38"
+    },
+    {
+      "action": "8317 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/maintain-hermes-gateway/SKILL.md:184-233 (A bot that admits messages but never answers: the model-API path) → + skills/maintain-hermes-gateway/references/<slug>.md",
+        "~ skills/maintain-hermes-gateway/SKILL.md:447-479 (Answer shape (this user — non-negotiable)) → + skills/maintain-hermes-gateway/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 8317,
+        "lines": 504,
+        "sections_by_size": [
+          {
+            "chars": 4165,
+            "lines": "184-233",
+            "title": "A bot that admits messages but never answers: the model-API path"
+          },
+          {
+            "chars": 2590,
+            "lines": "447-479",
+            "title": "Answer shape (this user — non-negotiable)"
+          },
+          {
+            "chars": 2543,
+            "lines": "152-183",
+            "title": "A bot offline while the gateway process is up: read the per-platform state, not the pid"
+          },
+          {
+            "chars": 2522,
+            "lines": "325-369",
+            "title": "4c. Turning a platform OFF everywhere (the inverse task)"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/maintain-hermes-gateway/SKILL.md:184"
+    },
+    {
+      "action": "17134 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/maintain-hermes-profile/SKILL.md:252-426 (9. \"I can't turn this skill off\" / \"why does it list N skills?\") → + skills/maintain-hermes-profile/references/<slug>.md",
+        "~ skills/maintain-hermes-profile/SKILL.md:631-732 (16. Removing or restoring skills (three kinds, three mechanisms)) → + skills/maintain-hermes-profile/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 17134,
+        "lines": 874,
+        "sections_by_size": [
+          {
+            "chars": 14732,
+            "lines": "252-426",
+            "title": "9. \"I can't turn this skill off\" / \"why does it list N skills?\""
+          },
+          {
+            "chars": 8835,
+            "lines": "631-732",
+            "title": "16. Removing or restoring skills (three kinds, three mechanisms)"
+          },
+          {
+            "chars": 4508,
+            "lines": "151-209",
+            "title": "7. Report shape"
+          },
+          {
+            "chars": 3965,
+            "lines": "427-469",
+            "title": "10. Hub skills never update themselves, and one name can live in two homes"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/maintain-hermes-profile/SKILL.md:252"
+    },
+    {
+      "action": "5843 token > 5000：把最大的几个小节下沉到 references/，原位留一行转指",
+      "auto_applyable": false,
+      "diff_shape": [
+        "~ skills/recruit-learning-in-session/SKILL.md:88-135 (Phase 2 — Route every finding to its owner) → + skills/recruit-learning-in-session/references/<slug>.md",
+        "~ skills/recruit-learning-in-session/SKILL.md:36-87 (Phase 1 — Mine the session (read-only subagent)) → + skills/recruit-learning-in-session/references/<slug>.md"
+      ],
+      "evidence": {
+        "est_tokens": 5843,
+        "lines": 279,
+        "sections_by_size": [
+          {
+            "chars": 3750,
+            "lines": "88-135",
+            "title": "Phase 2 — Route every finding to its owner"
+          },
+          {
+            "chars": 3675,
+            "lines": "36-87",
+            "title": "Phase 1 — Mine the session (read-only subagent)"
+          },
+          {
+            "chars": 2892,
+            "lines": "195-208",
+            "title": "Failure modes"
+          },
+          {
+            "chars": 2702,
+            "lines": "162-194",
+            "title": "Variant — folding MEMORY.md wholesale into skills"
+          }
+        ]
+      },
+      "kind": "split",
+      "needs_model": true,
+      "paths": [],
+      "where": "skills/recruit-learning-in-session/SKILL.md:88"
+    }
+  ]
+}
