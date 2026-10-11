@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 40/40 块（100%） · 状态 `active` · 更新于 2026-10-11 23:23
+**进度** 41/41 块（100%） · 状态 `active` · 更新于 2026-10-11 23:44
 
 **参与方** 本人(human)
 
@@ -40,6 +40,7 @@ flowchart LR
   T-004_B-006["B-006 可选项：单入口形状（L1=1 入口 / L2=13 岛 / L3=39 篇）—— weave.py collapse"]
   T-004_B-007["B-007 在 UsingHermes 上真塌成单入口（L1=1 / L2=13 岛 / L3=39 篇），README 与标识符同步"]
   T-004_B-008["B-008 PlanWeave 第一步：weave.py prepare —— 可回滚、可对账的工作副本 + 推导 L1 + 两种形状的账"]
+  T-004_B-009["B-009 PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md"]
   T-005_B-001["B-001 判官输入生成器（候选只有 description）"]
   T-005_B-002["B-002 打分器：逐题矩阵 + 分组 + 校正随机分"]
   T-005_B-003["B-003 在真实 pack 上跑一轮并留档"]
@@ -82,7 +83,7 @@ flowchart LR
   T-008_B-002 --> T-008_B-003
   T-004_B-003 --> T-008_B-003
   classDef done stroke-width:1px;
-  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-004_B-004,T-004_B-005,T-004_B-006,T-004_B-007,T-004_B-008,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005,T-008_B-006 done;
+  class T-001_B-001,T-001_B-002,T-001_B-003,T-001_B-004,T-002_B-001,T-002_B-002,T-002_B-003,T-002_B-004,T-003_B-001,T-003_B-002,T-003_B-003,T-003_B-004,T-003_B-005,T-003_B-006,T-003_B-007,T-003_B-008,T-003_B-009,T-004_B-001,T-004_B-002,T-004_B-003,T-004_B-004,T-004_B-005,T-004_B-006,T-004_B-007,T-004_B-008,T-004_B-009,T-005_B-001,T-005_B-002,T-005_B-003,T-006_B-001,T-006_B-002,T-006_B-003,T-007_B-001,T-007_B-002,T-007_B-003,T-008_B-001,T-008_B-002,T-008_B-003,T-008_B-004,T-008_B-005,T-008_B-006 done;
   classDef cancelled stroke-width:1px;
   class T-002_B-005 cancelled;
 ```
@@ -396,6 +397,28 @@ single-entry.md（单入口的账与伞体）；README 的「文档树 / 分层�
 ② 当前 UsingHermes（自带 git、有 origin）→ 副本 0 个 remote、rev = c12b938。
 原目录两次都未被碰。self-test 加四条断言（非 git 输入也能被 git 管 / 有起点 commit / 原目录没被 git init / BASELINE.md 两种形状都写）。
     - 判据：非 git 输入也能得到由 git 管的副本；原目录不被碰；BASELINE.md 写出推导的 L1 与两种形状的账；self-test 全过
+- [x] `T-004#B-009` **PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md** _impl_ — 已完成 @default
+    - 做什么：用户纠正口径（第三次对齐）：**层 = 披露深度**，不是文件类型那套 —— L1 = 根文档 `SKILL.md`；
+L2 = L1 正文直接点到的文档；Ln+1 由 Ln 披露。且「一层摆出几项」指该层每份文档各自披露了几项（fanout）。
+「L1=1 / L2=13」在这个模型里就是：根 1 个，它披露 13 项。
+
+落地 `weave.py disclosure <pack>`：以每个 SKILL.md 为根（多入口=K 个根；单入口=1 个）把披露链递归展开到 L1..Ln，
+逐层报 fanout/体积；对**每一份**文档跑其类型的 cap（正文 <5000 tok/行数三档 · description ≤1024 字符 · 资源 ≤20000 B）；
+跨文档查孤儿（没人披露）、悬空（披露了不存在的）、根选择层近重复。产物 DISCLOSURE.md + disclosure.json；
+命令行自检「表行数 == 节点数」，每个文档恰好出现一次。
+
+实测两个形状（UsingHermes）：
+· 单入口：L1=1 → L2=13 → L3=39 → L4=118 · 到不了根 31 · 文档 202 · 超限 10 · 悬空 130 · external 389
+· 多入口：L1=39 → L2=118 → L3=3 · 到不了根 28 · 文档 188 · 超限 10 · 悬空 91 · external 388
+
+这条命令直接抓出三个口径 bug 并修掉：① 披露解析基准漏了「该 skill 目录」（references/*.md 里的路径常按 skill 根写，
+被误判悬空 479 条）；② 不可解析的路径一律当悬空 —— 应按 analyze_skill 同一口径把「非本 skill L1 目录 / 往包外走」记 external；
+③ **collapse 生成的 INDEX.md 指针写错了**（按伞根写，从 INDEX.md 自己所在目录解析不到），导致 39 篇正文在披露链里
+「到不了任何根」——已在 UsingHermes 真包修好 39 条（每条断言目标存在）、重生成 DISCLOSURE.md、合并推送 1cd96f5。
+
+契约 §0 重写为披露深度口径（旧的三级按文件类型那套作废），并记下两个形状的实测层数。
+未做（第二步的下半段）：逐层结论与命名、L1 提案、10 份超限与 130 条悬空的处理清单。
+    - 判据：层按披露深度算；每个文档恰好出现一次（表行数==节点数）；超限带超多少；两个形状的层数可复跑
 
 ### T-005 路由评测：框架无关、可校正随机 — 已完成
 @default
@@ -562,7 +585,6 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 
 ## 日志（近 20 条）
 
-- `2026-10-11 15:50` **agent** [status] T-004#B-003: pending → done（L1 收敛执行完并跑第 3 轮证明不退化：r3 与 r2 分组分完全一致（应触发 16/16、不应触发 4/4、近邻混淆 8/8，BoR 全 1.0），而 L1 从 69 项压到 24 项（散技能 52→0）。常驻成本保持 6548 token。三轮题面逐字未动、金标统一用 r3 打分（第 1/2 轮 picks 按 move 表机械映射，原件未改））
 - `2026-10-11 15:50` **agent** [block] 新增块 T-004#B-004「决策：L1 从 24 项再压到 ≤20 的路线」
 - `2026-10-11 16:07` **agent** [status] T-004#B-001: pending → done（提案器落地并验收：dry-run 出 27 条（split 14 / rewrite 11 / merge 1 / group 1），每条带 文件:行 + diff 形状 + 证据 JSON；只有 1 条 auto_applyable，其余 26 条标 needs_model=True。--apply + --apply-group 在临时副本上真落盘：执行 52 条机械动作、逐条自检 ✓、路径集合级对账 ✓（git diff --stat = 209 files changed）。合并方向规则改为「身份取被引用更多的一方、同名文件取 version 更高的一方」。改后 L1 68→24 项、常驻 6311→6298 token、悬空 46→46（新增 0）、孤儿 101→101。踩到并修掉三个真 bug：① 合并身份按 id 排序（尾斜杠让 tushare-data 排前面，方向反了）② git status --porcelain -z 里 rename 的旧路径字段没有状态前缀，被多切 3 字符 ③ 中文路径 NFD/NFC 差异导致对账全是假差异。另记：15:46 的快照被别的 agent 推进过（a2d79b6），我一度把一条既有悬空误记成归位造成的，重取同 HEAD 基线后确认新增悬空 0 —— 基准必须同 HEAD 取。）
 - `2026-10-11 16:12` **agent** [status] T-006#B-001: pending → done（完整报告落地（基准 b8298f4）：入口层 68 项、常驻 6443 token、L2 超限 16（token 单口径 14）、L3 468 文件/6.86MB、孤儿 104、悬空 46、同层 1621 对里 12 对>0.5（top 1.00 为 tushare 那对）、checks 命中 116、提案 27 条。每个数字都带产生它的命令，§11 是 8 条复现清单（命令→该看到什么），供 T-006#B-002 的复核子代理逐条重跑。）
@@ -582,6 +604,7 @@ hermes skills install "flmaximwang/SkillWeave/skills/skillweave" --category skil
 - `2026-10-11 22:30` **default** [block] 新增块 T-004#B-006「可选项：单入口形状（L1=1 入口 / L2=13 岛 / L3=39 篇）—— weave.py collapse」
 - `2026-10-11 22:51` **default** [block] 新增块 T-004#B-007「在 UsingHermes 上真塌成单入口（L1=1 / L2=13 岛 / L3=39 篇），README 与标识符同步」
 - `2026-10-11 23:23` **default** [block] 新增块 T-004#B-008「PlanWeave 第一步：weave.py prepare —— 可回滚、可对账的工作副本 + 推导 L1 + 两种形状的账」
+- `2026-10-11 23:44` **default** [block] 新增块 T-004#B-009「PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md」
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

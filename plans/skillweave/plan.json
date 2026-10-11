@@ -5,7 +5,7 @@
   "goal": "并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。",
   "status": "active",
   "created_at": "2026-10-11T13:42:06+08:00",
-  "updated_at": "2026-10-11T23:23:22+08:00",
+  "updated_at": "2026-10-11T23:44:31+08:00",
   "cadence": {
     "digest_hours": 6,
     "quiet_hours": "23:00-08:00"
@@ -836,6 +836,27 @@
           "feedback": "",
           "exec": {},
           "status_since": "2026-10-11T23:23:22+08:00",
+          "runs": []
+        },
+        {
+          "id": "T-004#B-009",
+          "title": "PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md",
+          "kind": "impl",
+          "status": "done",
+          "owner": "default",
+          "doc": "用户纠正口径（第三次对齐）：**层 = 披露深度**，不是文件类型那套 —— L1 = 根文档 `SKILL.md`；\nL2 = L1 正文直接点到的文档；Ln+1 由 Ln 披露。且「一层摆出几项」指该层每份文档各自披露了几项（fanout）。\n「L1=1 / L2=13」在这个模型里就是：根 1 个，它披露 13 项。\n\n落地 `weave.py disclosure <pack>`：以每个 SKILL.md 为根（多入口=K 个根；单入口=1 个）把披露链递归展开到 L1..Ln，\n逐层报 fanout/体积；对**每一份**文档跑其类型的 cap（正文 <5000 tok/行数三档 · description ≤1024 字符 · 资源 ≤20000 B）；\n跨文档查孤儿（没人披露）、悬空（披露了不存在的）、根选择层近重复。产物 DISCLOSURE.md + disclosure.json；\n命令行自检「表行数 == 节点数」，每个文档恰好出现一次。\n\n实测两个形状（UsingHermes）：\n· 单入口：L1=1 → L2=13 → L3=39 → L4=118 · 到不了根 31 · 文档 202 · 超限 10 · 悬空 130 · external 389\n· 多入口：L1=39 → L2=118 → L3=3 · 到不了根 28 · 文档 188 · 超限 10 · 悬空 91 · external 388\n\n这条命令直接抓出三个口径 bug 并修掉：① 披露解析基准漏了「该 skill 目录」（references/*.md 里的路径常按 skill 根写，\n被误判悬空 479 条）；② 不可解析的路径一律当悬空 —— 应按 analyze_skill 同一口径把「非本 skill L1 目录 / 往包外走」记 external；\n③ **collapse 生成的 INDEX.md 指针写错了**（按伞根写，从 INDEX.md 自己所在目录解析不到），导致 39 篇正文在披露链里\n「到不了任何根」——已在 UsingHermes 真包修好 39 条（每条断言目标存在）、重生成 DISCLOSURE.md、合并推送 1cd96f5。\n\n契约 §0 重写为披露深度口径（旧的三级按文件类型那套作废），并记下两个形状的实测层数。\n未做（第二步的下半段）：逐层结论与命名、L1 提案、10 份超限与 130 条悬空的处理清单。",
+          "input": "",
+          "output": "",
+          "command": "",
+          "done_when": [
+            "层按披露深度算；每个文档恰好出现一次（表行数==节点数）；超限带超多少；两个形状的层数可复跑"
+          ],
+          "artifacts": [],
+          "deps": [],
+          "review_of": "",
+          "feedback": "",
+          "exec": {},
+          "status_since": "2026-10-11T23:44:31+08:00",
           "runs": []
         }
       ],
@@ -2083,7 +2104,14 @@
       "kind": "block",
       "text": "新增块 T-004#B-008「PlanWeave 第一步：weave.py prepare —— 可回滚、可对账的工作副本 + 推导 L1 + 两种形状的账」",
       "ref": "T-004#B-008"
+    },
+    {
+      "at": "2026-10-11T23:44:31+08:00",
+      "actor": "default",
+      "kind": "block",
+      "text": "新增块 T-004#B-009「PlanWeave 第二步：披露链递归（层=披露深度）+ 逐文档体检 → DISCLOSURE.md」",
+      "ref": "T-004#B-009"
     }
   ],
-  "rev": "d7fd87fabcf8"
+  "rev": "804e4f1f583e"
 }
