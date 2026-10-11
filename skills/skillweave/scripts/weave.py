@@ -1694,7 +1694,7 @@ def cmd_disclosure(root, out):
          "不是「按文件类型分三级」那套。", "",
          f"- 根：**{len(roots)} 个**（每个 skill 的 `SKILL.md` 是一个根；1 个 = 单入口形状）",
          f"- 文档节点：**{len(nodes)} 份** · 层数：**{len([x for x in levels if x is not None])}**",
-         f"- 超限：**{len(over_all)}** 份 · 孤儿（没人披露）：**{len(orphan_all)}** · "
+         f"- 超限：**{len(over_all)}** 份 · 到不了根：**{len(orphan_all)}** 份 · "
          f"悬空引用：**{len(broken)}** 条 · 外部引用（不算披露）：**{len(external)}** 条",
          f"- 根选择层近重复（Jaccard≥0.5·靠 description 选根才算）：**{len(dup)}** 对", ""]
     for d in levels:
@@ -1742,10 +1742,10 @@ def cmd_disclosure(root, out):
                    "over": over_all, "orphans": orphan_all, "root_near_dup": dup},
                   f, ensure_ascii=False, indent=1, sort_keys=True)
     assert rows == len(nodes), f"对账失败：表行数 {rows} != 节点数 {len(nodes)}"
-    print(f"[disclosure] 根 {len(roots)} 个 · 层 " +
-          " → ".join(f"L{d}={len(lv[d])}" if d is not None else f"到不了={len(lv[d])}" for d in levels) +
-          f" · 文档 {len(nodes)} 份（表行数 {rows} 对账 ✅）· 超限 {len(over_all)} · 孤儿 {len(orphan_all)} · "
-          f"悬空 {len(broken)} · 外部 {len(external)}")
+    print(f"[disclosure] 根 {len(roots)} 个（=形状）· 层 " +
+          " → ".join(f"L{d}={len(lv[d])}" if d is not None else f"未分层={len(lv[d])}" for d in levels) +
+          f" · 文档 {len(nodes)} 份（表行数 {rows} 对账 ✅）· 超限 {len(over_all)} · "
+          f"到不了根 {len(orphan_all)} · 悬空 {len(broken)} · external {len(external)}")
     print(f"[disclosure] 出: {md}")
     return 0
 
