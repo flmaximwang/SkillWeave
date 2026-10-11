@@ -31,8 +31,10 @@ import tempfile
 import unicodedata
 
 FENCE = ("```", "~~~")
+# 路径字符集含非 ASCII：包里的文件名可能是中文（实测 Loomerto 的段落文件），
+# 只认 ASCII 会让这些文件被判成「到不了根」——那是工具的盲点，不是包的问题。
 PATH_RE = re.compile(
-    r"[A-Za-z0-9_][A-Za-z0-9_./-]*\.(?:md|markdown|py|sh|bash|js|ts|json|ya?ml|txt|csv|tsv|toml|ini|cfg|png|jpe?g|svg|gif|html|pdf)\b")
+    r"(?:[A-Za-z0-9_./-]|[\u0080-\uffff])+\.(?:md|markdown|py|sh|bash|js|ts|json|ya?ml|txt|csv|tsv|toml|ini|cfg|png|jpe?g|svg|gif|html|pdf)\b")
 SKIP_DIRS = {".git", ".github", "node_modules", "__pycache__", ".venv", "venv"}
 SKIP_FILES = {".DS_Store"}
 SCRIPT_EXT = {".py", ".sh", ".bash", ".js", ".ts", ".rb", ".pl"}
@@ -1597,6 +1599,18 @@ def _doc_nodes(skills, root):
     return nodes
 
 
+def nearest_skill_dir(root, rel):
+    """从某份文档出发向上找最近的含 `SKILL.md` 的目录，返回绝对路径；找不到返回 None。
+    用途：单入口形状下正文住在 `references/<岛>/<skill>/`，里面写 `references/x.md` 是按**它自己的根**写的。"""
+    d = os.path.dirname(rel)
+    while True:
+        if d and os.path.isfile(os.path.join(root, d, "SKILL.md")):
+            return os.path.join(root, d)
+        if not d:
+            return None
+        d = os.path.dirname(d)
+
+
 def _doc_edges(root, nodes, broken, external):
     """边 = 披露：一份文档正文里**真实点到**的另一份（先按该文件所在目录、再按 pack 根解析）。
     口径与 `analyze_skill` 一致：URL、围栏里的路径、没有目录部分的裸文件名都不算披露。"""
@@ -1607,14 +1621,19 @@ def _doc_edges(root, nodes, broken, external):
         text = read_text(os.path.join(root, p))
         fenced = fence_lines(text)
         for target, line in extract_declared_refs(text, p):
-            t = target.lstrip("./")
+            raw = target
+            t = target[2:] if target.startswith("./") else target   # 只去一个前导 `./`
             bare = "/" not in t and t != "SKILL.md"
             if bare or line in fenced:
                 continue
             skill_dir = os.path.join(root, n["skill"])
             for cand in (os.path.normpath(os.path.join(root, os.path.dirname(p), t)),
                          os.path.normpath(os.path.join(skill_dir, t)),
+                         # 最近的 SKILL.md 所在目录：嵌套 skill 的相对引用是按**它自己的根**写的
+                         os.path.normpath(os.path.join(nearest_skill_dir(root, p) or "\0none", t)),
                          os.path.normpath(os.path.join(root, t))):
+                if cand is None:
+                    continue
                 if not cand.startswith(root):
                     continue                  # 指出 pack 外的，不算本 pack 的披露
                 rel = os.path.relpath(cand, root)
@@ -1627,11 +1646,11 @@ def _doc_edges(root, nodes, broken, external):
             else:
                 # 与 `analyze_skill` 同一口径：非本 skill 的 L1 目录（references/scripts/assets/templates）
                 # 或往包外走的（`../`），算 **external**（正文里提到的外部文件），不是悬空。
-                if t.startswith(("../", "/")) or not t.startswith(("references/", "scripts/",
-                                                                   "assets/", "templates/")):
-                    external.append((p, t, line))
+                if raw.startswith(("../", "/")) or not t.startswith(("references/", "scripts/",
+                                                                     "assets/", "templates/")):
+                    external.append((p, raw, line))
                 else:
-                    broken.append((p, t, line))
+                    broken.append((p, raw, line))
     return out
 
 
@@ -2801,6 +2820,32 @@ def self_test():
         dm = open(os.path.join(out8, "DISCLOSURE.md"), encoding="utf-8").read()
         assert "L1（1 份）" in dm and "口径：**层 = 披露深度**" in dm, dm[:200]
         assert dj["levels"].get("2"), "demo 的 references/guide.md 应该在 L2"    # guide.md 被点名
+        # 口径：中文文件名要能被认作披露（实测 Loomerto 的段落文件是中文名，只认 ASCII 会误判成到不了根）
+        _cjk = os.path.join(os.path.dirname(os.path.join(skilldir, "x")), "references", "中文说明.md")
+        with open(_cjk, "w") as f:
+            f.write("中文文件名\n")
+        with open(os.path.join(skilldir, "SKILL.md"), "a") as f:
+            f.write("另见 `references/中文说明.md`。\n")
+        _oc = os.path.join(tmp, "o-cjk")
+        assert cmd_disclosure(pack, _oc) == 0
+        _dc = json.load(open(os.path.join(_oc, "disclosure.json"), encoding="utf-8"))
+        assert "notes/demo/references/中文说明.md" in _dc["nodes"], "中文文件名该被认成节点"
+        assert "notes/demo/references/中文说明.md" not in _dc["orphans"], "中文文件名该能被披露（不是到不了根）"
+        # 口径：嵌套 skill 里写的 `references/x.md` 按**它自己的根**解析
+        _n = os.path.join(skilldir, "references", "nested")
+        os.makedirs(_n, exist_ok=True)
+        with open(os.path.join(_n, "SKILL.md"), "w") as f:
+            f.write("---\nname: nested\ndescription: 嵌套样例。\n---\n\n见 `references/leaf.md`。\n")
+        os.makedirs(os.path.join(_n, "references"), exist_ok=True)
+        with open(os.path.join(_n, "references", "leaf.md"), "w") as f:
+            f.write("leaf\n")
+        _on = os.path.join(tmp, "o-nested")
+        assert cmd_disclosure(pack, _on) == 0
+        _dn = json.load(open(os.path.join(_on, "disclosure.json"), encoding="utf-8"))
+        _leaf = "notes/demo/references/nested/references/leaf.md"
+        assert _leaf not in _dn["broken"], "嵌套 skill 里的 `references/x.md` 该按它自己的根解析，不该算悬空"
+        assert _dn["edges"].get("notes/demo/references/nested/SKILL.md", {}).get(_leaf), \
+            "嵌套 skill 的披露边该连到它自己目录下的文件"
         _d8 = json.load(open(os.path.join(out8, "disclosure.json"), encoding="utf-8"))
         assert _d8["external"], "fixture 里放了一条包外引用，external 不该是空的"
         todo_md = os.path.join(out8, "TODO.md")
