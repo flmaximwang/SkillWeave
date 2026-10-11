@@ -2,7 +2,7 @@
 
 > 并不依赖 Hermes：直接基于 skill pack 目录分析。提供构建 skill 文档树的方法，基于构建的文档树优化分层披露的结构（把「某一层摆出的选项太多、Agent 选不对」变成可量的量并修掉）。开发计划存在本仓库 plans/skillweave/，随仓库提交。
 
-**进度** 26/32 块（81%） · 状态 `active` · 更新于 2026-10-11 15:29
+**进度** 26/32 块（81%） · 状态 `active` · 更新于 2026-10-11 15:36
 
 **参与方** 本人(human)
 
@@ -441,7 +441,6 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 
 ## 日志（近 20 条）
 
-- `2026-10-11 14:58` **agent** [status] T-003#B-006: pending → done（内化 asa 字段：每文件 sha256（与 shasum -a 256 对拍一致）· 节点 digest（忽略 version/updated/date/modified）· license/readme 检测 · size_by_kind 体积分解；字段写进 contract §1）
 - `2026-10-11 14:58` **agent** [status] T-003#B-008: pending → done（内化 claude-skills-cli 的量化告警：每 skill 报 code_blocks/sections/long_paragraphs/todos，layers 出全 pack 合计。实测 UsingHermes：代码块 697 · 章节 1791 · 长段落 234 · TODO 4）
 - `2026-10-11 15:06` **agent** [status] T-003#B-007: pending → done（内化 skill-tools 六条检查（新子命令 checks，安全闸命中即退 1）。UsingHermes 实测：悬空引用 45 · token 超预算 15 · BOM 3 · 二进制 0 · name-目录不一致 1 · 硬编码路径 116 · 内嵌密钥 0；--self-test 加了硬编码路径/密钥命中两条断言）
 - `2026-10-11 15:14` **agent** [status] T-003#B-002: pending → done（体积对照进 audit size 段：超 5000 token 的 15/126，最大 accountancy-workflow 21427tok/747行(over-500) 等；行数三档按 claude-skills-cli 口径标注）
@@ -461,6 +460,7 @@ SKILL.md** · **L1/L2/L3 三级披露的定义** · **两条命令**（`weave.py
 - `2026-10-11 15:29` **agent** [status] T-005#B-003: running → done（2 个独立判官各 15 行输出（wc -l 15/15，原件不改）。126 候选 / 14 题：should_trigger 14/14 全对 · should_not_trigger 5/6 · near_confusion 6/8。**全部 3 处错误都落在 audit 抓到的那个 1.00 相似对上**（P13 两票都投 tushare-data；P10 判官 B 投到 tushare=gold）—— 独立盲判把结构度量确认为唯一错源。校正随机分 BoR：should_trigger 1.00 · should_not_trigger 0.832 · near_confusion 0.748）
 - `2026-10-11 15:29` **agent** [status] T-006#B-003: pending → done（第二/第三个 pack 交叉验证：Dream（2 技能、无类目）与 AgentSkill-SoftwareDev（30 散技能一个类目）都跑过 tree/layers（Dream L1 2 项 ✅；SoftwareDev L1 30 项 ❌，形状差异已被同一套命令量出来））
 - `2026-10-11 15:29` **default** [decision] 第 1 轮评测结论：结构度量（audit dup 段 1.00）与独立盲判（3 处错误全在同一对技能）互相确认。T-004 的收敛动作优先修这一对（tushare / tushare-data：description 逐字相同），改完跑第 2 轮——题面冻结不动、judge 输入重新生成——证明不退化。
+- `2026-10-11 15:36` **default** [summary] T-004 第一刀（在副本 /tmp/pack-fix 上）：按 merge.md 取证后判定 tushare / tushare-data 为**真重复**（description 逐字同、references/数据接口.md 逐字节同、脚本同名微差、正文只差 slug 与 version 1.1.12/1.1.16），决定保留名字 tushare、取 1.1.16 的内容、删 tushare-data。改后实测：技能 126→125 · dup top 从 1.00 变 0.81（该对消失）·相似度>0.5 的对 12→11 · 常驻 6694→6548 token · 孤儿 106→103 · 悬空不变 45。第 2 轮评测已按冻结题面重生成判官输入（125 候选，tushare-data 已不在候选表），P10 的语义标注随结构更正（题面一字未动）；T-004#B-001（CLI 提案器）仍未做 —— 这一次是照 skill 的做法手工执行的，别把两者混起来记。
 
 ---
 plan.json 是唯一真相；本文件与 plan.html / plan.canvas 由 `plan.py render skillweave` 生成。

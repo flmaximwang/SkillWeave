@@ -1,0 +1,92 @@
+{
+  "_note": "第 2 轮：题面与 r1 **逐字相同**；只有 P10 的**语义标注**随结构变化更正（tushare-data 已并入 tushare，原来它是诱饵、现在 tushare 就是正确答案）。判官 pick 一字未动，题面一字未动。",
+  "prompts": [
+    {
+      "id": 1,
+      "kind": "should_trigger",
+      "gold": "skills/install-hermes-skills",
+      "text": "我想把一个 GitHub 上的 skill 仓库装进这个 agent，怎么装、装完怎么确认它真的生效了？"
+    },
+    {
+      "id": 2,
+      "kind": "should_trigger",
+      "gold": "skills/maintain-hermes-gateway",
+      "text": "gateway 重启之后 bot 在群里不说话了，怎么排查？"
+    },
+    {
+      "id": 3,
+      "kind": "should_trigger",
+      "gold": "skills/research/research-paper-writing",
+      "text": "我要把实验结果写成一篇投 NeurIPS 的论文，从实验设计到投稿的流程该怎么走？"
+    },
+    {
+      "id": 4,
+      "kind": "should_trigger",
+      "gold": "skills/office/pptx",
+      "text": "帮我把这份报告做成 pptx，要能改的那种。"
+    },
+    {
+      "id": 5,
+      "kind": "should_trigger",
+      "gold": "skills/creative/comfyui",
+      "text": "本机 ComfyUI 想换一个基模出图，权重和 LoRA 怎么配？"
+    },
+    {
+      "id": 6,
+      "kind": "should_trigger",
+      "gold": "skills/dispatch-work-to-another-profile",
+      "text": "有件事我想让另一个 profile 去做（它那边有对应的工具），怎么把活派过去？"
+    },
+    {
+      "id": 7,
+      "kind": "should_trigger",
+      "gold": "skills/load-external-skill-index",
+      "text": "先别装，我只想看看某个 skill 仓库里都有什么技能。"
+    },
+    {
+      "id": 8,
+      "kind": "should_not_trigger",
+      "gold": "skills/office/pptx",
+      "expect_pick": "skills/office/docx",
+      "text": "帮我把这份报告做成 Word 文档，要能改的那种。"
+    },
+    {
+      "id": 9,
+      "kind": "should_not_trigger",
+      "gold": "skills/maintain-hermes-gateway",
+      "expect_pick": "skills/install-hermes-skills",
+      "text": "这个 skill 仓库里的技能装进 agent 之后，怎么确认安装状态是最新的？"
+    },
+    {
+      "id": 10,
+      "kind": "should_trigger",
+      "gold": "skills/research/tushare",
+      "text": "帮我查一下最近哪个板块最强，把行情数据导出一份。",
+      "_change": "原 kind=should_not_trigger/gold=tushare（诱饵，正确答案 tushare-data）；合并后 tushare 即正确答案"
+    },
+    {
+      "id": 11,
+      "kind": "near_confusion",
+      "gold": "skills/accountancy/boc-credit-statement",
+      "text": "中国银行信用卡账单的 PDF 想解析成结构化数据，怎么处理？"
+    },
+    {
+      "id": 12,
+      "kind": "near_confusion",
+      "gold": "skills/ccb-statement",
+      "text": "建行那个流水文件也要解析，格式和中行不一样，有对应的办法吗？"
+    },
+    {
+      "id": 13,
+      "kind": "near_confusion",
+      "gold": "skills/research/tushare",
+      "text": "用 Tushare 拉 A 股数据做研究，我想按自然语言提问让它帮我取数。"
+    },
+    {
+      "id": 14,
+      "kind": "near_confusion",
+      "gold": "skills/boc-statement",
+      "text": "中国银行借记卡的流水想解析成表格，列结构和信用卡那个不一样。"
+    }
+  ]
+}
