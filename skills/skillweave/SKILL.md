@@ -1,6 +1,6 @@
 ---
 name: skillweave
-description: "当要整理或优化一个 skill pack（含 1..N 个 skill 的仓库/目录）的分层披露时用：先构建文档树，再量各级摆出的选项数（L1 菜单 / L2 正文 / L3 按需），最后按度量收敛。触发：「skill pack 太大」「Agent 选不对 skill」「一级菜单太长」「分层披露」「整理 skill 仓库」「技能互相抢题」。"
+description: "当要整理或优化一个 skill pack（含 1..N 个 skill 的仓库/目录）的分层披露时用：先构建文档树（节点 = 文档、边 = 披露、层 = 披露深度），再逐文档量超限与到不了根，然后按批次改、按批次复测。触发：「skill pack 太大」「Agent 选不对 skill」「一级菜单太长」「分层披露」「整理 skill 仓库」「技能互相抢题」。"
 license: MIT
 ---
 
@@ -28,26 +28,41 @@ license: MIT
 - pack 在 git 仓库里时只算 **git 跟踪**文件；目录里的未跟踪垃圾会被单列、不混进任何度量。
   刚新建还没提交的技能目录也会被算作未跟踪 —— 先提交再量。
 
-## 三级披露（本 skill 的核心概念）
+## 文档树与「层」（本 skill 的核心概念）
 
-| 级 | 是什么 | 谁付代价 | 要看住
-|---|---|---|---|
-| **L1 第一级** | pack 里**所有 skill 的 `name` + `description`**（Agent 第一次选择的菜单） | 常驻上下文 | 入口层摆出**几项**、常驻 token、是否超上限 |
-| **L2 第二级** | 被选中那个 skill 的 **`SKILL.md` 正文** | 触发时载入 | 正文 token/行数、它转指出去多少个兄弟 |
-| **L3 第三级** | 该 skill 的 `references/` `scripts/` `assets/` | 按需读 | 孤儿文件、悬空引用、最大文件 |
+- **节点 = 一份文档**（`SKILL.md`、`references/*.md`、`scripts/*.py`…），每份记它所属的 skill。
+- **边 = 披露**：一份文档正文里真实写出的另一份文档路径。URL、代码块里的示例路径、不带目录的裸文件名都不算。
+- **层 = 披露深度**：根为 L1（根 = 每个 skill 的 `SKILL.md`；单入口形状下只有 1 个根），根直接披露的为 L2，
+  L2 披露的为 L3，依次递推。走不到的记「到不了根」。
+- **每份文档的量**：字符数、估算 token、行数、披露了几项（fanout）、被几项披露。
+- 解析基三处：该文件所在目录 → 该 skill 目录 → **最近的 `SKILL.md` 所在目录**（嵌套 skill 的相对引用按它自己的根写）→ pack 根。
+- path 字符集含非 ASCII：包里的文件名可能是中文，只认 ASCII 会把它们误判成「到不了根」。
 
-## 命令（七条：四条只读 + 三条生成/改结构）
+## 跑一轮的命令顺序
+
+```
+prepare   出工作副本 + 基线        → 原本在 git 仓库里就开 worktree；不是 git 才 copy + git init
+disclosure 构建文档树 + 逐文档体检  → DISCLOSURE.md / disclosure.json / TODO.md（待办清单）
+dispatch  事实补全 + 划批 + 落 prompt → dispatch/{plan.json,state.json,baseline.json}
+（把 batch-N.prompt.md 交给执行者，只收提案，不让它写盘）
+apply     校验并落盘提案            → 错就整条不动；每条记 patch，可单条回退
+verify    集合级复测                → 该消的消了 / 无新增 / 外部集合不变 / 拆分守恒
+judge+score  只在动了 description / 入口 SKILL.md / INDEX.md 时才跑
+```
+失败不整批回滚：通过的条目保留，未通过的条目改输入后在已改动的树上继续修，只有无法修正的条目才回退它自己那一条。
+
+## 命令（全部只读命令在下面）
 
 ```bash
 SW=<本 skill 的 scripts/weave.py 绝对路径>     # 装好后：<skills 目录>/skillweave/scripts/weave.py
 PACK=<要分析的 pack 目录>                      # 例：某个 skill 仓库的根
 
 python3 "$SW" tree   "$PACK" --out /tmp/sw     # 文档树：pack → 类目 → skill → 章节/文件
-python3 "$SW" layers "$PACK" --out /tmp/sw     # 三级披露：L1 菜单与常驻成本 + L2 规模 + L3 孤儿/悬空
+python3 "$SW" layers "$PACK" --out /tmp/sw     # 老口径的层汇总（常驻成本 / 正文规模 / 孤儿与悬空）；新口径用 disclosure
 python3 "$SW" audit  "$PACK" --out /tmp/sw     # 审计四段：体积 / 孤儿悬空 / 同层抢题 / 成本两组数
 python3 "$SW" checks "$PACK" --out /tmp/sw     # 七条检查（含硬编码路径、内嵌密钥；命中退 1）
 python3 "$SW" propose "$PACK" --out /tmp/sw    # 四类动作的提案：**默认 dry-run，不改盘**
-python3 "$SW" visualize "$PACK"                 # 生成物落回 pack：TREE.md + TREE.html（三级披露的文本版与可视化）
+python3 "$SW" visualize "$PACK"                 # 生成物落回 pack：TREE.md + TREE.html（文档树与互指图的文本版与可视化）
 python3 "$SW" collapse  "$PACK" --out /tmp/sw   # 可选方案：塌成「L1 = 1 个 skill 入口」的账 + 伞体 + git mv 清单（dry-run）
 python3 "$SW" disclosure "$PACK" --out /tmp/sw            # 第二步：披露链递归 + 逐文档体检 → DISCLOSURE.md
 python3 "$SW" prepare "$PACK" --dest /tmp/pw/ws --out /tmp/pw   # 第一步：拿一份可回滚、可对账的工作副本（原目录只读）
@@ -126,6 +141,16 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 | `references/group.md` | 分：两轴判据（软件/工具 vs 任务/学科）、类目命名、压 L1 的验收 |
 | `references/merge.md` | 并：近重复取证、保留/折进规则、合并后怎么验路由不退化 |
 | `references/rewrite.md` | 改写：`description` 前 57 字符窗口、触发词优先、排除条款位置、重测口径 |
+
+## 这轮真跑撞出来的坑（都已在工具里修掉，写在这里免得重踩）
+
+- **删行别按内容锚点找**：空行到处一样，按内容找会删错位置（实测把正文删串了）。删行要按行号 + 内容双严格，且同文件内按行号**降序**应用。
+- **拆段落 = 一行指针 + 删掉整段**：`after: null` 删行；指针写一行（`## 坑 → 见 \`references/x.md\``）。整篇拆分才用 `parts` + 守恒校验；
+  `parts` 拼起来等于原文就按拆分处理（删原件），不等于才当搬出（留原件）。
+- **搬完还要再看一眼**：搬出去的 174 行清单自己就超了 20000 B，得再拆一次。拆完别忘让新文件**被披露**（指针行就是那条披露）。
+- **回退顺序**：先删新文件 → 再恢复被拆掉的原件 → 最后回退行改动；被拆掉的原件不再回退行。
+- **口径改了要重建基线**：工具修了路径解析之后，旧基线里的 external 集合会整体变，`verify` 会报「external 变了」——
+  这是正常的，用 `dispatch --refresh-baseline` 重建基线再验。
 
 ## 判据（不许自己降级）
 
