@@ -543,6 +543,82 @@ def top_level_skills(root, skills):
     return [s for s in skills if not is_nested_skill(root, s["id"])]
 
 
+class Pack:
+    """**一个 pack 目录量出来的全部事实**，只装一次、处处复用。
+
+    为什么是这一层：8 个命令（`layers` `checks` `audit` `propose` `judge` `visualize` `disclosure`
+    `collapse`）各自重复同一段「`tracked_set` → `walk_dir` → 空判 → `skipped`」样板，而
+    **`audit` 少写了空判的后半句 `or not skills`** 就 IndexError（312 个目录里 246 个命中，
+    合约 https://github.com/flmaximwang/SkillWeave/issues/1）。一个 bug 的变体只可能长在
+    「同一段逻辑抄了 8 遍」的地方 —— 收进一个类，这条路就封了。
+
+    派生量（`edges` / `islands` / `entry` / `resident_tokens`）按需算并缓存：它们都要扫正文，
+    不该在只想看 `skills` 的命令里白付一次。
+
+    `load()` 返回 None = 这个目录里没有任何 skill（不是 pack），调用方照旧 `return 1`。
+    """
+
+    def __init__(self, root, tree, skills, skipped, tracked):
+        self.root = root
+        self.tree = tree
+        self.skills = skills
+        self.skipped = skipped            # 未跟踪的 skill 形目录
+        self.tracked = tracked            # git 跟踪清单；None = 非 git 目录，全部算成员
+        self._cache = {}
+
+    @classmethod
+    def load(cls, root):
+        root = os.path.abspath(root.rstrip("/"))
+        skills, skipped = [], []
+        tracked = tracked_set(root)
+        tree = walk_dir(root, root, "", tracked, skipped, skills)
+        if tree is None or not skills:
+            return None                    # 目录里有文件但一份 SKILL.md 都没有 = 不是 pack
+        tree["pack"] = {"name": os.path.basename(root),
+                        "member_mode": "git-tracked" if tracked is not None else "all"}
+        return cls(root, tree, skills, skipped, tracked)
+
+    # ── 派生量：惰性 + 缓存 ───────────────────────────────────────────────
+    def edges(self):
+        """互指边（A→B：A 的文本文件里点到 B 的目录名）。口径见 `cross_skill_edges` 的 docstring。"""
+        if "edges" not in self._cache:
+            add_mentions(self.root, self.skills)
+            self._cache["edges"] = cross_skill_edges(self.root, self.skills)
+        return self._cache["edges"]
+
+    def islands(self):
+        """互指图的连通分量 —— 数据给的分层，不是人分的类。"""
+        if "islands" not in self._cache:
+            self._cache["islands"] = islands_of(self.skills, self.edges())
+        return self._cache["islands"]
+
+    def entry(self):
+        """入口层摆出的项 → `[(kind, id, member_skill_ids)]`（契约 §0）。"""
+        if "entry" not in self._cache:
+            self._cache["entry"] = entry_items(self.tree)
+        return self._cache["entry"]
+
+    def by_id(self):
+        """skill id → 节点。造伞体与各岛 INDEX.md 时到处都要，别再每次重算。"""
+        if "by_id" not in self._cache:
+            self._cache["by_id"] = {s["id"]: s for s in self.skills}
+        return self._cache["by_id"]
+
+    def top(self):
+        """顶层 skill（不在别的 skill 目录之下）—— `collapse` 的输入单位。"""
+        return top_level_skills(self.root, self.skills)
+
+    def resident_tokens(self):
+        """L1 常驻成本：全部 skill 的 description 拼起来的估算 token（多入口口径）。"""
+        return est_tokens("\n".join(s["description"] for s in self.skills))
+
+    def nested_skill_nodes(self):
+        """id → 其下的嵌套 skill 节点（给 `TREE.md` / `TREE.html` 画岛内 skill 用）。"""
+        if "nested" not in self._cache:
+            self._cache["nested"] = {s["id"]: nested_skill_nodes(s) for s in self.skills}
+        return self._cache["nested"]
+
+
 def untracked_skill_files(pack):
     """工作区里**未被 git 跟踪**的 `SKILL.md`（相对 pack 根的路径，排序）。不是 git 仓库 → 空列表。
 
@@ -616,14 +692,11 @@ def skills_root(tree):
 def cmd_layers(root, out):
     """三级披露度量：L1 = pack 层（所有 skill 的 name+description，常驻）·
     L2 = 每个 skill 的 SKILL.md 正文（触发时载入）· L3 = references/scripts/assets（按需）。"""
-    skills, skipped = [], []
-    tracked = tracked_set(root)
-    tree = walk_dir(root, root, "", tracked, skipped, skills)
-    if tree is None:
+    pack = Pack.load(root)
+    if pack is None:
         print("[layers] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
-    tree["pack"] = {"name": os.path.basename(root),
-                    "member_mode": "git-tracked" if tracked is not None else "all"}
+    root, tree, skills, skipped = pack.root, pack.tree, pack.skills, pack.skipped
     sr = skills_root(tree)
     entries = sr["children"]
     loose = [c for c in entries if c["kind"] == "skill"]
@@ -778,12 +851,11 @@ def scan_rules(root, skills):
 
 def cmd_checks(root, out):
     """六条内化检查（skill-tools 口径）：引用存在 / token 预算 / BOM / 二进制 / name-目录一致 / 硬编码路径 / 内嵌密钥。"""
-    skills, skipped = [], []
-    tracked = tracked_set(root)
-    tree = walk_dir(root, root, "", tracked, skipped, skills)
-    if tree is None:
+    pack = Pack.load(root)
+    if pack is None:
         print("[checks] FAIL 这个目录里没有任何 skill")
         return 1
+    root, skills = pack.root, pack.skills
     os.makedirs(out, exist_ok=True)
     hits = scan_rules(root, skills)
     with open(os.path.join(out, "checks.json"), "w", encoding="utf-8") as f:
@@ -803,14 +875,13 @@ def cmd_checks(root, out):
 
 def cmd_audit(root, out, top=20):
     """审计四段：size（体积对照）· orphan（孤儿/悬空）· dup（同层近重复抢题）· cost（两组成本）。"""
-    skills, skipped = [], []
-    tracked = tracked_set(root)
-    tree = walk_dir(root, root, "", tracked, skipped, skills)
-    if tree is None or not skills:
-        # `tree` 非 None 也可能 `skills` 为空：目录里有文件但没有一份 SKILL.md（不是 skill pack，
-        # 只是个普通目录）—— walk_dir 会返回一个 asset 节点。以前这里直接算中位数 → IndexError。
+    pack = Pack.load(root)
+    if pack is None:
+        # `Pack.load` 一并盖住了「目录里有文件但一份 SKILL.md 都没有」（不是 skill pack）——
+        # 以前这里只在 `tree is None` 时报错，紧接着算中位数就 IndexError（312 个目录里 246 个命中）。
         print("[audit] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
+    root, skills = pack.root, pack.skills
     os.makedirs(out, exist_ok=True)
     rep = {"pack": os.path.basename(root), "skills": len(skills)}
 
@@ -889,11 +960,14 @@ def section_spans(body, body_start_line):
 def propose_actions(root, cap=20, merge_at=0.97, rewrite_at=0.5):
     """四类动作的**提案**（不改盘）：拆 / 分 / 并 / 改写。每条带 `文件:行`、diff 形状、是否可机械执行。
     需要语言模型的判断（哪段该下沉、进哪个类目、触发词怎么改）一律 `needs_model=True`，CLI 不假装能做。"""
-    skills = []
-    tree = walk_dir(root, root, "", tracked_set(root), [], skills)
-    if tree is None:
-        return [{"kind": "none", "needs_model": False, "auto_applyable": False,
-                 "evidence": {}, "where": root, "action": "这个目录里没有任何 skill", "diff_shape": [], "paths": []}]
+    pack = Pack.load(root)
+    if pack is None:
+        # 空目录：与其余 8 个命令一致 FAIL 退 1。别产一份 count=0 的报告冒充成功，
+        # 也别打印一条 `none …` 看着像合法提案（重构时真踩了这个坑）。
+        print(f"[propose] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
+        return 1
+    root = pack.root
+    tree, skills = pack.tree, pack.skills
     sr = skills_root(tree)
     l1 = [c for c in sr["children"] if c["kind"] in ("skill", "category")]
     props = []
@@ -1101,12 +1175,11 @@ def cmd_propose(root, out, apply_changes=False, group_map=None):
 def cmd_judge(root, prompts_path, out, trunc=57):
     """生成**一个纯文本判官输入**（候选只有 description 截断窗口）+ 独立的金标文件 + 任务书。
     判官只读 judge-input.txt；金标永远不进它。"""
-    skills, skipped = [], []
-    tracked = tracked_set(root)
-    tree = walk_dir(root, root, "", tracked, skipped, skills)
-    if tree is None:
+    pack = Pack.load(root)
+    if pack is None:
         print("[judge] FAIL 这个目录里没有任何 skill")
         return 1
+    skills = pack.skills
     prompts = json.load(open(prompts_path, encoding="utf-8"))["prompts"]
     os.makedirs(out, exist_ok=True)
     cand = sorted(((s["id"].rstrip("/"), (s["description"] or "").replace("\n", " ")[:trunc])
@@ -1292,12 +1365,11 @@ def main(argv=None):
     out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
     os.makedirs(out, exist_ok=True)
 
-    skills, skipped = [], []
-    tracked = tracked_set(root)
-    tree = walk_dir(root, root, "", tracked, skipped, skills)
-    if tree is None:
+    pack = Pack.load(root)
+    if pack is None:
         print("[tree] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
+    skills, skipped, tracked, tree = pack.skills, pack.skipped, pack.tracked, pack.tree
     add_mentions(root, skills)
     for s in skills:
         add_headings(s)
@@ -1740,24 +1812,18 @@ def cmd_visualize(root, out):
         print("[visualize] 这多半是刚 collapse 完还没 commit：索引里还是旧路径，新入口会被当成"
               "未跟踪跳过，产物会是一棵空树。**先 commit 再跑**（或 `git add -A`）。")
         return 1
-    skills, skipped = [], []
-    tree = walk_dir(root, root, "", tracked_set(root), skipped, skills)
-    if tree is None:
+    pack = Pack.load(root)
+    if pack is None:
         print("[visualize] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
-    if skipped:
-        print(f"[visualize] ⚠️ 跳过 {len(skipped)} 个未跟踪的 skill 形目录：{', '.join(skipped[:3])}"
-              f"{'…' if len(skipped) > 3 else ''}")
-    add_mentions(root, skills)
-    edges = cross_skill_edges(root, skills)
-    islands = islands_of(skills, edges)
-    # 入口层：复用 tree 的类目/散项划分
-    entry = entry_items(tree)
-    byid = {s["id"]: s for s in skills}
+    if pack.skipped:
+        print(f"[visualize] ⚠️ 跳过 {len(pack.skipped)} 个未跟踪的 skill 形目录："
+              f"{', '.join(pack.skipped[:3])}{'…' if len(pack.skipped) > 3 else ''}")
+    root, skills = pack.root, pack.skills
+    edges, islands, entry = pack.edges(), pack.islands(), pack.entry()
     over_l2 = [s for s in skills if s["est_tokens"] > 5000 or s["body_lines"] > 500]
-    l1_text = "\n".join(s["description"] for s in skills)      # 与 layers 同一口径
     stats = {"skills": len(skills), "entry": len(entry), "islands": len(islands),
-             "resident": est_tokens(l1_text),
+             "resident": pack.resident_tokens(),
              "resident_chars": sum(s["description_chars"] for s in skills),
              "over_l2": len(over_l2),
              "orphans": sum(len(s["orphans"]) for s in skills),
@@ -1765,7 +1831,7 @@ def cmd_visualize(root, out):
     rev = _rev(root)
     # 每个入口 skill 之下的嵌套 skill（单入口形状的岛内 skill）→ 交给渲染器画出来，
     # 这样「TREE.html 节点框数 == 本 pack 的 SKILL.md 数」这条验收判据才成立。
-    nested_map = {s["id"]: nested_skill_nodes(s) for s in skills}
+    nested_map = pack.nested_skill_nodes()
     os.makedirs(out, exist_ok=True)
     md = os.path.join(out, "TREE.md")
     html = os.path.join(out, "TREE.html")
@@ -2155,13 +2221,6 @@ def _prompt_for(batch, root, F, files, dj, base_rev, pack):
 #   · 豁免规则白名单：新增的 waivers 规则只允许命中本条目自己的文件，不许顺带命中别的 skill。
 #   · 逐条 patch 记录：写在 dispatch/patches.json，回退粒度 = 单条。
 #   · obsolete 不自动通过，落 PARKED.md；parked 原样记录不改盘。
-
-APPLY_FAILS = []
-
-
-def lines_of(root, path):
-    return read_text(os.path.join(root, path)).split("\n")
-
 
 def _plan_items(out):
     """从 dispatch/plan.json 读条目表，返回 {id: item}。"""
@@ -2608,11 +2667,11 @@ def cmd_disclosure(root, out):
 
     层 = **披露深度**（L1 = 根文档；L2 = L1 直接披露的；Ln+1 由 Ln 披露），不是文件类型那套。
     体检判据取 `docs/contract.md` §4 的 caps，按文档类型分派；跨文档查孤儿（没人披露）与悬空（披露了不存在）。"""
-    skills, skipped = [], []
-    tree = walk_dir(root, root, "", tracked_set(root), skipped, skills)
-    if tree is None:
+    pack = Pack.load(root)
+    if pack is None:
         print("[disclosure] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
+    root, skills = pack.root, pack.skills
     nodes = _doc_nodes(skills, root)
     broken, external = [], []
     edges = _doc_edges(root, nodes, broken, external)
@@ -2866,17 +2925,16 @@ def cmd_prepare(pack, out, dest=None, shape=None, description=None):
     log.append(f"工作区：`{work}`")
     dest = work
 
-    skills, skipped = [], []
-    tree = walk_dir(dest, dest, "", tracked_set(dest), skipped, skills)
-    if tree is None:
+    pack_obj = Pack.load(dest)
+    if pack_obj is None:
         print("[prepare] FAIL 副本里没有任何 skill（找不到 SKILL.md）")
         return 1
-    add_mentions(dest, skills)
-    edges = cross_skill_edges(dest, skills)
-    islands = islands_of(skills, edges)
+    skills, skipped = pack_obj.skills, pack_obj.skipped
+    tree = pack_obj.tree
+    edges, islands = pack_obj.edges(), pack_obj.islands()
     dirs = island_dirs(_default_entry_dir(dest), skills, islands)
-    byid = {s["id"]: s for s in skills}
-    resident = est_tokens("\n".join(s["description"] for s in skills))
+    byid = pack_obj.by_id()
+    resident = pack_obj.resident_tokens()
     body_tok = est_tokens("\n".join(umbrella_body(dirs, byid)))
     idx_tok = sum(est_tokens(island_index_md(n, i, byid)) for n, i in dirs)
 
@@ -2929,22 +2987,24 @@ def cmd_collapse(root, out, apply_changes=False, description=None, entry_dir=Non
 
     单位 = **顶层 skill**（`top_level_skills`）：已经收进某个入口 `references/` 的嵌套 skill 不再搬一次，
     否则在 collapse 过的 pack 上重跑会把岛内 skill 又搬一层。"""
-    skills_all, skipped = [], []
-    tree = walk_dir(root, root, "", tracked_set(root), skipped, skills_all)
-    if tree is None:
+    pack_obj = Pack.load(root)
+    if pack_obj is None:
         print("[collapse] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
-    skills = top_level_skills(root, skills_all)
+    skills = pack_obj.top()
     if not skills:
         print("[collapse] FAIL 顶层没有 skill（全都住在别的 skill 的 references/ 里 —— 已经是单入口）")
         return 1
+    tree = pack_obj.tree
+    # **只用顶层 skill 算互指与岛**：`Pack.edges()` 是「全部 skill」口径，而 collapse 的单位是顶层 ——
+    # 混用会把已收进 `references/` 的嵌套 skill 再当成岛搬一层（docstring 里那条警告）。
     add_mentions(root, skills)
     edges = cross_skill_edges(root, skills)
     islands = islands_of(skills, edges)
     entry = entry_dir or _default_entry_dir(root)
     dirs = island_dirs(entry, skills, islands)
     before = {"skills": len(skills), "entry": len(first_layer_entries(tree)),
-              "resident": est_tokens("\n".join(s["description"] for s in skills)),
+              "resident": pack_obj.resident_tokens(),
               "rev": _rev(root)}
     os.makedirs(out, exist_ok=True)
     md = os.path.join(out, "COLLAPSE.md")
@@ -3583,6 +3643,15 @@ def self_test():
         with open(os.path.join(_plain, "readme.txt"), "w") as f:
             f.write("就是个普通目录\n")
         assert cmd_audit(_plain, os.path.join(tmp, "o-np")) == 1, "没有 SKILL.md 的目录该 FAIL 退 1"
+        # 架构回归：`walk_dir(root, root, ...)`（装包样板）全文只许出现在两处 ——
+        # `Pack.load`（唯一该定义它的地方）和 `cmd_collapse` 落盘后的重读（它必须重扫盘看自己的改动）。
+        # 谁再在命令里手抄第三遍，这里就红 —— issue #1 那个 IndexError 正是长在这种抄写里。
+        _src = read_text(os.path.abspath(__file__))
+        _dup = [i + 1 for i, l in enumerate(_src.split("\n"))
+                if re.search(r"^\s*tree\d? = walk_dir\(\s*(root|dest)\s*,\s*(root|dest)\s*,", l)]
+        assert len(_dup) == 2, \
+            f"装包样板（walk_dir(root, root, ...)）该只有 2 处（Pack.load + cmd_collapse 重读），" \
+            f"实得 {len(_dup)} 处：L{_dup} —— 命令里出现的就是手抄，改用 Pack.load(root)"
         # deliver（F 交付）：工作副本改完 → **默认**合回真包 main + push + 清 worktree/分支。
         # 旧口径是「真包只读、要一句『进入 production 模式』才动」——交付是流程的最后一步，不是等人点头的动作。
         _dp = os.path.join(tmp, "deliver-pack")
