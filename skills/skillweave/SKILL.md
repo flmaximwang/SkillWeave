@@ -90,7 +90,6 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 体检是它的出口）→ C 读树（判断：切法/命名/待办）→ D 改树 → E 复测 → F 验收交付。本 skill 只写怎么做。
 
 **只改副本（硬规矩）**：工作区一律是 `prepare` 出的副本，真包只读（副本内 git 化后可回滚）。
-开发/试跑只在副本上做；**真跑 SkillWeave 本身就是 production 模式，不需要额外批准**。
 形状是**启动参数**（`--shape single|multi`），在准备之前就定 —— 不让用户等到中途拍板。
 
 **派发**：`weave.py dispatch <pack>` 划批（单位 = skill 子树，≤10 个/批）+ 事实补全 + 落 `dispatch/*.prompt.md`；
