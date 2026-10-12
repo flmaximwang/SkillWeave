@@ -1,0 +1,164 @@
+{
+  "L1": {
+    "first_layer_categories": 0,
+    "first_layer_entries": 8,
+    "first_layer_loose_skills": 8,
+    "menu_entries": [
+      "skills/analyze-lab-images/",
+      "skills/keep-lab-project-in-order/",
+      "skills/manage-lab-ledger/",
+      "skills/manage-lab-logs/",
+      "skills/model-protein-structures/",
+      "skills/operate-lab-instruments/",
+      "skills/plan-protein-expression/",
+      "skills/run-sample-intake-flows/"
+    ],
+    "over_1024_chars": [],
+    "resident_chars": 4798,
+    "resident_est_tokens": 2081,
+    "skills": 38,
+    "skills_root": "skills/"
+  },
+  "L2": {
+    "counts_totals": {
+      "code_blocks": 65,
+      "long_paragraphs": 37,
+      "sections": 327,
+      "todos": 0
+    },
+    "counts_worst": [
+      {
+        "code_blocks": 5,
+        "id": "skills/model-protein-structures/references/pdb-structure-screening/",
+        "long_paragraphs": 6,
+        "sections": 14,
+        "todos": 0
+      },
+      {
+        "code_blocks": 0,
+        "id": "skills/model-protein-structures/references/rosetta-protocol-engineering/",
+        "long_paragraphs": 6,
+        "sections": 10,
+        "todos": 0
+      },
+      {
+        "code_blocks": 1,
+        "id": "skills/analyze-lab-images/references/filament-lumen-analysis/",
+        "long_paragraphs": 5,
+        "sections": 14,
+        "todos": 0
+      },
+      {
+        "code_blocks": 1,
+        "id": "skills/manage-lab-logs/references/lab-vault-experiment-records/",
+        "long_paragraphs": 3,
+        "sections": 11,
+        "todos": 0
+      },
+      {
+        "code_blocks": 1,
+        "id": "skills/operate-lab-instruments/references/spectrophotometry-protocols/",
+        "long_paragraphs": 3,
+        "sections": 14,
+        "todos": 0
+      }
+    ],
+    "max_many": [
+      {
+        "est_tokens": 4887,
+        "id": "skills/model-protein-structures/references/pdb-structure-screening/",
+        "lines": 257
+      },
+      {
+        "est_tokens": 4798,
+        "id": "skills/manage-lab-ledger/references/find-stock/",
+        "lines": 204
+      },
+      {
+        "est_tokens": 4784,
+        "id": "skills/manage-lab-ledger/references/manage-inventory-for-protein-engineering/",
+        "lines": 131
+      },
+      {
+        "est_tokens": 4586,
+        "id": "skills/manage-lab-logs/references/audit-logs/",
+        "lines": 199
+      },
+      {
+        "est_tokens": 4016,
+        "id": "skills/manage-lab-ledger/references/find-plasmid-entity/",
+        "lines": 144
+      }
+    ],
+    "over_limit": [],
+    "over_token": [],
+    "sibling_mentions_max": [
+      {
+        "id": "skills/analyze-lab-images/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/analyze-lab-images/references/align-and-average-repeated-images/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/analyze-lab-images/references/fiber-image-analysis/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/analyze-lab-images/references/filament-lumen-analysis/",
+        "mentions": 0
+      },
+      {
+        "id": "skills/analyze-lab-images/references/sds-page-gel-cropper/",
+        "mentions": 0
+      }
+    ]
+  },
+  "L3": {
+    "broken": 0,
+    "bytes": 798847,
+    "files": 121,
+    "largest": [
+      {
+        "bytes": 58801,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/note_graph.py",
+        "sha256": "889ed32f1d7943eb004eab954e6f4a3053834830f563da153362fe770d1a9199"
+      },
+      {
+        "bytes": 47010,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/audit_characterization_log.py",
+        "sha256": "627f0ed98fb0fcb57f526ec21403f391dd2fdfe1d78b36d68ea74e5e745ff2be"
+      },
+      {
+        "bytes": 29690,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/audit_purification_log.py",
+        "sha256": "a328bb102079a957f45c7d386b9ecf3a309067d839ce80b2dca617205440356b"
+      },
+      {
+        "bytes": 23050,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/trace_chain.py",
+        "sha256": "8dc434824dea03e0d1d89c644a46057d443052c86485072f3356a65c9600306f"
+      },
+      {
+        "bytes": 22232,
+        "kind": "script",
+        "orphan": false,
+        "path": "scripts/find_stock.py",
+        "sha256": "9cc2869dacf0e9a49be95e865d941534fc475c5214ff74a0d44086e03bc9b27b"
+      }
+    ],
+    "orphans": 19
+  },
+  "member_mode": "git-tracked",
+  "pack": "LabProjectManagement",
+  "untracked_skill_dirs": []
+}
