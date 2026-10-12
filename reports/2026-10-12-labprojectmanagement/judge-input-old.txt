@@ -1,0 +1,61 @@
+# 判官输入（只读这一个文件；不要读任何技能目录）
+
+## 候选（30 个；每行：路径 | 描述前 57 字符）
+
+skills/lab-project | Use when same-field repeats need averaging or a tool pick
+skills/lab-project/references/align-and-average-repeated-images/align-and-average-repeated-images | Use when same-field repeats need averaging or a tool pick
+skills/lab-project/references/audit-log-protein-characterization/audit-a-lab-note | 用户丢一条笔记路径说「检查笔记」时用：单条记录只读体检（结构+溯源+数字核对）。
+skills/lab-project/references/audit-log-protein-characterization/audit-log-protein-characterization | 审查蛋白表征记录（Characterization/TEM/SEC）里每个样品能否溯源「从无到有」最上游：逐支给结
+skills/lab-project/references/audit-log-protein-characterization/audit-log-protein-purification | 审查 protein purification 记录是否结构化：样品与产物能否在 Dolt 台账查到 stock、
+skills/lab-project/references/audit-log-protein-characterization/audit-logs | 审查实验 log（frontmatter 是否合规）时用：先按实验类型分类，再按一份 JSON 配置逐键审「有没有
+skills/lab-project/references/audit-log-protein-characterization/find-plasmid-entity | Use when resolving a plasmid handle to its Dolt entity.
+skills/lab-project/references/audit-log-protein-characterization/find-stock | 问「这管在哪、怎么来的」时用：查 Dolt 台账 stock_uid 与 aliases，再顺 Logs 追产生链
+skills/lab-project/references/audit-log-protein-characterization/graph-local-notes | Use when a note's neighborhood must be graphed with filte
+skills/lab-project/references/audit-log-protein-characterization/manage-inventory-for-protein-engineering | Use when a protein-engineering project's sample ledger mu
+skills/lab-project/references/audit-log-protein-characterization/manage-logs | Use when the user says 我的库/我的记录, names a zsqlabNN vault, 
+skills/lab-project/references/audit-log-protein-characterization/map-artifacts-to-ledger-entities | Use when 文件图谱要核对能否唯一映射到台账实体。
+skills/lab-project/references/audit-log-protein-characterization/onboard-a-sample-batch-into-lab-records | Use when 一批新样品到货，要落台账并开实验记录。
+skills/lab-project/references/audit-log-protein-characterization/record-a-live-experiment | Use when 用户口述正在做的实验、要你逐条记录步骤。
+skills/lab-project/references/audit-log-protein-characterization/trace-sample-provenance | Use when a sample ID's origin must be traced (来源路径).
+skills/lab-project/references/cryo-em-machine-time-application/cryo-em-machine-time-application | Use when applying for cryo-EM machine time at a Chinese f
+skills/lab-project/references/fiber-image-analysis/fiber-image-analysis | Analyze TEM/microscopy images for faint fibers/fibrils.
+skills/lab-project/references/filament-lumen-analysis/filament-lumen-analysis | Use when measuring a lumen inside a protein fiber.
+skills/lab-project/references/lab-project-containers/lab-project-containers | Use when lab repos/data get one container dir or go to NA
+skills/lab-project/references/lab-vault-experiment-records/lab-vault-experiment-records | Search and summarize lab logs in zsqlab lab vaults (zsqla
+skills/lab-project/references/lab-vault-experiment-records/recombinant-protein-expression | Protein expression: tags, signal peptides, secretion, hos
+skills/lab-project/references/life-science-research-2/pdb-structure-screening | Use when finding or screening PDB structures, or building
+skills/lab-project/references/life-science-research-2/pymol-structural-visualization | Structural biology visualization with PyMOL on macOS — he
+skills/lab-project/references/life-science-research-3/protein-design-tool-analysis | Analyze computational protein design software tools by re
+skills/lab-project/references/life-science-research-3/rosetta-protocol-engineering | Use when building or running a Rosetta protocol or app.
+skills/lab-project/references/life-science-research-4/spectramax-operation | SpectraMax microplate reader & SoftMax Pro software — cuv
+skills/lab-project/references/life-science-research-4/spectrophotometry-protocols | Troubleshoot and operate spectrophotometers and plate rea
+skills/lab-project/references/protein-bvh/protein-bvh | Build and query Bounding Volume Hierarchies (BVH) for pro
+skills/lab-project/references/protein-ligand-docking/protein-ligand-docking | Protein-ligand molecular docking — DiffDock, AutoDock Vin
+skills/lab-project/references/sds-page-gel-cropper/sds-page-gel-cropper | Crop specific lanes from SDS-PAGE gel images using vision
+
+## 题面（每题只答一个候选路径，或 `none`）
+
+P1. 0826FP11 这管在哪盒哪格？
+P2. 给我看 zsqlab11 里 OmcZ 那次纯化的记录是怎么写的
+P3. 审一下这条 log 的 frontmatter 合不合规
+P4. 014 这批新样品到货了，帮我落台账并开实验记录
+P5. 这张 TEM 图里的纤维帮我量一下直径
+P6. 把这张 SDS-PAGE 凝胶按泳道裁出来
+P7. 帮我从 PDB 里筛一批 apo 结构出来
+P8. 用 DiffDock 跑一个蛋白-配体对接
+P9. SpectraMax 测出来的蛋白浓度怎么算
+P10. 冷冻电镜的机时申请怎么写
+P11. 这个 lab 仓库和数据该放哪，要不要上 NAS
+P12. 帮我画一篇笔记的出链入链局部关系图
+P13. OmcZ 表达该用什么标签和宿主
+P14. 这管菌是哪个构建体？
+P15. 他做 OmcZ 纯化那次为什么和论文里的产率不一样
+P16. 我现在正在做这个纯化，你逐条记一下步骤
+P17. 追一下这条记录里样品的来源路径
+P18. 帮我订一张明天去上海的高铁票
+P19. 写一个 Python 快速排序给我
+
+## 输出格式（逐行）
+P1 <路径或 none>
+…每行一题…
+DONE

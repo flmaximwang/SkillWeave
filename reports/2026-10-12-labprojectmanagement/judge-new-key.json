@@ -1,0 +1,160 @@
+{
+ "candidates": [
+  "skills/analyze-lab-images",
+  "skills/analyze-lab-images/references/align-and-average-repeated-images",
+  "skills/analyze-lab-images/references/fiber-image-analysis",
+  "skills/analyze-lab-images/references/filament-lumen-analysis",
+  "skills/analyze-lab-images/references/sds-page-gel-cropper",
+  "skills/keep-lab-project-in-order",
+  "skills/keep-lab-project-in-order/references/graph-local-notes",
+  "skills/keep-lab-project-in-order/references/lab-project-containers",
+  "skills/manage-lab-ledger",
+  "skills/manage-lab-ledger/references/find-plasmid-entity",
+  "skills/manage-lab-ledger/references/find-stock",
+  "skills/manage-lab-ledger/references/manage-inventory-for-protein-engineering",
+  "skills/manage-lab-ledger/references/map-artifacts-to-ledger-entities",
+  "skills/manage-lab-ledger/references/trace-sample-provenance",
+  "skills/manage-lab-logs",
+  "skills/manage-lab-logs/references/audit-a-lab-note",
+  "skills/manage-lab-logs/references/audit-log-protein-characterization",
+  "skills/manage-lab-logs/references/audit-log-protein-purification",
+  "skills/manage-lab-logs/references/audit-logs",
+  "skills/manage-lab-logs/references/lab-vault-experiment-records",
+  "skills/manage-lab-logs/references/manage-logs",
+  "skills/manage-lab-logs/references/record-a-live-experiment",
+  "skills/model-protein-structures",
+  "skills/model-protein-structures/references/pdb-structure-screening",
+  "skills/model-protein-structures/references/protein-bvh",
+  "skills/model-protein-structures/references/protein-design-tool-analysis",
+  "skills/model-protein-structures/references/protein-ligand-docking",
+  "skills/model-protein-structures/references/pymol-structural-visualization",
+  "skills/model-protein-structures/references/rosetta-protocol-engineering",
+  "skills/operate-lab-instruments",
+  "skills/operate-lab-instruments/references/cryo-em-machine-time-application",
+  "skills/operate-lab-instruments/references/spectramax-operation",
+  "skills/operate-lab-instruments/references/spectrophotometry-protocols",
+  "skills/plan-protein-expression",
+  "skills/plan-protein-expression/references/recombinant-protein-expression",
+  "skills/run-sample-intake-flows",
+  "skills/run-sample-intake-flows/references/onboard-a-sample-batch-into-lab-records",
+  "skills/run-sample-intake-flows/references/register-a-protein-sample"
+ ],
+ "pack": "LabProjectManagement",
+ "prompts": [
+  {
+   "gold": "skills/manage-lab-ledger/references/find-stock",
+   "id": 1,
+   "kind": "should_trigger",
+   "text": "0826FP11 这管在哪盒哪格？"
+  },
+  {
+   "gold": "skills/manage-lab-logs/references/manage-logs",
+   "id": 2,
+   "kind": "should_trigger",
+   "text": "给我看 zsqlab11 里 OmcZ 那次纯化的记录是怎么写的"
+  },
+  {
+   "gold": "skills/manage-lab-logs/references/audit-logs",
+   "id": 3,
+   "kind": "should_trigger",
+   "text": "审一下这条 log 的 frontmatter 合不合规"
+  },
+  {
+   "gold": "skills/run-sample-intake-flows/references/onboard-a-sample-batch-into-lab-records",
+   "id": 4,
+   "kind": "should_trigger",
+   "text": "014 这批新样品到货了，帮我落台账并开实验记录"
+  },
+  {
+   "gold": "skills/analyze-lab-images/references/fiber-image-analysis",
+   "id": 5,
+   "kind": "should_trigger",
+   "text": "这张 TEM 图里的纤维帮我量一下直径"
+  },
+  {
+   "gold": "skills/analyze-lab-images/references/sds-page-gel-cropper",
+   "id": 6,
+   "kind": "should_trigger",
+   "text": "把这张 SDS-PAGE 凝胶按泳道裁出来"
+  },
+  {
+   "gold": "skills/model-protein-structures/references/pdb-structure-screening",
+   "id": 7,
+   "kind": "should_trigger",
+   "text": "帮我从 PDB 里筛一批 apo 结构出来"
+  },
+  {
+   "gold": "skills/model-protein-structures/references/protein-ligand-docking",
+   "id": 8,
+   "kind": "should_trigger",
+   "text": "用 DiffDock 跑一个蛋白-配体对接"
+  },
+  {
+   "gold": "skills/operate-lab-instruments/references/spectramax-operation",
+   "id": 9,
+   "kind": "should_trigger",
+   "text": "SpectraMax 测出来的蛋白浓度怎么算"
+  },
+  {
+   "gold": "skills/operate-lab-instruments/references/cryo-em-machine-time-application",
+   "id": 10,
+   "kind": "should_trigger",
+   "text": "冷冻电镜的机时申请怎么写"
+  },
+  {
+   "gold": "skills/keep-lab-project-in-order/references/lab-project-containers",
+   "id": 11,
+   "kind": "should_trigger",
+   "text": "这个 lab 仓库和数据该放哪，要不要上 NAS"
+  },
+  {
+   "gold": "skills/keep-lab-project-in-order/references/graph-local-notes",
+   "id": 12,
+   "kind": "should_trigger",
+   "text": "帮我画一篇笔记的出链入链局部关系图"
+  },
+  {
+   "gold": "skills/plan-protein-expression/references/recombinant-protein-expression",
+   "id": 13,
+   "kind": "should_trigger",
+   "text": "OmcZ 表达该用什么标签和宿主"
+  },
+  {
+   "gold": "skills/manage-lab-ledger/references/find-plasmid-entity",
+   "id": 14,
+   "kind": "near_confusion",
+   "text": "这管菌是哪个构建体？"
+  },
+  {
+   "gold": "skills/manage-lab-logs/references/lab-vault-experiment-records",
+   "id": 15,
+   "kind": "near_confusion",
+   "text": "他做 OmcZ 纯化那次为什么和论文里的产率不一样"
+  },
+  {
+   "gold": "skills/manage-lab-logs/references/record-a-live-experiment",
+   "id": 16,
+   "kind": "near_confusion",
+   "text": "我现在正在做这个纯化，你逐条记一下步骤"
+  },
+  {
+   "gold": "skills/manage-lab-ledger/references/trace-sample-provenance",
+   "id": 17,
+   "kind": "near_confusion",
+   "text": "追一下这条记录里样品的来源路径"
+  },
+  {
+   "gold": "skills/manage-lab-logs/references/manage-logs",
+   "id": 18,
+   "kind": "should_not_trigger",
+   "text": "帮我订一张明天去上海的高铁票"
+  },
+  {
+   "gold": "skills/manage-lab-logs/references/manage-logs",
+   "id": 19,
+   "kind": "should_not_trigger",
+   "text": "写一个 Python 快速排序给我"
+  }
+ ],
+ "trunc": 57
+}
