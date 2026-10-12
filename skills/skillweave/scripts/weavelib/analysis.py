@@ -1,9 +1,9 @@
 """度量命令：layers / checks / audit / judge / score（只读）。
 
 从 weave.py 拆出，逻辑未改。"""
-import codecs, difflib, json, os, re
+import codecs, json, os, re
 from .common import est_tokens, kind_of_file
-from .graph import iter_text_files
+from .graph import dup_pairs, iter_text_files
 from .model import is_nested_skill, skills_root, top_level_skills
 from .pack import Pack
 
@@ -222,23 +222,12 @@ def cmd_audit(root, out, top=20):
     rep["orphan"] = {"orphans": [f"{s['id']}{o}" for s in skills for o in s["orphans"]],
                      "broken": [f"{s['id']}{b}" for s in skills for b in s["broken"]]}
 
-    # —— dup：**同一层**（同一父目录）两两比 description 与摘要，找互相抢题的节点
-    # ponytail: 层内 O(n²)，最大一层 52 项 ≈ 1.3k 次比较；单层上千项时再换 shingle+倒排。
-    by_parent = {}
-    for s in skills:
-        by_parent.setdefault(s["parent"], []).append(s)
-    pairs = []
-    for parent, group in by_parent.items():
-        for i in range(len(group)):
-            for j in range(i + 1, len(group)):
-                a, b = group[i], group[j]
-                d = difflib.SequenceMatcher(None, a["description"], b["description"]).ratio()
-                m = difflib.SequenceMatcher(None, a["summary"] or "", b["summary"] or "").ratio()
-                pairs.append({"sim_desc": round(d, 3), "sim_summary": round(m, 3),
-                              "score": round(max(d, m), 3), "layer": parent,
-                              "a": a["id"], "b": b["id"]})
-    rep["dup"] = {"pairs_top": sorted(pairs, key=lambda p: -p["score"])[:top],
+    # —— dup：候选「抢题」对。两个口径都算（父目录 + **岛×岛**），非字面信号也算候选 —— issue #3。
+    # 单入口形状下每个岛内没有兄弟，「同层」必须是 Agent 真正看到的那一级（岛），否则跨岛同题永远比不到。
+    pairs = dup_pairs(pack)
+    rep["dup"] = {"pairs_top": pairs[:top],
                   "pairs_over_050": sum(1 for p in pairs if p["score"] > 0.5),
+                  "pairs_candidates": sum(1 for p in pairs if p["candidate"]),
                   "pairs_total": len(pairs)}
 
     # —— cost：常驻（L1 菜单）+ 激活（L2 正文）+ 按需（L3）
@@ -259,9 +248,12 @@ def cmd_audit(root, out, top=20):
           + "; ".join(f"{r['id'].rstrip('/')}={r['est_tokens']}tok/{r['lines']}行({r['line_mode']})"
                       for r in rep["size"][:3]))
     print(f"[audit] orphan  孤儿 {len(rep['orphan']['orphans'])} · 悬空 {len(rep['orphan']['broken'])}")
-    print(f"[audit] dup  同层比较 {rep['dup']['pairs_total']} 对（同层），相似度>0.5 的 {rep['dup']['pairs_over_050']} 对；top:")
+    print(f"[audit] dup  候选 {rep['dup']['pairs_candidates']} 对（父目录 + 岛×岛）；"
+          f"字面分>0.5 的 {rep['dup']['pairs_over_050']} 对 · 共比 {rep['dup']['pairs_total']} 对；top:")
     for p in rep["dup"]["pairs_top"][:5]:
-        print(f"    {p['score']:.2f} desc={p['sim_desc']:.2f} | {p['a']}  ↔  {p['b']}")
+        sig = " · 信号=" + ",".join(sorted(p["signals"])) if p["signals"] else ""
+        print(f"    {p['score']:.2f} desc={p['sim_desc']:.2f} [{'+'.join(p['scopes'])}]{sig} | "
+              f"{p['a']}  ↔  {p['b']}")
     c = rep["cost"]
     print(f"[audit] cost  常驻 {c['resident_chars']} 字符 ≈ {c['resident_est_tokens']} token · "
           f"L2 全体 {c['l2_est_tokens_all']} tok（中位 {c['l2_est_tokens_median']}）· "

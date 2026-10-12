@@ -50,6 +50,34 @@ def parse_frontmatter(text):
     return meta, "\n".join(lines[end + 1:]), end + 2
 
 
+def meta_list(text, key):
+    """从 frontmatter 里取一个**列表值**（如 `related_skills: [a, b]` 或 `tags: [x]`）。
+
+    为什么不走 `parse_frontmatter`：那是手写的扁平子集，**不认嵌套映射** ——
+    `metadata:\\n  hermes:\\n    tags: [...]` 会被它压成一行字符串，取不到键。
+    这里只按名字在原始 frontmatter 块里找那一行（兼容 `[a, b]` 与裸逗号），够用，
+    且不动解析器（契约 §6）。没找到返回 []。issue #3 的非字面信号要用它。"""
+    if not text.startswith("---"):
+        return []
+    lines = text.split("\n")
+    end = next((i for i in range(1, len(lines)) if lines[i].strip() in ("---", "...")), None)
+    if end is None:
+        return []
+    pat = re.compile(r"^\s*" + re.escape(key) + r"\s*:\s*(.*)$")
+    for ln in lines[1:end]:
+        m = pat.match(ln.rstrip())
+        if not m:
+            continue
+        val = m.group(1).strip()
+        if val.startswith("[") and val.endswith("]"):
+            val = val[1:-1]
+        out = []
+        for part in val.split(","):
+            p = part.strip().strip("\"'")
+            if p:
+                out.append(p)
+        return out
+    return []
 
 
 # 未加引号的安全标量：首字符不能是 YAML 指示符，其余不许出现 `:` `#` 引号反斜杠与空白控制符

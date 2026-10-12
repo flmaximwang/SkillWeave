@@ -3,7 +3,7 @@
 从 weave.py 拆出，逻辑未改。"""
 import os, re, subprocess
 from .common import body_counts, content_digest, est_tokens, extract_declared_refs, fence_lines, first_sentence, headings, kind_of_file, read_text, sha256_file
-from .frontmatter import parse_frontmatter
+from .frontmatter import meta_list, parse_frontmatter
 
 
 SKIP_DIRS = {".git", ".github", "node_modules", "__pycache__", ".venv", "venv"}
@@ -41,6 +41,11 @@ def analyze_skill(root, path, rel):
         if sent:
             node["summary"] = sent
             node["summary_source"] = f"{rel}SKILL.md:{line} 首段首句"
+
+    # 元数据里的**非字面**信号（issue #3）：跨语言/同义改写的「同一件事」字面分贴近 0，
+    # 但 metadata.hermes.related_skills / tags 常逐字相同。解析器不认嵌套映射，故用 meta_list。
+    node["tags"] = meta_list(text, "tags")
+    node["related_skills"] = meta_list(text, "related_skills")
 
     declared = extract_declared_refs(body, rel)
     fenced = fence_lines(body)

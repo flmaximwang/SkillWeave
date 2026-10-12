@@ -5,7 +5,7 @@ import collections, difflib, json, os, re, shutil, subprocess, tempfile, time, u
 from .common import description_health, est_tokens, read_text, sha256_file
 from .deliver import _ensure_git_copy, _worktree_copy
 from .frontmatter import frontmatter_selfcheck, parse_frontmatter, yaml_scalar
-from .graph import _allowed_files, _clone_copy, _content_key, _find_anchor, _in_git_repo, _plan_items, _read_waivers, _waived, cross_skill_edges, first_layer_entries, islands_of, section_spans
+from .graph import _allowed_files, _clone_copy, _content_key, _find_anchor, _in_git_repo, _plan_items, _read_waivers, _waived, cross_skill_edges, dup_pairs, first_layer_entries, islands_of, section_spans
 from .model import add_mentions, git, skills_root, top_level_skills, tracked_set, walk_dir
 from .pack import Pack
 from .render import _default_entry_dir, _rev, island_dirs, island_index_md, render_collapse_md, umbrella_body
@@ -28,66 +28,67 @@ def propose_actions(root, cap=20, merge_at=0.97, rewrite_at=0.5):
     l1 = [c for c in sr["children"] if c["kind"] in ("skill", "category")]
     props = []
 
-    # —— 并（近重复）：description 近乎逐字相同 → 合并候选
-    by_parent = {}
-    for s in skills:
-        by_parent.setdefault(s["parent"], []).append(s)
-    for parent, group in by_parent.items():
-        for i in range(len(group)):
-            for j in range(i + 1, len(group)):
-                a, b = sorted([group[i], group[j]], key=lambda s: s["id"])
-                sim = difflib.SequenceMatcher(None, a["description"], b["description"]).ratio()
-                if sim < rewrite_at:
-                    continue
-                # 身份取谁？旧写法按 id 排序 —— 尾斜杠会让 `x-data/` 排在 `x/` 前，纯属偶然。
-                # 改成 merge.md 的口径：全 pack 正文引用它的次数多的留下；并列取更短的名字。
-                def refcount(sid):
-                    base = os.path.basename(sid.rstrip("/"))
-                    n = 0
-                    for dp, _, fs in os.walk(os.path.join(root, "skills")):
-                        for f in fs:
-                            if f != "SKILL.md" or sid.rstrip("/") in dp:
-                                continue
-                            try:
-                                n += read_text(os.path.join(dp, f)).count(base)
-                            except OSError:
-                                pass
-                    return n
-                ra, rb = refcount(a["id"]), refcount(b["id"])
-                keep = a if (ra, -len(a["id"])) >= (rb, -len(b["id"])) else b
-                drop = b if keep is a else a
-                a, b = keep, drop
-                fa = sorted(os.path.relpath(os.path.join(dp, f), root)
-                            for dp, _, fs in os.walk(os.path.join(root, a["id"].rstrip("/"))) for f in fs)
-                fb = sorted(os.path.relpath(os.path.join(dp, f), root)
-                            for dp, _, fs in os.walk(os.path.join(root, b["id"].rstrip("/"))) for f in fs)
-                names_a = [os.path.basename(x) for x in fa]
-                names_b = [os.path.basename(x) for x in fb]
-                same_names = names_a == names_b
-                ver_a = parse_frontmatter(read_text(os.path.join(root, a["id"].rstrip("/"), "SKILL.md")))[0].get("version")
-                ver_b = parse_frontmatter(read_text(os.path.join(root, b["id"].rstrip("/"), "SKILL.md")))[0].get("version")
-                # 机械合并规则：文件名集合一致 + 两边都有 version → 身份取被引用更多的一方、同名文件取 version 高的一方。
-                auto = bool(same_names and ver_a and ver_b and ver_a != ver_b and sim >= merge_at)
-                kind = "merge" if sim >= merge_at else "rewrite"
-                winner = b if (auto and ver_a and ver_b and ver_b > ver_a) else a
-                props.append({
-                    "kind": kind, "needs_model": not auto,
-                    "auto_applyable": bool(auto and kind == "merge"),
-                    "evidence": {"sim_desc": round(sim, 3), "layer": parent, "same_names": same_names,
-                                 "refcount": {a["id"]: ra, b["id"]: rb},
-                                 "version": {a["id"]: ver_a, b["id"]: ver_b},
-                                 "b_skill_sha256": sha256_file(os.path.join(root, b["id"].rstrip("/"), "SKILL.md")),
-                                 "mechanical_rule": "身份取被引用更多的一方（并列取更短名字）、正文取 version 更高的一方"
-                                 if auto else None},
-                    "where": f"{a['id']}SKILL.md:1 · {b['id']}SKILL.md:1",
-                    "action": (f"保留 {a['id']}（身份），正文取 {winner['id']}（version {ver_b if winner is b else ver_a}）；"
-                               f"删 {b['id']}" + ("（机械可执行）" if auto else "（要人先看两边正文差异）"))
-                    if kind == "merge" else
-                    f"改写触发词把两者分开（当前 sim_desc={sim:.2f}）：{a['id']} / {b['id']}",
-                    "diff_shape": ([f"- {b['id']}/ (删)", f"~ {a['id']}/SKILL.md (正文取较高 version)"]
-                                   if kind == "merge" else [f"~ {a['id']}SKILL.md:1", f"~ {b['id']}SKILL.md:1"]),
-                    "paths": [a["id"].rstrip("/") + "/", b["id"].rstrip("/") + "/"] if kind == "merge" else [],
-                })
+    # —— 并（近重复）：候选对来自 dup_pairs —— 父目录 + **岛×岛** + 非字面信号（issue #3）。
+    # 旧写法只比同父目录的兄弟，单入口形状下跨岛同题永远进不了候选集。
+    by_id = {s["id"]: s for s in skills}
+    for rec in dup_pairs(pack, score_at=rewrite_at):
+        if not rec["candidate"]:
+            continue          # 非候选不提案（恢复被 dup_pairs 放宽掉的那道闸）
+        a, b = by_id.get(rec["a"]), by_id.get(rec["b"])
+        if a is None or b is None:
+            continue
+        a, b = sorted([a, b], key=lambda s: s["id"])
+        sim = rec["sim_desc"]
+        # 身份取谁？旧写法按 id 排序 —— 尾斜杠会让 `x-data/` 排在 `x/` 前，纯属偶然。
+        # 改成 merge.md 的口径：全 pack 正文引用它的次数多的留下；并列取更短的名字。
+        def refcount(sid):
+            base = os.path.basename(sid.rstrip("/"))
+            n = 0
+            for dp, _, fs in os.walk(os.path.join(root, "skills")):
+                for f in fs:
+                    if f != "SKILL.md" or sid.rstrip("/") in dp:
+                        continue
+                    try:
+                        n += read_text(os.path.join(dp, f)).count(base)
+                    except OSError:
+                        pass
+            return n
+        ra, rb = refcount(a["id"]), refcount(b["id"])
+        keep = a if (ra, -len(a["id"])) >= (rb, -len(b["id"])) else b
+        drop = b if keep is a else a
+        a, b = keep, drop
+        fa = sorted(os.path.relpath(os.path.join(dp, f), root)
+                    for dp, _, fs in os.walk(os.path.join(root, a["id"].rstrip("/"))) for f in fs)
+        fb = sorted(os.path.relpath(os.path.join(dp, f), root)
+                    for dp, _, fs in os.walk(os.path.join(root, b["id"].rstrip("/"))) for f in fs)
+        names_a = [os.path.basename(x) for x in fa]
+        names_b = [os.path.basename(x) for x in fb]
+        same_names = names_a == names_b
+        ver_a = parse_frontmatter(read_text(os.path.join(root, a["id"].rstrip("/"), "SKILL.md")))[0].get("version")
+        ver_b = parse_frontmatter(read_text(os.path.join(root, b["id"].rstrip("/"), "SKILL.md")))[0].get("version")
+        # 机械合并规则：文件名集合一致 + 两边都有 version → 身份取被引用更多的一方、同名文件取 version 高的一方。
+        auto = bool(same_names and ver_a and ver_b and ver_a != ver_b and sim >= merge_at)
+        kind = "merge" if sim >= merge_at else "rewrite"
+        winner = b if (auto and ver_a and ver_b and ver_b > ver_a) else a
+        props.append({
+            "kind": kind, "needs_model": not auto,
+            "auto_applyable": bool(auto and kind == "merge"),
+            "evidence": {"sim_desc": round(sim, 3), "scopes": rec["scopes"], "signals": rec["signals"],
+                         "same_names": same_names,
+                         "refcount": {a["id"]: ra, b["id"]: rb},
+                         "version": {a["id"]: ver_a, b["id"]: ver_b},
+                         "b_skill_sha256": sha256_file(os.path.join(root, b["id"].rstrip("/"), "SKILL.md")),
+                         "mechanical_rule": "身份取被引用更多的一方（并列取更短名字）、正文取 version 更高的一方"
+                         if auto else None},
+            "where": f"{a['id']}SKILL.md:1 · {b['id']}SKILL.md:1",
+            "action": (f"保留 {a['id']}（身份），正文取 {winner['id']}（version {ver_b if winner is b else ver_a}）；"
+                       f"删 {b['id']}" + ("（机械可执行）" if auto else "（要人先看两边正文差异）"))
+            if kind == "merge" else
+            f"改写触发词把两者分开（当前 sim_desc={sim:.2f}）：{a['id']} / {b['id']}",
+            "diff_shape": ([f"- {b['id']}/ (删)", f"~ {a['id']}/SKILL.md (正文取较高 version)"]
+                           if kind == "merge" else [f"~ {a['id']}SKILL.md:1", f"~ {b['id']}SKILL.md:1"]),
+            "paths": [a["id"].rstrip("/") + "/", b["id"].rstrip("/") + "/"] if kind == "merge" else [],
+        })
 
     # —— 分（归入类目压低 L1）：按词根聚类，只出建议不做决定
     if len(l1) > cap:

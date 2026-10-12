@@ -1,7 +1,7 @@
 """派生图：互指边 / 互指岛 / 披露链（文档图）。
 
 从 weave.py 拆出，逻辑未改。"""
-import collections, fnmatch, hashlib, json, os, re, subprocess
+import collections, difflib, fnmatch, hashlib, json, os, re, subprocess
 from .common import extract_declared_refs, fence_lines, headings, kind_of_file, read_text
 from .model import SKIP_DIRS, SKIP_FILES, git, skills_root
 
@@ -461,3 +461,147 @@ def _clone_copy(pack, dest):
 def first_layer_entries(tree):
     """入口层摆出几项（tree 口径，与 layers 一致）。"""
     return [c["id"] for c in skills_root(tree)["children"] if c["kind"] in ("skill", "category")]
+
+
+# ── 「抢题」候选对（issue #3）────────────────────────────────────────────────
+# 字面分是字符级 difflib，跨语言/同义改写的「同一件事」会贴近 0；下面这组**非字面信号**
+# 才是抓得住它们的东西。信号名进产物，便于人核对「为什么算候选」。
+_NAME_STOP = {"skill", "skills", "a", "an", "the", "and", "or", "of", "for", "to", "in", "on",
+              "with", "hermes", "agent", "use", "using", "when", "your", "you", "it", "s"}
+
+
+def _name_tokens(skill):
+    """name 的词元（去通用词）：`vet-an-external-skill` → {vet, external}。"""
+    return {t for t in re.split(r"[-_\s]+", (skill.get("name") or "").lower())
+            if t and t not in _NAME_STOP}
+
+
+def _file_bases(skill):
+    """非通用文件名集合（同款参考文献/脚本是强信号）。"""
+    out = set()
+    for f in skill.get("files", []):
+        base = os.path.basename(f.get("path", ""))
+        if base and base != "SKILL.md" and f.get("kind") not in ("license", "readme", "instructions"):
+            out.add(base)
+    return out
+
+
+def _df_counts(skills):
+    """pack 内每个文件名词 / name 词元被多少个 skill 命中（document frequency）。
+
+    存在的理由：`test-prompts.json` 这种**约定俗成的夹具名**在 UsingAstra 的 12 个 skill 里
+    出现 11 次 —— 共享它说明不了任何事。只有**罕见**的共享项才算信号。"""
+    df = {}
+    for s in skills:
+        for b in _file_bases(s):
+            df["file:" + b] = df.get("file:" + b, 0) + 1
+        for t in _name_tokens(s):
+            df["name:" + t] = df.get("name:" + t, 0) + 1
+    return df
+
+
+def _pair_signals(a, b, df=None, cutoff=0):
+    """非字面信号：命中的信号名 → 命中值（空 dict = 没命中）。
+
+    `related_skills` 用**对级 Jaccard**（≥0.5）—— 它自带归一化，共享集合再常见也说明「这两个是
+    同一族里的同一件事」；issue #3 的目标对就是靠它（3 个 related_skills 逐字相同）抓到的。
+    文件名词 / name 词元是**无界交集**，必须先过 `df` 的罕见性闸（否则 `test-prompts.json`
+    一类的通用名会把整个 pack 变成候选 —— 实测 55/55）。"""
+    sig = {}
+    ra, rb = set(a.get("related_skills") or []), set(b.get("related_skills") or [])
+    if ra and rb and len(ra & rb) / len(ra | rb) >= 0.5:
+        sig["related_skills"] = sorted(ra & rb)
+    fa, fb = _file_bases(a), _file_bases(b)
+    shared = {x for x in (fa & fb) if (df or {}).get("file:" + x, 0) <= cutoff}
+    if len(shared) >= 2 or (shared and len(shared) / min(len(fa), len(fb)) >= 0.5):
+        sig["file_bases"] = sorted(shared)
+    na, nb = _name_tokens(a), _name_tokens(b)
+    toks = {t for t in (na & nb) if (df or {}).get("name:" + t, 0) <= cutoff}
+    if len(toks) >= 2:
+        sig["name_tokens"] = sorted(toks)
+    return sig
+
+
+def dup_pairs(pack, score_at=0.5):
+    """候选「抢题」对 —— 两个分组口径都算（issue #3）。
+
+    - `parent`：同一**父目录**的兄弟（原口径，文件系统层）
+    - `entry` ：**岛 × 岛** —— Agent 在同一级真正看到的选择项。单入口形状下每个岛内没有兄弟
+      （1 skill/岛 → 0 对），跨岛对永远进不了候选集，这正是 issue #3：
+      `vet-an-external-skill` ↔ `evaluate-external-skills` 一次都没被比过。
+
+    候选 = 字面分 ≥ `score_at`，**或** `_pair_signals` 命中任一非字面信号（跨语言同义改写靠这个）。
+
+    返回 [(record, ...)]，按 score 降序。record：`a`/`b`（skill id）、`sim_desc`/`sim_summary`/`score`、
+    `scopes`（含 "parent"/"entry"）、`layers`（来源标签，人工核对用）、`signals`、`candidate`。
+    """
+    skills = pack.skills
+    df = _df_counts(skills)
+    # 罕见性闸：共享项只在这**两个** skill 出现才算证据（df ≤ 2）。出现 3 处以上就是约定俗成的
+    # 名字（`test-results.md` 在 5/48 个 skill 里都有、`profile` 出现在一堆 name 里），说明不了「同题」。
+    # 试过按比例（25% of n）：48 个 skill 的 UsingHermes 里放过了 `test-results.md`，噪声明显。
+    cutoff = 2
+    seen = {}
+
+    def add(a, b, scope, layer):
+        key = tuple(sorted((a["id"], b["id"])))
+        if key in seen:
+            rec = seen[key]
+            for s in (scope,):
+                if s not in rec["scopes"]:
+                    rec["scopes"].append(s)
+            if layer not in rec["layers"]:
+                rec["layers"].append(layer)
+            return
+        d = difflib.SequenceMatcher(None, a["description"], b["description"]).ratio()
+        m = difflib.SequenceMatcher(None, a["summary"] or "", b["summary"] or "").ratio()
+        score = round(max(d, m), 3)
+        sig = _pair_signals(a, b, df, cutoff)
+        seen[key] = {"a": a["id"], "b": b["id"], "sim_desc": round(d, 3),
+                     "sim_summary": round(m, 3), "score": score, "scopes": [scope],
+                     "layers": [layer], "signals": sig,
+                     "candidate": bool(score >= score_at or sig)}
+
+    # ① 父目录口径：同一父目录的兄弟
+    by_parent = {}
+    for s in skills:
+        by_parent.setdefault(s["parent"], []).append(s)
+    for parent, group in by_parent.items():
+        for i in range(len(group)):
+            for j in range(i + 1, len(group)):
+                add(group[i], group[j], "parent", parent)
+
+    # ② 入口层口径：**L2 条目（岛）× 岛** —— 只在**单入口形状**下做（issue #3 的原话）。
+    # 单入口形状下每个岛内没有兄弟（1 skill/岛 → 父目录口径 0 对），跨岛同题永远比不到，
+    # 所以必须按「Agent 在同一级看到的那一级」再比一次。
+    # 多入口形状**不**做：那一级的兄弟已经由父目录口径覆盖，再全量跨类目互比会把候选从个位数
+    # 顶到几十（实测 UsingHermes 11 → 52 条提案），得不偿失。
+    # 锚点也不能用 `skills_root()`（那是入口层的**父**，实测本包返回 `skills/`，锚上去全体落一组），
+    # 也不能用 `islands()`（互指岛在本包里是 1 个连通分量，等于没分）—— 要用入口项本身。
+    items = entry_items(pack.tree)
+    if len(items) == 1:
+        anchor = items[0][1]
+        groups = {}
+        for s in skills:
+            rel = s["id"][len(anchor):] if s["id"].startswith(anchor) else s["id"]
+            parts = [p for p in rel.split("/") if p]
+            while parts and parts[0] in ("references", "skills", "assets", "scripts"):
+                parts.pop(0)
+            groups.setdefault(parts[0] if parts else "<入口>", []).append(s)
+        gids = sorted(groups)
+        for gi in range(len(gids)):
+            for gj in range(gi + 1, len(gids)):
+                # 每个**岛对**只收最强的那一对证据 —— 「岛 × 岛」是这一级的比较单位，
+                # 把每两个岛之间的 skill 全排列都摊出来会把报告淹掉（实测 UsingHermes 49 条 rewrite）。
+                best = None
+                for a in groups[gids[gi]]:
+                    for b in groups[gids[gj]]:
+                        sc = max(difflib.SequenceMatcher(None, a["description"], b["description"]).ratio(),
+                                 difflib.SequenceMatcher(None, a["summary"] or "", b["summary"] or "").ratio())
+                        if sc < score_at and not _pair_signals(a, b, df, cutoff):
+                            continue
+                        if best is None or sc > best[0]:
+                            best = (sc, a, b)
+                if best:
+                    add(best[1], best[2], "entry", f"{gids[gi]} × {gids[gj]}")
+    return sorted(seen.values(), key=lambda p: -p["score"])

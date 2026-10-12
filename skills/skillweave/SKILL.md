@@ -62,7 +62,7 @@ PACK=<要分析的 pack 目录>                      # 例：某个 skill 仓库
 
 python3 "$SW" tree   "$PACK" --out /tmp/sw     # 文档树：pack → 类目 → skill → 章节/文件
 python3 "$SW" layers "$PACK" --out /tmp/sw     # 老口径的层汇总（常驻成本 / 正文规模 / 孤儿与悬空）；新口径用 disclosure
-python3 "$SW" audit  "$PACK" --out /tmp/sw     # 审计四段：体积 / 孤儿悬空 / 同层抢题 / 成本两组数
+python3 "$SW" audit  "$PACK" --out /tmp/sw     # 审计四段：体积 / 孤儿悬空 / 抢题（父目录 + 岛×岛 + 非字面信号）/ 成本两组数
 python3 "$SW" checks "$PACK" --out /tmp/sw     # 七条检查（含硬编码路径、内嵌密钥；命中退 1）
 python3 "$SW" propose "$PACK" --out /tmp/sw    # 四类动作的提案：**默认 dry-run，不改盘**
 python3 "$SW" visualize "$PACK"                 # 生成物落回 pack：TREE.md + TREE.html（文档树与互指图的文本版与可视化）
@@ -150,8 +150,8 @@ Agent 不整份读脚本，脚本的披露要求只有「被所属 `SKILL.md` �
 |---|---|---|
 | **拆** split | 哪几段该下沉到 `references/`、第一层留什么 | 超限清单、每个标题的行号与体量 |
 | **分** group | 哪些散技能该归入哪个类目、类目叫什么 | 入口层条目清单与 L1 条目数 |
-| **并** merge | 这对是不是真重复、保留哪个、折进哪个 | 同层相似度排序的候选对 |
-| **改写** rewrite | `description` 改成什么（触发词/排除条款） | 当前 `description`、长度、同层相似度 |
+| **并** merge | 这对是不是真重复、保留哪个、折进哪个 | 候选对：同父目录 + 单入口形状下的**岛×岛** + 非字面信号（`related_skills` / 同款文件名 / name 词元），每条带 `scopes` 与 `signals` |
+| **改写** rewrite | `description` 改成什么（触发词/排除条款） | 当前 `description`、长度、候选对的字面分与命中信号 |
 
 **每一步都必须能重测**：改完重跑 `layers`（+ `audit`）出前后对照 —— 没有对照表就等于没改。
 

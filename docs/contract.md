@@ -130,6 +130,10 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 `license` / `readme`（命中的路径，无则 `null`）、`size_by_kind`（按 `kind` 的字节分解 = 指令重量 vs 资源重量）、
 `counts`（`code_blocks` / `sections` / `long_paragraphs` / `todos` —— 「该拆」的可量信号）。
 
+**非字面信号字段（2026-10-12 加，issue #3）**：skill 节点还有 `tags` 与 `related_skills`
+（取自 `metadata.hermes.*`，用 `meta_list()` 从原始 frontmatter 按名取 —— `parse_frontmatter()`
+不认嵌套映射）。它们不参与任何渲染，只喂 §7.3 的「抢题」候选判定。
+
 **`kind` 判定（唯一一处定义）**
 
 1. 有 `SKILL.md` 的目录 = `skill`。
@@ -275,3 +279,41 @@ YAML（真解析器报 `mapping values are not allowed here`）；一批 63 个 
 - `visualize` 有一道闸：工作区里存在**未被 git 跟踪**的 `SKILL.md` 时报错退出（退出码 1），提示先 commit。
   collapse 刚改完还没 commit 时索引里是旧路径，新入口会被当 untracked 跳过 ⇒ 空树 + 退出码 0
   （一批 63 个 pack 里 25 个命中）。一次不落到的空跑该报错，不该静默交付空树。
+
+### 7.3 「同层抢题」的两个口径与非字面信号（issue #3 之后）
+
+`audit` 的 dup 段与 `propose` 的 merge/rewrite 候选共用 `dup_pairs(pack)`，它算**两个分组口径**：
+
+| 口径 | 分组依据 | 覆盖的形状 |
+|---|---|---|
+| `parent` | 同一**父目录**的兄弟（文件系统层） | 多入口：`skills/<类目>/<skill>/` 的同层兄弟 |
+| `entry` | **L2 条目（岛）× 岛** —— 只在**单入口**形状下做 | 单入口：`<入口>/references/<岛>/<skill>/` |
+
+为什么入口层口径必须有：单入口形状下每个岛内**没有兄弟**（1 skill/岛 → 父目录口径 0 对），
+跨岛同题永远进不了候选集。实测把一个与既有岛同题的 skill 收进包后，
+`disclosure` / `checks` / `audit` / `propose` 四个命令**一条提示都没有**。
+
+锚点用 `entry_items()` 给的**入口项本身** —— 不是 `skills_root()`（那是入口层的**父**，实测返回
+`skills/`，锚上去所有 skill 落进同一组），也不是 `islands()`（互指岛：实测那个包里 10 个 skill 是
+**1 个连通分量**，等于没分）。每个**岛对**只收最强的一对证据，避免把两岛之间的 skill 全排列摊开。
+
+候选 = **字面分 ≥ 0.5**（`max(SequenceMatcher(description), SequenceMatcher(summary))`）
+**或**命中一个**非字面信号**（跨语言/同义改写的同一件事字面分贴近 0 —— 实测目标对只有 0.106、
+但两边 `related_skills` 逐字相同）：
+
+| 信号 | 判据 |
+|---|---|
+| `related_skills` | 两边 `metadata.hermes.related_skills` 的 **Jaccard ≥ 0.5**（自带归一化，不受通用项干扰） |
+| `file_bases` | 同款非通用文件名（`SKILL.md` / license / readme 除外），且 **df ≤ 2** |
+| `name_tokens` | `name` 词元（去通用词）交集 ≥ 2，且 **df ≤ 2** |
+
+`df ≤ 2` = 这一项**只在这两个 skill 里出现**才算证据。出现 3 处以上就是约定俗成的名字
+（`test-prompts.json` 在 UsingAstra 的 12 个 skill 里出现 11 次、`test-results.md` 在 5/48），
+共享它说明不了「同题」—— 不加这道闸时实测 UsingAstra 55/55 全变候选。
+
+**解析器注意**：`parse_frontmatter()` 是扁平子集，**不认嵌套映射** —— `metadata:` + 缩进两层的
+`tags: [...]` 会被它压成一行字符串。所以这两个键用 `meta_list()` 从原始 frontmatter 里按名取，
+不走解析器。
+
+每对都带 `scopes`（`parent` / `entry`）、`signals`、`sim_desc`，写进 `audit.json` 与提案的 `evidence`，
+人核对时能看到「为什么算候选」。回归断言在 `--self-test` 的 issue #3 段。

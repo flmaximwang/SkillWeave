@@ -8,10 +8,11 @@ from .common import read_text
 from .deliver import cmd_deliver
 from .disclosure import cmd_disclosure, cmd_dispatch, cmd_verify
 from .frontmatter import frontmatter_selfcheck, parse_frontmatter
-from .graph import _findings, _read_waivers, _waived, first_layer_entries
+from .graph import _findings, _read_waivers, _waived, dup_pairs, first_layer_entries
 from .model import git, tracked_set, untracked_skill_files, walk_dir
+from .pack import Pack
 from .render import _rev, cmd_visualize
-from .transform import cmd_apply, cmd_collapse, cmd_prepare, cmd_propose
+from .transform import cmd_apply, cmd_collapse, cmd_prepare, cmd_propose, propose_actions
 
 
 
@@ -474,6 +475,29 @@ def self_test():
         assert len(_dup) == 2, \
             f"装包样板（walk_dir(root, root, ...)）全包该只有 2 处（Pack.load + cmd_collapse 重读），" \
             f"实得 {len(_dup)} 处：{_dup} —— 命令里出现的就是手抄，改用 Pack.load(root)"
+        # issue #3 回归：单入口形状下，两个**岛**里的 skill 是同一件事（正文不同语言、字面分贴近 0），
+        # 但 related_skills 逐字相同 → dup 必须比到（入口层口径），propose 必须给出候选。
+        # 旧实现只比同一父目录的兄弟：1 skill/岛 → 0 对，跨岛同题永远进不了候选集。
+        _up = os.path.join(tmp, "dup-pack")
+        for _isl, _nm, _desc in (
+                ("island-a", "alpha", "Use when vetting an external skill before adopting it."),
+                ("island-b", "beta", "当有人推荐一个第三方 skill、要先核实它装不装得上时用。")):
+            _d = os.path.join(_up, "skills", "entry", "references", _isl, _nm)
+            os.makedirs(_d, exist_ok=True)
+            with open(os.path.join(_d, "SKILL.md"), "w") as f:
+                f.write(f'---\nname: {_nm}\ndescription: "{_desc}"\nmetadata:\n  hermes:\n'
+                        f'    related_skills: [shared-one, shared-two, shared-three]\n---\n\n# {_nm}\n')
+        with open(os.path.join(_up, "skills", "entry", "SKILL.md"), "w") as f:
+            f.write('---\nname: entry\ndescription: 入口。\n---\n\n# entry\n')
+        _dupp = [r for r in dup_pairs(Pack.load(_up))
+                 if {os.path.basename(r["a"].rstrip("/")), os.path.basename(r["b"].rstrip("/"))}
+                 == {"alpha", "beta"}]
+        assert _dupp, "issue #3：单入口形状下跨岛的同题对必须被比到（旧实现 0 对）"
+        assert "entry" in _dupp[0]["scopes"] and "related_skills" in _dupp[0]["signals"], \
+            ("该对必须来自入口层口径、靠 related_skills 命中，实得 "
+             f"{_dupp[0]['scopes']} / {list(_dupp[0]['signals'])}")
+        assert any("alpha" in p["where"] and "beta" in p["where"]
+                   for p in propose_actions(_up)), "issue #3：propose 必须为跨岛同题给出 rewrite/merge 候选"
         # deliver（F 交付）：工作副本改完 → **默认**合回真包 main + push + 清 worktree/分支。
         # 旧口径是「真包只读、要一句『进入 production 模式』才动」——交付是流程的最后一步，不是等人点头的动作。
         _dp = os.path.join(tmp, "deliver-pack")
@@ -509,7 +533,8 @@ def self_test():
               "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 / 提案器四类动作 / "
               "layers↔audit 口径对拍 / 派发划批 / 验收（集合级回归拦截 + 梯子）/ "
               "交付 deliver（默认合回真包 main + push 回读 + 清 worktree/分支） / "
-              "issue #1（节点框数 == SKILL.md 份数 + 未跟踪闸）/ issue #2（冒号值仍是合法 YAML）—— 全过")
+              "issue #1（节点框数 == SKILL.md 份数 + 未跟踪闸）/ issue #2（冒号值仍是合法 YAML）/ "
+              "issue #3（跨岛同题必须被比到）—— 全过")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
