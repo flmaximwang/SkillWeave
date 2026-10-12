@@ -100,6 +100,10 @@ F 验收与交付：跑盲判，通过则合回真包
 - 对象：Agent 的选择结果。仅当改动涉及 `description`、入口 `SKILL.md` 或 `INDEX.md` 时执行：对一组固定题面做盲判，判据为新结构得分不低于旧结构，且没有题目从 1.0 掉到 0.5 以下。
 - 谁判断：判官模型。
 - 产出：评测分数 + 把副本的改动合并回真包 + 报告与计划更新。
+- **交付时持久化文档树视图**：对真包跑 `visualize`（不带 `--out`，默认落回 pack 根），把 `TREE.md`
+  与 `TREE.html` 写进包里，并在 README 首个标题下补一条指路。这样树的形状随包走 —— 以后要回答
+  「这个包现在几层、几个岛、哪些文档到不了根」，看包里的 `TREE.md` 就行，不必凭记忆重跑工具。
+  `TREE.html` 是自包含的（无外链、无脚本依赖），跟着仓库走不会烂。
 
 ## 四、循环的控制参数
 
@@ -125,7 +129,7 @@ F 验收与交付：跑盲判，通过则合回真包
 | C | `disclosure` 的输出 `TODO.md`，分组判断可用 `propose`，默认 dry-run | `TODO.md` |
 | D | `collapse` 用于单入口，`propose --apply-group` 用于多入口，文档级改动用 `apply` | 一批改动 + 逐条 patch 记录 |
 | E | `verify` | 新树 + `RUN.md` + `PARKED.md` |
-| F | `judge` 与 `score`，合回用 `git merge --ff-only` | 评测分数 + 合回 |
+| F | `judge` 与 `score`，合回用 `git merge --ff-only`；交付时对真包跑 `visualize`（不带 `--out`）把树视图持久化进 pack 根 | 评测分数 + 合回 + `TREE.md` · `TREE.html` |
 
 六个阶段都已有实现：A 定形状用 `--shape`，B 用 `prepare` 与 `disclosure` 与 `tree` 与 `visualize`，C 用 `disclosure` 输出的 `TODO.md` 与 `propose`，D 用 `collapse` 与 `propose --apply-group` 与 `apply`，E 用 `verify`，F 用 `judge` 与 `score`。
 

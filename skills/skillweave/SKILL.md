@@ -48,6 +48,7 @@ dispatch  事实补全 + 划批 + 落 prompt → dispatch/{plan.json,state.json,
 apply     校验并落盘提案            → 错就整条不动；每条记 patch，可单条回退
 verify    集合级复测                → 该消的消了 / 无新增 / 外部集合不变 / 拆分守恒
 judge+score  只在动了 description / 入口 SKILL.md / INDEX.md 时才跑
+visualize 交付时收尾                  → TREE.md + TREE.html 落进 pack 根，README 指路（随包持久化，别只留在 /tmp）
 ```
 失败不整批回滚：通过的条目保留，未通过的条目改输入后在已改动的树上继续修，只有无法修正的条目才回退它自己那一条。
 
