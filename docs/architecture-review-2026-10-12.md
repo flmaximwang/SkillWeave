@@ -17,8 +17,12 @@
 
 ## 硬约束（决定方案形状）
 
-1. **入口路径动不了**：可安装目录 `skillweave/scripts/weave.py` 是 `skills-manager` 的部署单元，
-   仓库根 `scripts/weave.py` 是 `runpy` 转发器指向它、README/`SKILL.md`/`docs/flow.md` 全部按这个路径写。
+1. **入口路径动不了**：`skills/skillweave/scripts/weave.py` 是 skills-manager 的入口，仓库根
+   `scripts/weave.py` 是 `runpy` 转发器指向它，README/`SKILL.md`/`docs/flow.md` 全按这个路径写。
+   **更正（2026-10-12 晚）**：我第一次写的是「部署单元只有这一个文件」——**查错了**。实测
+   `skills-manager.db` 里 `source_subpath=skills/skillweave`、每个 target 都是 symlink，
+   部署单元是**整个 `skills/skillweave/` 子树**（6 个文件，含 `references/`）。所以包**可以拆**，
+   只要入口路径不变。
 2. **契约 §6：不引外部依赖**，只用 stdlib + git。
 3. 交付判据：**`--self-test` 全过** + 312 个 pack × 7 命令无 traceback。
 
@@ -39,10 +43,9 @@
 
 ## 不做（写清理由，防止后人再提）
 
-- **不拆成多文件包**：会把部署单元从 1 个文件变成 N 个，且入口路径必须保持 `scripts/weave.py`
-  （转发器 + 文档 + 安装器都钉死了它）—— 风险远大于收益。单文件 3452 行、有 7 个章节分隔、
-  91 个函数，靠重排 + façade 已能把「一处概念要跳几个地方」这件事压下来。
 - **不引入测试框架**：契约 §6 禁依赖；`--self-test` 已是唯一测试面。
+- **不做「章节重排」这种纯移动**：拆包已按依赖 DAG 落地了模块边界，前向引用问题从结构上消失，
+  再单独做一次 3452 行的纯移动没有额外收益。
 
 ## 2026-10-12 落地记录
 
@@ -82,8 +85,41 @@
 唯一算「修 bug」的是 `propose`：它以前会打印一条 `none … 这个目录里没有任何 skill`，读起来像一条合法提案。
 现在与其余 8 个命令一致 FAIL。
 
-### 做了什么决定，没做什么
+### 第二轮（同日晚）：真的把单文件拆了
 
-- **没拆成多文件包**：部署单元会被 skills-manager 拆成 N 个文件，且入口路径钉死在 `scripts/weave.py`。
-- **没做章节重排**（原计划 ②）：23 处前向引用是阅读顺序问题，收益比风险小；真要做，留作一次
-  「只移动、不动逻辑」的独立提交。
+用户否决了「不拆」。复核后发现自己**记错了约束**（见上文「更正」）——部署单元是整个
+`skillweave/` 子树，不是单个 `weave.py`。于是拆了。
+
+**拆法**（机械搬运，不手抄 3650 行）：
+- 用 AST 取每个顶层 def/常量 + 其前注释，按**依赖 DAG 的分层**分配 —— 不按原章节注释，
+  因为那些章节互相引用（可视化 ↔ 三级披露 ↔ 披露链递归），不是干净的模块边界。
+- 常量自动落到「使用它的最低层模块」（第一次手工放错 `TEXT_LIKE`/`ACTION`/`LADDER`，
+  正好制造了 3 条回边 → 环；改自动放置后全消）。
+- `scripts/weave.py` 变薄壳（`sys.path` 插自己所在目录 + `from weavelib.cli import main`），
+  **入口路径与用法完全不变**，根转发器 `runpy` 照旧可用。
+- 12 个模块构成一条 **DAG，无环**；唯一的历史环 `cli ↔ selftest` 用**延迟导入**打破
+  （正常跑不再加载 508 行的自检模块）。
+
+产物：
+
+| 模块 | 行 | 职责 |
+|---|---|---|
+| `common` | 207 | 读文件 / token / 摘要 / 文本解析 + 全局常量 |
+| `frontmatter` | 146 | frontmatter 解析与安全写出（契约 §7.1） |
+| `model` | 300 | 扫树、逐 skill 分析（树的形状与成员） |
+| `pack` | 85 | `Pack` 门面 |
+| `graph` | 463 | 互指边 / 互指岛 / 披露链（文档图） |
+| `render` | 522 | TREE.md/html · LAYERS · DISCLOSURE · TODO |
+| `analysis` | 354 | layers / checks / audit / judge / score |
+| `transform` | 644 | propose / apply / collapse / prepare |
+| `deliver` | 189 | worktree → 合回真包 main → push → 回读 |
+| `disclosure` | 397 | disclosure / dispatch / verify |
+| `cli` | 167 | CLI 入口与派发 |
+| `selftest` | 508 | `--self-test` 的全部断言 |
+
+**验证**：`--self-test` 全过（薄壳入口 + 根转发器两条都试）；12 个模块逐一独立 import 通过；
+定向 5 pack × 7 命令 = **35 runs，0 差异**；40 随机 pack × 7 命令 = **280 runs，
+非空 pack 0 差异**（空 pack 的 `exit 0→1` 是上面记的行为变更）。
+
+**架构回归断言同时升级**：原断言只扫单文件，拆包后改成扫 `weavelib/*.py` + 入口 `weave.py` 全包，
+装包样板仍只许 2 处。
