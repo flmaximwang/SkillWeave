@@ -16,7 +16,8 @@ license: MIT
 - 改完结构要证明「没变差」。
 
 **边界**：不装/不卸/不发布技能（那是安装器的事）；不替你判断「这个技能该不该存在」；
-不改任何 pack 里的文件，除非你按 `references/` 的做法动手并**在副本上**验证。
+改动一律在 `prepare` 的副本上做，流程走完默认由 `deliver` 合回真包（见下）—— 真包在交付前保持原样，
+「改副本」是过程，不是终点。
 
 ## 输入是什么（先把定义说死）
 
@@ -49,6 +50,7 @@ apply     校验并落盘提案            → 错就整条不动；每条记 pa
 verify    集合级复测                → 该消的消了 / 无新增 / 外部集合不变 / 拆分守恒
 judge+score  只在动了 description / 入口 SKILL.md / INDEX.md 时才跑
 visualize 交付时收尾                  → TREE.md + TREE.html 落进 pack 根，README 指路（随包持久化，别只留在 /tmp）
+deliver   交付                        → **默认**合回真包 main + push 各 remote 并回读 + 重跑 visualize + 清 worktree/分支
 ```
 失败不整批回滚：通过的条目保留，未通过的条目改输入后在已改动的树上继续修，只有无法修正的条目才回退它自己那一条。
 
@@ -66,7 +68,10 @@ python3 "$SW" propose "$PACK" --out /tmp/sw    # 四类动作的提案：**默�
 python3 "$SW" visualize "$PACK"                 # 生成物落回 pack：TREE.md + TREE.html（文档树与互指图的文本版与可视化）
 python3 "$SW" collapse  "$PACK" --out /tmp/sw   # 可选方案：塌成「L1 = 1 个 skill 入口」的账 + 伞体 + git mv 清单（dry-run）
 python3 "$SW" disclosure "$PACK" --out /tmp/sw            # 第二步：披露链递归 + 逐文档体检 → DISCLOSURE.md
-python3 "$SW" prepare "$PACK" --dest /tmp/pw/ws --out /tmp/pw   # 第一步：拿一份可回滚、可对账的工作副本（原目录只读）
+python3 "$SW" prepare "$PACK" --dest /tmp/pw/ws --out /tmp/pw   # 第一步：拿一份可回滚、可对账的工作副本
+python3 "$SW" deliver "$PACK"                      # 最后一步（默认动作）：合回真包 main + push + 清 worktree/分支
+python3 "$SW" deliver "$PACK" --dry-run            # 只看要做什么，不动盘
+python3 "$SW" deliver "$PACK" --keep-worktree      # 想留在副本上继续改：显式说，别默认
 python3 "$SW" collapse  "$PACK" --out /tmp/sw --apply --entry-dir using-hermes \
         --description "…"                       # 真塌：搬目录 + 写伞体与各岛 INDEX.md；**没 --description 直接拒绝**
 python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json   # 只执行机械那部分
@@ -96,7 +101,10 @@ collapse 刚改完还没 commit 时索引里是旧路径，新入口会被当 un
 **流程见仓库里的 `docs/flow.md`（唯一来源；按架构写）**：A 取景 → **B 机械构建文档树**（`disclosure` 建树，
 体检是它的出口）→ C 读树（判断：切法/命名/待办）→ D 改树 → E 复测 → F 验收交付。本 skill 只写怎么做。
 
-**只改副本（硬规矩）**：工作区一律是 `prepare` 出的副本，真包只读（副本内 git 化后可回滚）。
+**副本起手、交付合回（默认动作）**：改动一律在 `prepare` 出的副本上做（副本内 git 化后可回滚），真包在交付前保持原样。
+**流程走完就是交付**：E 通过（+ F 该跑就跑）之后跑 `weave.py deliver <工作副本>` —— 合回真包 `main`、push 各 remote 并回读、
+重跑 `visualize`、清 worktree 与分支，一步做完，**不需要额外一句「进入 production 模式」**。要停在副本上，得用
+`--keep-worktree` / `--no-push` 显式说；四道闸不过即停（主 clone 干净且 checkout 在 `main`、副本干净、`--ff-only`、不 `--force`）。
 形状是**启动参数**（`--shape single|multi`），在准备之前就定 —— 不让用户等到中途拍板。
 
 **派发**：`weave.py dispatch <pack>` 划批（单位 = skill 子树，≤10 个/批）+ 事实补全 + 落 `dispatch/*.prompt.md`；
@@ -169,4 +177,6 @@ collapse 刚改完还没 commit 时索引里是旧路径，新入口会被当 un
 
 - 一切数字来自命令输出，不许凭印象；报告里每个数都要带产生它的命令。
 - **改完必须重跑**：`layers` 的 L1 条目数、常驻 token、L2 超限数、L3 孤儿数四项前后对照。
-- 在**副本**上改（`cp -R` 或 git worktree），验证通过再动原仓库；原仓库里只留能过 `checks` 的改动。
+- 改动在**副本**上做（`prepare` 的 worktree，或 `cp -R`），验证通过后**默认 `deliver` 合回真包 main 并 push** ——
+  真包里只留能过 `checks` 的改动。把改动留在副本里、真包照旧，是需要写理由的例外（`--keep-worktree` / `--no-push`），
+  不是「更安全所以更对」。

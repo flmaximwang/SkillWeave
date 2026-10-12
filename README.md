@@ -51,8 +51,10 @@ python3 scripts/weave.py propose <pack 目录> --out DIR --apply-group map.json 
 python3 scripts/weave.py visualize <pack 目录> [--out DIR]      # 生成 TREE.md + TREE.html（默认落回 pack 根）
                                                                 # 三级披露文本版 + 自包含可视化；互指岛的圆环 + 弦图
 python3 scripts/weave.py disclosure <pack 目录> [--out DIR]     # 第二步：披露链递归 + 逐文档体检 → DISCLOSURE.md
-python3 scripts/weave.py prepare   <pack 目录> --dest WORK/ws --out DIR   # 第一步：拷一份由 git 管的工作副本（原目录只读）
+python3 scripts/weave.py prepare   <pack 目录> --dest WORK/ws --out DIR   # 第一步：拷一份由 git 管的工作副本
                                                           # 出 BASELINE.md：推导的 L1 + 两种形状同口径的账 + 待选形状
+python3 scripts/weave.py deliver   WORK/ws [--dry-run]     # 最后一步（默认动作）：合回真包 main + push 各 remote 并回读
+                                                          # + 重跑 visualize + 清 worktree/分支；--keep-worktree 才留在副本
 python3 scripts/weave.py collapse  <pack 目录> --out DIR        # 可选形状：L1=1 入口 / L2=岛 / L3=正文 的账 + 伞体草稿（dry-run）
 python3 scripts/weave.py collapse  <pack 目录> --out DIR --apply --entry-dir <名字> --description "…"   # 真塌
 

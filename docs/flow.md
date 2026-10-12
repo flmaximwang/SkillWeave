@@ -100,6 +100,12 @@ F 验收与交付：跑盲判，通过则合回真包
 - 对象：Agent 的选择结果。仅当改动涉及 `description`、入口 `SKILL.md` 或 `INDEX.md` 时执行：对一组固定题面做盲判，判据为新结构得分不低于旧结构，且没有题目从 1.0 掉到 0.5 以下。
 - 谁判断：判官模型。
 - 产出：评测分数 + 把副本的改动合并回真包 + 报告与计划更新。
+- **合回真包 main 是默认动作，不是等人点头的动作**：交付由 `deliver <工作副本>` 一次做完 —— 合回真包 `main`（只走
+  `--ff-only`，不 ff 就先在副本里 rebase 到 main，冲突即 abort 且真包未动）→ push 各 remote 并**回读** `ls-remote`
+  确认远端就是那个 commit → 重跑 `visualize`（包里带 `TREE.md` 时）→ 删 worktree、删分支。`prepare` 开那条分支，
+  本来就是为了合回去；把改动留在副本里、让真包继续显示旧形状，才是需要理由的那一侧（写法：`--keep-worktree` / `--no-push`）。
+  交付前的四道闸（都不猜，不过即停）：主 clone 干净且 checkout 在 `--main`（默认 `main`）上；副本工作区干净；
+  有 remote 就逐个推并回读；不自动解冲突、不 `--force`。
 - **交付时持久化文档树视图**：对真包跑 `visualize`（不带 `--out`，默认落回 pack 根），把 `TREE.md`
   与 `TREE.html` 写进包里，并在 README 首个标题下补一条指路。这样树的形状随包走 —— 以后要回答
   「这个包现在几层、几个岛、哪些文档到不了根」，看包里的 `TREE.md` 就行，不必凭记忆重跑工具。
@@ -117,7 +123,9 @@ F 验收与交付：跑盲判，通过则合回真包
 
 ## 五、默认做法，可改，代价写在后面
 
-- 在副本上工作：默认工作目录是 `prepare` 生成的副本，真包保持原样，副本内有 git 记录可以回滚。直接改真包也可以，代价是没有回滚记录，出问题只能靠备份。
+- 在副本上工作：默认工作目录是 `prepare` 生成的副本，真包保持原样到你走完流程，副本内有 git 记录可以回滚。
+  **副本不是终点**：流程走完（E 通过、F 该跑就跑）默认由 `deliver` 合回真包 `main` + push 各 remote + 清 worktree/分支 ——
+  交付是流程自带的最后一步，不需要额外一句许可。直接在真包上改也可以，代价是没有回滚记录，出问题只能靠备份。
 - 计算交工具，判断交模型：B 与 E 是可计算的部分，交给工具；A 与 C 与 D 是判断，交给模型。工具可以给出草案，例如按标题草拟拆分方案，但草案要标明来源是工具，不作为结论使用。
 
 ## 六、实现映射
@@ -129,9 +137,9 @@ F 验收与交付：跑盲判，通过则合回真包
 | C | `disclosure` 的输出 `TODO.md`，分组判断可用 `propose`，默认 dry-run | `TODO.md` |
 | D | `collapse` 用于单入口，`propose --apply-group` 用于多入口，文档级改动用 `apply` | 一批改动 + 逐条 patch 记录 |
 | E | `verify` | 新树 + `RUN.md` + `PARKED.md` |
-| F | `judge` 与 `score`，合回用 `git merge --ff-only`；交付时对真包跑 `visualize`（不带 `--out`）把树视图持久化进 pack 根 | 评测分数 + 合回 + `TREE.md` · `TREE.html` |
+| F | `judge` 与 `score`；**交付的默认动作是 `deliver`**：合回真包 `main`（`--ff-only`，不 ff 先 rebase）+ push 各 remote 并回读 + 重跑 `visualize` + 清 worktree/分支 | 评测分数 + 真包 main 前进 + 远端同步（回读一致）+ `TREE.md` · `TREE.html` |
 
-六个阶段都已有实现：A 定形状用 `--shape`，B 用 `prepare` 与 `disclosure` 与 `tree` 与 `visualize`，C 用 `disclosure` 输出的 `TODO.md` 与 `propose`，D 用 `collapse` 与 `propose --apply-group` 与 `apply`，E 用 `verify`，F 用 `judge` 与 `score`。
+六个阶段都已有实现：A 定形状用 `--shape`，B 用 `prepare` 与 `disclosure` 与 `tree` 与 `visualize`，C 用 `disclosure` 输出的 `TODO.md` 与 `propose`，D 用 `collapse` 与 `propose --apply-group` 与 `apply`，E 用 `verify`，F 用 `judge` 与 `score` 与 `deliver`（**默认合回真包 main**）。
 
 ## 七、与旧编号的对照
 

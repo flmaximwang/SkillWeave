@@ -1183,7 +1183,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
     ap.add_argument("cmd", nargs="?",
                     choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize",
-                             "collapse", "prepare", "disclosure", "dispatch", "verify", "apply"])
+                             "collapse", "prepare", "disclosure", "dispatch", "verify", "apply", "deliver"])
     ap.add_argument("--prompts", default=None)
     ap.add_argument("--key", default=None)
     ap.add_argument("--judge", nargs="*", default=[])
@@ -1200,6 +1200,10 @@ def main(argv=None):
     ap.add_argument("--refresh-baseline", action="store_true")
     ap.add_argument("--proposals", nargs="*", default=[])
     ap.add_argument("--revert", default=None)
+    ap.add_argument("--main", default="main")
+    ap.add_argument("--no-push", action="store_true")
+    ap.add_argument("--keep-worktree", action="store_true")
+    ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
@@ -1253,6 +1257,12 @@ def main(argv=None):
         # RUN.md / PARKED.md 落在 state 旁边（dispatch/），不落临时目录 —— 无人值守跑完要能直接读到
         out = a.out or os.path.dirname(os.path.abspath(a.state))
         return cmd_verify(root, a.state, a.expect_fixed, a.splits, out)
+    if a.cmd == "deliver":
+        # F 阶段交付：默认合回真包 main + push + 清 worktree/分支（不是等人点头的动作）
+        root = os.path.abspath(a.pack.rstrip("/"))
+        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        return cmd_deliver(root, out, main_branch=a.main, push=not a.no_push,
+                           keep_worktree=a.keep_worktree, dry=a.dry_run)
     if a.cmd == "prepare":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
@@ -2996,6 +3006,140 @@ def cmd_collapse(root, out, apply_changes=False, description=None, entry_dir=Non
     return 0 if ok else 1
 
 
+# ---------------------------------------------------------------- F 阶段交付（合回真包）
+
+def cmd_deliver(work, out=None, main_branch="main", push=True, keep_worktree=False, dry=False):
+    """F 阶段交付的机械部分：把工作副本的分支**合回真包的 main**，推远端，清 worktree 与分支。
+
+    **这是流程走完的最后一步的默认动作**，不是等人点头的动作：`prepare` 开那条分支，本来就是给它合回去的。
+    要停在副本上不交付，得用 `--keep-worktree` / `--no-push` 显式说出来 —— 默认不是「不改真包」。
+
+    四道闸都不猜，任一不过就停（不自动解冲突、不 --force）：
+    ① 它是 `prepare` 开的工作副本（worktree）才有 main 可合；主 clone 本身没有可合的分支；
+    ② 主 clone 的工作区干净、且 checkout 在 `--main`（默认 main）上 —— 别人未提交的改动不许卷进 merge；
+    ③ 副本工作区干净（未提交的改动先 commit，或明确丢掉）；
+    ④ 合回只走 `--ff-only`；不 ff 就先在副本里 `rebase` 到 main，冲突即 abort 并停在副本里。
+    """
+    work = os.path.realpath(os.path.abspath(work.rstrip("/")))
+    if not os.path.isdir(work):
+        print(f"[deliver] FAIL 工作副本不存在: {work}")
+        return 1
+    common = git(work, "rev-parse", "--git-common-dir")
+    if common is None or common.returncode != 0:
+        print(f"[deliver] FAIL {work} 由 git 管着吗？不是 git 就没有 main 可合（非 git 输入的交付是手动拷回）")
+        return 1
+    gdir = common.stdout.strip()
+    gdir = os.path.realpath(gdir if os.path.isabs(gdir) else os.path.join(work, gdir))
+    if gdir == os.path.realpath(os.path.join(work, ".git")):
+        print(f"[deliver] FAIL {work} 就是主 clone 本身，没有可合回的分支（工作副本由 prepare 生成）")
+        return 1
+    main_clone = os.path.dirname(gdir)
+    br = git(work, "rev-parse", "--abbrev-ref", "HEAD")
+    branch = (br.stdout or "").strip() if br is not None and br.returncode == 0 else ""
+    if not branch or branch == "HEAD":
+        print("[deliver] FAIL 副本不在任何分支上（detached HEAD），先 git switch 一条分支")
+        return 1
+    cur = git(main_clone, "rev-parse", "--abbrev-ref", "HEAD")
+    cur_branch = (cur.stdout or "").strip() if cur is not None and cur.returncode == 0 else "?"
+    if cur_branch != main_branch:
+        print(f"[deliver] FAIL 主 clone `{main_clone}` 现在 checkout 在 `{cur_branch}`，不是 `{main_branch}`"
+              f"（别人改到一半的分支别往上合）；切回 {main_branch} 或 --main <名字> 指定")
+        return 1
+    for tag, path in (("副本", work), ("主 clone", main_clone)):
+        st = git(path, "status", "--porcelain")
+        if st is not None and st.returncode == 0 and (st.stdout or "").strip():
+            n = len([x for x in st.stdout.split("\n") if x.strip()])
+            print(f"[deliver] FAIL {tag} `{path}` 有 {n} 项未提交改动：先 commit 或明确丢掉，交付不猜")
+            return 1
+    remotes = [r for r in ((git(main_clone, "remote") or type("x", (), {"stdout": ""})()).stdout or "").split() if r]
+
+    def _remote_head(r):
+        """远端 main 的 SHA（回读用）；读不到返回空串。"""
+        ls = git(main_clone, "ls-remote", r, f"refs/heads/{main_branch}")
+        if ls is None or ls.returncode != 0:
+            return ""
+        return ((ls.stdout or "").split() or [""])[0]
+
+    def _pushed(r, want):
+        p = git(main_clone, "push", r, main_branch)
+        ok = p is not None and p.returncode == 0
+        got = _remote_head(r)
+        print(f"[deliver] {'✅' if ok and got == want else '⛔'} push {r} {main_branch}"
+              f"{'' if ok else '：' + ((p.stderr.strip().splitlines() or [''])[0] if p is not None else 'git 不可用')}"
+              f"{' · 回读一致' if got == want else ' · 回读不一致（' + (got[:9] or '远端读不到') + '）'}")
+        return ok and got == want
+    before = (_rev(main_clone) or "?")
+    head = (git(work, "rev-parse", "HEAD") or type("x", (), {"stdout": ""})()).stdout.strip()
+    print(f"[deliver] 副本 `{work}`（分支 `{branch}` @ {head[:9]}）→ 主 clone `{main_clone}`（`{main_branch}` @ {before[:9]}）")
+    if dry:
+        print(f"[deliver] --dry-run：合回 {main_branch} · 推 {('、'.join(remotes) or '无 remote')} · "
+              f"{'保留 worktree' if keep_worktree else '删 worktree + 删分支'}")
+        return 0
+    ff = git(main_clone, "merge", "--ff-only", branch)
+    if ff is None or ff.returncode != 0:
+        why = (ff.stderr.strip() if ff is not None else "git 不可用").split("\n")[0]
+        print(f"[deliver] 不能 ff（{why}）→ 先在副本里 rebase 到 {main_branch}（真包还没动）")
+        rb = git(work, "rebase", main_branch)
+        if rb is None or rb.returncode != 0:
+            git(work, "rebase", "--abort")
+            print("[deliver] FAIL rebase 冲突，已 abort；副本原样留着，真包未动（解完再跑一次）")
+            return 1
+        ff = git(main_clone, "merge", "--ff-only", branch)
+        if ff is None or ff.returncode != 0:
+            print(f"[deliver] FAIL 合回失败：{(ff.stderr.strip().splitlines() or [''])[0] if ff is not None else 'git 不可用'}")
+            return 1
+    after = _rev(main_clone)
+    full = (git(main_clone, "rev-parse", "HEAD") or type("x", (), {"stdout": ""})()).stdout.strip()
+    print(f"[deliver] ✅ 合回 {main_branch}：{before[:9]} → {after[:9]}（真包 `{main_clone}` 现在是 {after[:9]}）")
+    rc = 0
+    if push:
+        if not remotes:
+            print("[deliver] 包上没有 remote，跳过 push")
+        for r in remotes:
+            if not _pushed(r, full):
+                rc = 1
+    else:
+        print("[deliver] --no-push：只合回本地真包，没推远端")
+    # 交付时重跑 visualize（F 的规定）：只在包里已经带 TREE.md 的 pack 上做，新产物不硬塞
+    if os.path.isfile(os.path.join(main_clone, "TREE.md")):
+        cmd_visualize(main_clone, main_clone)
+        st = git(main_clone, "status", "--porcelain")
+        if st is not None and st.returncode == 0 and (st.stdout or "").strip():
+            git(main_clone, "-c", "user.name=skillweave", "-c", "user.email=skillweave@local",
+                "add", "TREE.md", "TREE.html")
+            git(main_clone, "-c", "user.name=skillweave", "-c", "user.email=skillweave@local",
+                "commit", "-q", "-m", "chore(skillweave): 交付时重跑 visualize（TREE.md + TREE.html）")
+            after = _rev(main_clone)
+            full = (git(main_clone, "rev-parse", "HEAD") or type("x", (), {"stdout": ""})()).stdout.strip()
+            print(f"[deliver] visualize 刷新后追加一条提交 {after[:9]}")
+            if push:
+                for r in remotes:
+                    if not _pushed(r, full):
+                        print(f"[deliver] ⛔ 上面这条 push 是 visualize 追加的提交 {after[:9]} 没上去")
+                        rc = 1
+    if keep_worktree:
+        print(f"[deliver] --keep-worktree：副本 `{work}` 与分支 `{branch}` 都留着")
+    else:
+        rm = git(main_clone, "worktree", "remove", work)
+        if rm is None or rm.returncode != 0:
+            print(f"[deliver] ⛔ worktree 没删掉：{(rm.stderr.strip().splitlines() or [''])[0] if rm is not None else 'git 不可用'}"
+                  f"（手动 git worktree remove {work}）")
+            rc = 1
+        else:
+            bd = git(main_clone, "branch", "-d", branch)
+            print(f"[deliver] ✅ 删 worktree + " + (f"删分支 `{branch}`" if bd is not None and bd.returncode == 0
+                                                   else f"⛔ 分支 `{branch}` 没删掉（git branch -d 手动）"))
+    if out:
+        os.makedirs(out, exist_ok=True)
+        with open(os.path.join(out, "DELIVER.md"), "w", encoding="utf-8") as f:
+            f.write(f"# 交付 · {os.path.basename(main_clone)}\n\n"
+                    f"- 真包：`{main_clone}` · 分支 `{main_branch}` · {before[:9]} → {after[:9]}\n"
+                    f"- 工作副本：`{work}` · 分支 `{branch}`（{'保留' if keep_worktree else '已删'}）\n"
+                    f"- remote：{', '.join(remotes) or '无'}{'（已 push 并回读）' if push else '（--no-push，未推）'}\n")
+        print(f"[deliver] 出: {os.path.join(out, 'DELIVER.md')}")
+    return rc
+
+
 # ---------------------------------------------------------------- 自检
 
 def self_test():
@@ -3439,9 +3583,41 @@ def self_test():
         with open(os.path.join(_plain, "readme.txt"), "w") as f:
             f.write("就是个普通目录\n")
         assert cmd_audit(_plain, os.path.join(tmp, "o-np")) == 1, "没有 SKILL.md 的目录该 FAIL 退 1"
+        # deliver（F 交付）：工作副本改完 → **默认**合回真包 main + push + 清 worktree/分支。
+        # 旧口径是「真包只读、要一句『进入 production 模式』才动」——交付是流程的最后一步，不是等人点头的动作。
+        _dp = os.path.join(tmp, "deliver-pack")
+        os.makedirs(os.path.join(_dp, "skills", "d"), exist_ok=True)
+        with open(os.path.join(_dp, "skills", "d", "SKILL.md"), "w") as f:
+            f.write("---\nname: d\ndescription: 交付自检用。\n---\n\n# d\n")
+        _bare = os.path.join(tmp, "deliver-remote.git")
+        assert git(_dp, "init", "-q", "-b", "main") is not None, "自检需要 git"
+        git(_dp, "init", "--bare", "-q", _bare)
+        git(_dp, "-c", "user.name=t", "-c", "user.email=t@t", "add", "-A")
+        git(_dp, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "init")
+        git(_dp, "remote", "add", "origin", _bare)
+        git(_dp, "push", "-q", "origin", "main")
+        _wt = os.path.join(tmp, "deliver-ws")
+        _od = os.path.join(tmp, "o-deliver")
+        assert cmd_prepare(_dp, _od, dest=_wt, shape="single") == 0
+        _dp_before = _rev(_dp)
+        with open(os.path.join(_wt, "skills", "d", "SKILL.md"), "a") as f:
+            f.write("\n改一行。\n")
+        git(_wt, "-c", "user.name=t", "-c", "user.email=t@t", "add", "-A")
+        git(_wt, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "改一行")
+        assert cmd_deliver(_wt, _od) == 0, "交付该成功"
+        _dp_after = _rev(_dp)
+        assert _dp_after != _dp_before, "交付后真包 main 必须前进"
+        _ls = (git(_dp, "ls-remote", "origin", "refs/heads/main").stdout or "").split()
+        _full = git(_dp, "rev-parse", "HEAD").stdout.strip()
+        assert _ls and _ls[0] == _full, f"远端 main {(_ls or [''])[0][:9]} != 本地 {_full[:9]}（push 没回读一致）"
+        assert not os.path.isdir(_wt), "交付该把 worktree 删掉"
+        _brs = (git(_dp, "branch", "--list", "skillweave/deliver-pack").stdout or "").strip()
+        assert _brs == "", f"交付该把分支删掉，实得 {_brs!r}"
+        assert cmd_deliver(_dp, _od) == 1, "对主 clone 本身跑 deliver 该拒（没有可合回的分支）"
         print("[self-test] ✅ 层（pack→类目→skill）/ 折叠 description / 孤儿 / 悬空 / "
               "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 / 提案器四类动作 / "
               "layers↔audit 口径对拍 / 派发划批 / 验收（集合级回归拦截 + 梯子）/ "
+              "交付 deliver（默认合回真包 main + push 回读 + 清 worktree/分支） / "
               "issue #1（节点框数 == SKILL.md 份数 + 未跟踪闸）/ issue #2（冒号值仍是合法 YAML）—— 全过")
         return 0
     finally:

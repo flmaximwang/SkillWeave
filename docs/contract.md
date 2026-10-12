@@ -77,7 +77,11 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 
 ## 0.7 派发与验收（第三步的机械部分）
 
-**只读真包、只改副本**：工作区一律是 `prepare` 出的副本（真包只读，副本内 git 化后可回滚）。
+**工作副本 + 默认合回**：工作区一律是 `prepare` 出的副本（副本内 git 化后可回滚；真包在流程走完前保持原样）。
+**交付是流程自带的最后一步，不是等人点头的动作**：E 通过（+ F 该跑就跑）之后默认 `deliver` 把副本的分支合回真包
+`main`、push 各 remote 并回读、重跑 `visualize`、清 worktree 与分支。要停在副本上不交付，得用 `--keep-worktree` /
+`--no-push` 显式说出来；代价是真包继续显示旧形状、远端落后。四道闸不过即停：主 clone 工作区干净且 checkout 在
+`--main`（默认 `main`）上、副本工作区干净、`--ff-only`（不 ff 先 rebase，冲突即 abort）、不 `--force`。
 形状在第 0 步（启动参数 `--shape`）就定，不让用户等到流程中途拍板。
 
 
