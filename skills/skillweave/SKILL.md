@@ -80,6 +80,12 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 与 `TREE.html`（自包含、离线可开；互指图画成圆环 + 弦，节点带编号 + 框内图例）。两份都是**生成物，不要手改**。
 互指图的边 = 「某个 skill 的任何文本文件里点到另一个 skill 的**目录名**」；岛 = 该图的连通分量。
 
+**验收判据（issue #1 后立的规矩）**：`TREE.html` 里 `rect.node` 的个数 == 本 pack 的 `SKILL.md` 份数
+（= 命令自报的 `skill N 个`）。单入口形状下入口层仍是 1 项，但岛内嵌套 skill（住在入口的
+`references/<岛>/<skill>/`）各算一个 skill、各画一个框。**工具自报的数不等于事实时就是 bug**。
+`visualize` 另有一道闸：工作区里存在**未被 git 跟踪**的 `SKILL.md` 时报错退出（退 1）并提示先 commit ——
+collapse 刚改完还没 commit 时索引里是旧路径，新入口会被当 untracked 跳过，静默出一棵空树（退出码 0）。
+
 `disclosure` 是**第二步**：层 = **披露深度**（L1 = 根文档 `SKILL.md`；L2 = L1 直接披露的；Lₙ₊₁ 由 Lₙ 披露），
 不是「按文件类型分三级」那套。它把每个根文档的披露链递归展开（深度 / fanout / 体积），并**对每一份文档**跑它那类 cap
 （正文 <5000 tok 与行数三档 · description ≤1024 字符 · 资源文件 ≤20000 B），跨文档查孤儿（没人披露）、悬空（披露了不存在的）、
@@ -121,6 +127,13 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 不是问题被修好，是这条指标失去分辨力。
 **岛数对口径敏感**（同一份数据：只看 SKILL.md 的 frontmatter `name` → 11 个；再加「引用落到别的 skill 目录」→ 10 个；
 扫全部文本文件按目录名 → 13 个）——报岛数必须连口径一起报。
+
+**塌完必须 commit 再跑 `visualize`**（issue #1 的坑）：`collapse --apply` 只改工作区，索引里还是旧路径。
+这时 `visualize` 会把新入口当未跟踪跳过、静默出空树；现在它会**报错退出（退 1）**并让你先 commit。
+入口 `SKILL.md` 的 frontmatter 由 `yaml_scalar()` 写（issue #2）：值里带 `: `、` #`、`>-` 一律加双引号转义，
+落盘后回读校验「顶层技能数 == 1 · 入口层 == 1 · frontmatter 自检通过 · description 逐字一致」。
+**注意**：工具自带的 `parse_frontmatter()` 是宽松子集，它吃得下 `description: a: b` 这种坏写法 ——
+「工具自己读得通」不等于文件合法，判合法性看 `frontmatter_selfcheck()` 或真 YAML 解析器。
 
 ## 四类动作：谁做什么（**判断靠你，机械靠 CLI**）
 

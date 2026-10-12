@@ -89,7 +89,11 @@ def body_counts(body, sections):
 
 def parse_frontmatter(text):
     """返回 (meta, body, body 起始行号)。只为 frontmatter 子集写的最小 YAML：
-    支持 `key: value`、`key: >-` / `|` 折叠块、引号、续行。"""
+    支持 `key: value`、`key: >-` / `|` 折叠块、引号、续行。
+
+    **注意**：这是手写的宽松子集，比真 YAML 解析器宽 —— 它能吃下 `description: a: b` 这种
+    真解析器会报错的写法。所以「工具自己读得通」不能当成文件合法（issue #2 就是这么被掩盖的）；
+    要判合法性得用 `frontmatter_selfcheck`（写盘自检）或真 YAML 解析器（外部消费者）。"""
     if not text.startswith("---"):
         return {}, text, 1
     lines = text.split("\n")
@@ -119,9 +123,114 @@ def parse_frontmatter(text):
             val = " ".join([head] + rest)
         val = val.strip()
         if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            quoted = val[0]
             val = val[1:-1]
+            if quoted == '"':                    # 双引号风格要解转义，否则工具读回的值与真解析器不一致
+                val = _yaml_unescape_double(val)
         meta[k] = val
     return meta, "\n".join(lines[end + 1:]), end + 2
+
+
+# 未加引号的安全标量：首字符不能是 YAML 指示符，其余不许出现 `:` `#` 引号反斜杠与空白控制符
+_PLAIN_SAFE = re.compile(r"^[^\s\-?:,\[\]{}#&*!|>'\"%@`][^:\"'\\#\n\r\t]*$")
+_YAML_RESERVED = {"true", "false", "null", "yes", "no", "on", "off", "~", ""}
+
+
+def _yaml_unescape_double(s):
+    """双引号标量里那几个转义（与 `yaml_scalar` 写出的集合对称）。纯 stdlib。"""
+    out, i = [], 0
+    while i < len(s):
+        c = s[i]
+        if c == "\\" and i + 1 < len(s):
+            n = s[i + 1]
+            if n == "n":
+                out.append("\n")
+            elif n == "t":
+                out.append("\t")
+            elif n == "r":
+                out.append("\r")
+            elif n == '"':
+                out.append('"')
+            elif n == "\\":
+                out.append("\\")
+            elif n == "x" and i + 3 < len(s):
+                try:
+                    out.append(chr(int(s[i + 2:i + 4], 16)))
+                    i += 4
+                    continue
+                except ValueError:
+                    out.append(c)
+                    i += 1
+                    continue
+            else:
+                out.append(n)
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def yaml_scalar(value):
+    """把一个**任意字符串**写成合法 YAML 标量（纯 stdlib，不引 PyYAML —— 契约 §6）。
+
+    安全的值原样写（保持可读），其余整体加双引号并转义。这样 `: `、` #`、块指示符 `>-`/`|`、
+    前导 `-`、引号、换行一律不再有歧义 —— 以前是裸拼（`description: %s`），值里带 `: ` 就写出
+    非法 YAML（issue #2：63 个 pack 里 35 个入口 frontmatter 解析失败）。"""
+    if value and _PLAIN_SAFE.match(value) and value.lower() not in _YAML_RESERVED:
+        return value
+    body = (value.replace("\\", "\\\\").replace('"', '\\"')
+            .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t"))
+    return '"' + body + '"'
+
+
+def frontmatter_selfcheck(text):
+    """最小 YAML 合法性检查（不引 PyYAML）：返回错误列表，空 = 通过。
+
+    盯的就是 issue #2 那类坏文件：未加引号的标量里出现 `: `（真 YAML 会读成嵌套映射）、
+    引号没闭合、空标量。块标量（`>-` / `|`）本身合法，只要求它后面有缩进的内容行。"""
+    errs = []
+    if not text.startswith("---"):
+        return ["frontmatter 不以 `---` 开头"]
+    lines = text.split("\n")
+    end = next((i for i in range(1, len(lines)) if lines[i].strip() in ("---", "...")), None)
+    if end is None:
+        return ["frontmatter 没有收尾的 `---`"]
+    for i, ln in enumerate(lines[1:end], start=2):
+        if not ln.strip() or ln.lstrip().startswith("#"):
+            continue
+        m = re.match(r"^([A-Za-z_][\w.-]*)\s*:\s*(.*)$", ln)
+        if not m:
+            errs.append(f"第 {i} 行不是 `key: value`：{ln!r}")
+            continue
+        v = m.group(2).strip()
+        if v == "":
+            errs.append(f"第 {i} 行 `{m.group(1)}` 是空标量")
+        elif v[0] in "\"'":
+            if len(v) < 2 or v[-1] != v[0]:
+                errs.append(f"第 {i} 行引号没闭合：{ln!r}")
+        elif re.match(r"^[|>][-+]?$", v):
+            if i >= end or not lines[i].startswith((" ", "\t")):
+                errs.append(f"第 {i} 行是块指示符 `{v}`，但后面没有缩进的内容行")
+        elif ": " in v or v.endswith(":"):
+            errs.append(f"第 {i} 行未加引号的标量里有 `: `（真 YAML 会读成嵌套映射）：{ln!r}")
+    return errs
+
+
+def description_health(desc):
+    """`--description` 的体检（issue #2 的建议 3）：返回警告列表。
+    值本身照写（`yaml_scalar` 保证合法），但下面这些征兆要让调用方看见 ——
+    它们多半意味着上游把 YAML 折叠块或标题原样拼进了值里。"""
+    warns = []
+    if ": " in desc:
+        warns.append("值里有裸 `: ` —— 不加引号的标量会被真 YAML 读成嵌套映射（本工具已改成加引号，仍提醒）")
+    frags = re.findall(r"(?:^|\s)([|>][-+]?)(?=\s|$)", desc)
+    if frags:
+        warns.append(f"值里有 {len(frags)} 处裸块指示符片段（{', '.join(sorted(set(frags)))}）"
+                     "—— 多半是上游把 `>-` / `|` 折叠块原样拼了进来")
+    if desc != desc.strip():
+        warns.append("值首尾有空白，已 strip")
+    return warns
 
 
 def fence_lines(body):
@@ -275,8 +384,11 @@ def analyze_skill(root, path, rel):
     node["named_dirs"] = sorted(named_dirs)
 
     # 文件清单 + 孤儿（skill 目录内除 SKILL.md 外，没有任何祖先点名的文件）
+    # 嵌套 skill（单入口形状下岛内 skill 住在 `<入口>/references/<岛>/<skill>/`）**不算本 skill 的文件**：
+    # 它们各自会被 walk_dir 当成独立 skill 分析，两边都算就会把同一份文件重复计入两个 skill。
     for dirpath, dirnames, filenames in os.walk(path):
-        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS
+                             and not os.path.isfile(os.path.join(dirpath, d, "SKILL.md")))
         for fn in sorted(filenames):
             if fn in SKIP_FILES:
                 continue
@@ -330,46 +442,25 @@ def tracked_set(pack):
 
 def walk_dir(root, path, rel, tracked, skipped, skills):
     """递归：含 SKILL.md 的目录 = skill；含 skill 后代的目录 = category；其余目录 = asset（折叠成一个节点）。
-    `tracked` 非 None 时只算 git 成员（未跟踪的 skill 形目录记进 `skipped`，不混进度量）。"""
-    def member(r):
-        return tracked is None or r in tracked
+    `tracked` 非 None 时只算 git 成员（未跟踪的 skill 形目录记进 `skipped`，不混进度量）。
 
-    def subtree_tracked(d):
-        if tracked is None:
-            return True
-        d = d.rstrip("/")
-        pre = d + "/"
-        return any(t == d or t.startswith(pre) for t in tracked)
-
+    **含 SKILL.md 的目录仍要下钻**：collapse 是本工具自己的功能，它把成员搬到了
+    `<入口>/references/<岛名>/<skill>/` —— 那些 `SKILL.md` 全在入口目录的子树里。
+    旧实现一遇 `SKILL.md` 就 `return`，于是岛内 skill 从来没被访问过：`skills` 只有 1 项、
+    `stats["skills"]=1`、TREE.md 的 L2 表是空的、TREE.html 只画 1 个节点框（issue #1）。
+    下钻到的嵌套 skill 挂成入口节点的**子节点**（`references/` 这条路必须是达得到的）。"""
+    node = None
     if os.path.isfile(os.path.join(path, "SKILL.md")):
         node = analyze_skill(root, path, rel)
         node["parent"] = os.path.dirname(rel.rstrip("/"))
         node["parent"] = (node["parent"] + "/") if node["parent"] else ""
         node["tracked"] = True
-        skills.append(node)
-        return node
+        skills.append(node)                     # 先登记父再下钻：`skills` 保持前序（父在前）
 
-    children, names = [], sorted(os.listdir(path))
-    for n in names:
-        if n in SKIP_DIRS or n in SKIP_FILES:
-            continue
-        crel = rel + n
-        fp = os.path.join(path, n)
-        if os.path.isdir(fp):
-            if tracked is not None and not subtree_tracked(crel):
-                if any("SKILL.md" in fns for _, _, fns in os.walk(fp)):
-                    skipped.append(crel + "/")
-                continue
-            sub = walk_dir(root, fp, crel + "/", tracked, skipped, skills)
-            if sub is not None:
-                children.append(sub)
-        elif member(crel):
-            size = os.path.getsize(fp)
-            children.append({"id": crel, "kind": kind_of_file(crel), "parent": rel,
-                             "bytes": size, "tracked": True,
-                             "est_tokens": est_tokens(read_text(fp)) if size < 2_000_000 else 0,
-                             "summary": None, "summary_source": None,
-                             "refs": [], "mentions": [], "children": []})
+    children = _walk_children(root, path, rel, tracked, skipped, skills)
+    if node is not None:
+        node["children"] = node["children"] + children
+        return node
     if not children:
         return None
     has_skill = any(c["kind"] == "skill" or c.get("has_skill") for c in children)
@@ -382,7 +473,7 @@ def walk_dir(root, path, rel, tracked, skipped, skills):
                 if f in SKIP_FILES:
                     continue
                 r = os.path.relpath(os.path.join(dp, f), path).replace(os.sep, "/")
-                if member(rel + r):
+                if _is_member(tracked, rel + r):
                     total += os.path.getsize(os.path.join(dp, f))
         children = []
         bsum = total
@@ -394,6 +485,74 @@ def walk_dir(root, path, rel, tracked, skipped, skills):
             "has_skill": has_skill, "tracked": True,
             "summary": None, "summary_source": None,
             "refs": [], "mentions": [], "children": children}
+
+
+def _is_member(tracked, rel):
+    """`tracked` 为 None（非 git 目录）= 全部算成员；否则要在 git 跟踪清单里。"""
+    return tracked is None or rel in tracked
+
+
+def _subtree_tracked(tracked, d):
+    if tracked is None:
+        return True
+    d = d.rstrip("/")
+    pre = d + "/"
+    return any(t == d or t.startswith(pre) for t in tracked)
+
+
+def _walk_children(root, path, rel, tracked, skipped, skills):
+    """扫 `path` 的直接子目录与文件 → children 列表。子目录递归回 `walk_dir`（可能返回 skill 节点）。"""
+    children = []
+    for n in sorted(os.listdir(path)):
+        if n in SKIP_DIRS or n in SKIP_FILES:
+            continue
+        crel = rel + n
+        fp = os.path.join(path, n)
+        if os.path.isdir(fp):
+            if not _subtree_tracked(tracked, crel):
+                if any("SKILL.md" in fns for _, _, fns in os.walk(fp)):
+                    skipped.append(crel + "/")
+                continue
+            sub = walk_dir(root, fp, crel + "/", tracked, skipped, skills)
+            if sub is not None:
+                children.append(sub)
+        elif _is_member(tracked, crel):
+            size = os.path.getsize(fp)
+            children.append({"id": crel, "kind": kind_of_file(crel), "parent": rel,
+                             "bytes": size, "tracked": True,
+                             "est_tokens": est_tokens(read_text(fp)) if size < 2_000_000 else 0,
+                             "summary": None, "summary_source": None,
+                             "refs": [], "mentions": [], "children": []})
+    return children
+
+
+def is_nested_skill(root, rel):
+    """这个 skill 是否住在**另一个 skill 的目录之下**（单入口形状下岛内 skill 就住在
+    `<入口>/references/<岛>/<skill>/`）。契约 §0：单入口 = 1 个根，岛内 skill 不是根。"""
+    d = os.path.dirname(rel.rstrip("/"))
+    while d:
+        if os.path.isfile(os.path.join(root, d, "SKILL.md")):
+            return True
+        d = os.path.dirname(d)
+    return False
+
+
+def top_level_skills(root, skills):
+    """只算不在别的 skill 目录之下的 skill —— `collapse` 的输入单位。
+    嵌套 skill 已经在某个入口的 `references/` 里，属于「已经收过」，不再是入口候选。"""
+    return [s for s in skills if not is_nested_skill(root, s["id"])]
+
+
+def untracked_skill_files(pack):
+    """工作区里**未被 git 跟踪**的 `SKILL.md`（相对 pack 根的路径，排序）。不是 git 仓库 → 空列表。
+
+    为什么值得报错：collapse 刚改完工作区、还没 commit 时，索引里还是旧路径，新入口的 `SKILL.md`
+    未跟踪 —— `walk_dir` 会把它当 untracked 跳过，`skills` 变空，而命令退出码 0、产物是一棵空树
+    （issue #1 根因 2）。这种「一次不落到的空跑」该报错，不该静默交付。"""
+    p = git(pack, "ls-files", "-o", "--exclude-standard", "-z")
+    if p is None or p.returncode != 0:
+        return []
+    return sorted(x for x in p.stdout.split("\0") if x.endswith("SKILL.md"))
 
 
 def add_headings(node):
@@ -436,9 +595,16 @@ def fanout_report(root):
 def skills_root(tree):
     """找「装技能的那一层」：从 pack 根往下，只要**唯一**的选择项还是个类目就继续下钻；
     遇到两个以上选择项（或唯一选择项已经是 skill）就停 —— 这一层才是 Agent 第一次选择看到的菜单。
-    分组后 `skills/` 下面全是类目，入口层仍是 `skills/`（旧实现只认「直接含 skill 的目录」，会错抓成第一个类目）。"""
+    分组后 `skills/` 下面全是类目，入口层仍是 `skills/`（旧实现只认「直接含 skill 的目录」，会错抓成第一个类目）。
+
+    边界：pack 根自己就含 `SKILL.md`（单入口形状的入口直接摆在根）时，tree 的 kind 是 `skill` 不是
+    `pack` —— 这时它自己就是入口层，直接返回它（旧写法会 `children[0]` 一路下钻到 IndexError）。"""
     node = tree
     while node["kind"] != "pack":
+        if node["kind"] == "skill":
+            return node
+        if not node["children"]:
+            return node
         node = node["children"][0]
     while True:
         choices = [c for c in node["children"] if c["kind"] in ("skill", "category")]
@@ -508,6 +674,15 @@ def cmd_layers(root, out):
     L.append(f"**L1（第一级 · 常驻菜单）** 技能 {len(skills)} 个 · 入口层 `{sr['id'] or '<pack>/'}` 摆出 "
              f"**{len(entries)} 项**（散技能 {len(loose)} + 类目 {len(cats)}）· "
              f"常驻 {l1_chars} 字符 ≈ {est_tokens(l1_text)} token")
+    nested = [s for s in skills if is_nested_skill(root, s["id"])]
+    if nested:
+        # 单入口形状：岛内嵌套 skill 的 description **不是常驻的**（Agent 只看入口那 1 条），
+        # 上面那个「常驻」数是多入口口径的账；这里把单入口口径的常驻单独报出来，免得读者误读。
+        top = top_level_skills(root, skills)
+        top_tok = est_tokens("\n".join(s["description"] for s in top))
+        L.append(f"  ↳ 其中 {len(nested)} 个是**岛内嵌套 skill**（住在入口的 `references/` 里）："
+                 f"单入口形状下它们不进常驻菜单，常驻只有 {len(top)} 条 = {top_tok} token；"
+                 f"上行的 {est_tokens(l1_text)} token 是**多入口**口径（= 契约 §7 的 L1 对比列）。")
     if len(entries) > MAX_FIRST_LAYER:
         L.append(f"  ❌ 第一层条目 {len(entries)} > 上限 {MAX_FIRST_LAYER}（口径见 docs/contract.md §4）")
     if rep["L1"]["over_1024_chars"]:
@@ -631,8 +806,10 @@ def cmd_audit(root, out, top=20):
     skills, skipped = [], []
     tracked = tracked_set(root)
     tree = walk_dir(root, root, "", tracked, skipped, skills)
-    if tree is None:
-        print("[audit] FAIL 这个目录里没有任何 skill")
+    if tree is None or not skills:
+        # `tree` 非 None 也可能 `skills` 为空：目录里有文件但没有一份 SKILL.md（不是 skill pack，
+        # 只是个普通目录）—— walk_dir 会返回一个 asset 节点。以前这里直接算中位数 → IndexError。
+        print("[audit] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
     os.makedirs(out, exist_ok=True)
     rep = {"pack": os.path.basename(root), "skills": len(skills)}
@@ -1233,13 +1410,16 @@ def _xml(s):
             .replace('"', "&quot;"))
 
 
-def render_tree_md(root, skills, edges, islands, entry, rev):
+def render_tree_md(root, skills, edges, islands, entry, rev, nested_map=None):
     byid = {s["id"]: s for s in skills}
+    nested_map = nested_map or {}
     L = [f"# 文档树 · {os.path.basename(root)}", "",
          f"基准 `{rev}` · 由 `weave.py visualize` 生成，**不要手改**。", "",
          f"skill {len(skills)} 个 · 入口层 {len(entry)} 项 · 常驻菜单 "
          f"{est_tokens(chr(10).join(x['description'] for x in skills))} tok · "
          f"互指岛 {len(islands)} 个", "",
+         "> `skill N 个` = 本 pack 里 `SKILL.md` 的份数。单入口形状下入口只有 1 项（入口层 1 项），",
+         "> 但岛内嵌套 skill（住在入口的 `references/<岛>/<skill>/`）各算一个 —— 所以 N 可以 > 1。", "",
          "## L1 常驻菜单（Agent 每轮都看到的）", ""]
     for kind, node_id, members in entry:
         if kind == "category":
@@ -1251,6 +1431,9 @@ def render_tree_md(root, skills, edges, islands, entry, rev):
         else:
             s = byid[node_id]
             L.append(f"- **{s['name']}** 〔散项〕{est_tokens(s['description'])} tok — {s['description'][:88]}")
+            for ns in nested_map.get(node_id) or []:
+                L.append(f"  - ↳ **{ns['name']}** 〔岛内嵌套 skill〕`{ns['id']}` · "
+                         f"{ns['est_tokens']} tok — {ns['description'][:80]}")
     L += ["", "## L2 每个 skill 的正文与 L3 按需文件", "",
           "| skill | 正文 | 行 | L3 文件 | 孤儿 | 悬空 |", "|---|---|---|---|---|---|"]
     for s in sorted(skills, key=lambda s: -s["est_tokens"]):
@@ -1275,15 +1458,17 @@ def render_tree_md(root, skills, edges, islands, entry, rev):
     return "\n".join(L)
 
 
-def render_tree_html(root, skills, edges, islands, entry, rev, stats):
+def render_tree_html(root, skills, edges, islands, entry, rev, stats, nested_map=None):
     byid = {s["id"]: s for s in skills}
+    nested_map = nested_map or {}
     isl_of = {i: n for n, isl in enumerate(islands, 1) for i in isl}
     W = 1680
     P = []          # svg 片段
     y = 196         # 数字卡片占到 132，标题与第一批框都从下面起（第一版压在卡片上，实测）
 
-    def rect(x, yy, w, h, fill, stroke, rx=8, sw=1.2, op=1.0):
-        P.append(f'<rect x="{x}" y="{yy}" width="{w}" height="{h}" rx="{rx}" fill="{fill}" '
+    def rect(x, yy, w, h, fill, stroke, rx=8, sw=1.2, op=1.0, cls=None):
+        c = f' class="{cls}"' if cls else ""
+        P.append(f'<rect{c} x="{x}" y="{yy}" width="{w}" height="{h}" rx="{rx}" fill="{fill}" '
                  f'stroke="{stroke}" stroke-width="{sw}" opacity="{op}"/>')
 
     def text(x, yy, t, size=13.0, fill="#e8e8ef", anchor="start", weight="normal", mono=False):
@@ -1313,7 +1498,7 @@ def render_tree_html(root, skills, edges, islands, entry, rev, stats):
         if kind == "category":
             tok = est_tokens("\n".join(byid[i]["description"] for i in members))   # L1 常驻口径
             h = 30 + 26 * ((len(members) + 2) // 3)
-            rect(40, y, 1596, h, "#191b24", col, rx=10, sw=1.6)
+            rect(40, y, 1596, h, "#191b24", col, rx=10, sw=1.6, cls="node")
             text(56, y + 21, f"{node_id.rstrip('/')}/", 14, "#f2f2f7", weight="600")
             text(250, y + 21, f"〔类目〕{len(members)} 项 · L1 {tok} tok · 岛 {isl}", 12, col, mono=True)
             cx, cy = 56, y + 34
@@ -1329,13 +1514,28 @@ def render_tree_html(root, skills, edges, islands, entry, rev, stats):
             y += h + 10
         else:
             s = byid[node_id]
-            rect(40, y, 1596, 30, "#191b24", col, rx=10, sw=1.6)
+            rect(40, y, 1596, 30, "#191b24", col, rx=10, sw=1.6, cls="node")
             text(56, y + 21, s["name"], 14, "#f2f2f7", weight="600")
+            nest = nested_map.get(node_id) or []
             text(420, y + 21, f"〔散项 · 岛 {isl} · 单独成岛——和本包别的 skill 一条互指都没有〕"
                               f"L1 {est_tokens(s['description'])} tok · "
                               f"L2 {s['est_tokens']} tok · L3 {len(s['files']) - 1} 个文件",
                  12, col, mono=True)
             y += 40
+            if nest:      # 入口之下还住着 skill（单入口形状：`references/<岛>/<skill>/`）→ 逐个画框
+                # 这些框是 `stats["skills"]` 的一部分：旧实现不下钻，岛内 skill 一个框都不画
+                text(64, y + 12, f"↳ 入口之下还有 {len(nest)} 个 skill（岛内嵌套，住在这个入口的 "
+                                 f"references/ 里）—— 它们各自也是本 pack 的一个 skill", 11.5, "#9aa0b0")
+                y += 24
+                for ns in nest:
+                    depth = ns["id"].count("/") - node_id.count("/")
+                    x0 = 40 + 26 * depth
+                    rect(x0, y, 1596 - (x0 - 40), 26, "#15171f", "#3a3f52", rx=6, sw=0.9, cls="node")
+                    text(x0 + 14, y + 18, ns["name"], 12.5, "#dfe3f2", weight="600")
+                    text(x0 + 260, y + 18, f"`{ns['id']}` · L2 {ns['est_tokens']} tok · "
+                                           f"L3 {len(ns['files'])} 个文件 · 岛 {isl}",
+                         11, col, mono=True)
+                    y += 30
     y += 24
 
     # 互指岛：圆环 + 弦。**不在圆上写长名字** —— 21 个长名绕一圈必然叠字（实测第一版看不清），
@@ -1424,7 +1624,9 @@ def render_tree_html(root, skills, edges, islands, entry, rev, stats):
 <footer>
  由 <code>weave.py visualize</code> 生成 · 基准 <code>{_xml(rev)}</code> ·
  口径：L1 = 全部 skill 的 name+description（常驻）· L2 = SKILL.md 正文 · L3 = references/scripts/assets（按需）·
- tok = CJK×1 + 其它×0.25（估算）· 互指 = 正文点名 + 引用落到别的 skill 目录 · 岛 = 互指图连通分量
+ tok = CJK×1 + 其它×0.25（估算）· 互指 = 正文点名 + 引用落到别的 skill 目录 · 岛 = 互指图连通分量<br>
+ 节点框（<code>rect.node</code>）数 = 本 pack 的 <code>SKILL.md</code> 份数 = <b>{stats["skills"]}</b> 个 skill
+（单入口形状下入口层仍是 1 项；岛内嵌套 skill 各画一个框）。
 </footer></div></body></html>
 """
 
@@ -1515,22 +1717,32 @@ def render_collapse_md(root, skills, edges, islands, dirs, entry_dir, desc, befo
 
 def cmd_visualize(root, out):
     """把文档树落成两份给人/给 agent 看的产物：`TREE.md` + `TREE.html`。"""
+    # 闸：工作区里还有未跟踪的 `SKILL.md` 就**报错退出**，不静默交付空树。
+    # collapse 刚改完、还没 commit 时索引里是旧路径，新入口的 SKILL.md 会被 walk_dir 当
+    # untracked 跳过 ⇒ `skills=[]` ⇒ 产物是空树，而退出码 0（issue #1 根因 2，实测 63 个里 25 个命中）。
+    un = untracked_skill_files(root)
+    if un:
+        print(f"[visualize] FAIL 工作区里有 {len(un)} 个**未被 git 跟踪**的 SKILL.md：")
+        for x in un[:5]:
+            print(f"    {x}")
+        if len(un) > 5:
+            print(f"    …还有 {len(un) - 5} 个")
+        print("[visualize] 这多半是刚 collapse 完还没 commit：索引里还是旧路径，新入口会被当成"
+              "未跟踪跳过，产物会是一棵空树。**先 commit 再跑**（或 `git add -A`）。")
+        return 1
     skills, skipped = [], []
     tree = walk_dir(root, root, "", tracked_set(root), skipped, skills)
     if tree is None:
         print("[visualize] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
         return 1
+    if skipped:
+        print(f"[visualize] ⚠️ 跳过 {len(skipped)} 个未跟踪的 skill 形目录：{', '.join(skipped[:3])}"
+              f"{'…' if len(skipped) > 3 else ''}")
     add_mentions(root, skills)
     edges = cross_skill_edges(root, skills)
     islands = islands_of(skills, edges)
     # 入口层：复用 tree 的类目/散项划分
-    sr = skills_root(tree)
-    entry = []
-    for c in sr["children"]:
-        if c["kind"] == "category":
-            entry.append(("category", c["id"], sorted(x["id"] for x in _leaves(c))))
-        elif c["kind"] == "skill":
-            entry.append(("skill", c["id"], [c["id"]]))
+    entry = entry_items(tree)
     byid = {s["id"]: s for s in skills}
     over_l2 = [s for s in skills if s["est_tokens"] > 5000 or s["body_lines"] > 500]
     l1_text = "\n".join(s["description"] for s in skills)      # 与 layers 同一口径
@@ -1541,18 +1753,52 @@ def cmd_visualize(root, out):
              "orphans": sum(len(s["orphans"]) for s in skills),
              "broken": sum(len(s["broken"]) for s in skills)}
     rev = _rev(root)
+    # 每个入口 skill 之下的嵌套 skill（单入口形状的岛内 skill）→ 交给渲染器画出来，
+    # 这样「TREE.html 节点框数 == 本 pack 的 SKILL.md 数」这条验收判据才成立。
+    nested_map = {s["id"]: nested_skill_nodes(s) for s in skills}
     os.makedirs(out, exist_ok=True)
     md = os.path.join(out, "TREE.md")
     html = os.path.join(out, "TREE.html")
     with open(md, "w", encoding="utf-8") as f:
-        f.write(render_tree_md(root, skills, edges, islands, entry, rev))
+        f.write(render_tree_md(root, skills, edges, islands, entry, rev, nested_map))
     with open(html, "w", encoding="utf-8") as f:
-        f.write(render_tree_html(root, skills, edges, islands, entry, rev, stats))
+        f.write(render_tree_html(root, skills, edges, islands, entry, rev, stats, nested_map))
     print(f"[visualize] 入口层={len(entry)} 互指岛={len(islands)} 常驻={stats['resident']}tok "
           f"孤儿={stats['orphans']} 悬空={stats['broken']}")
+    print(f"[visualize] skill={stats['skills']} 个（= 本 pack 的 SKILL.md 数；岛内嵌套 skill 也算）")
     print(f"[visualize] 出: {md}")
     print(f"[visualize] 出: {html}")
     return 0
+
+
+def entry_items(tree):
+    """入口层摆出的项 → `[(kind, id, member_skill_ids)]`。
+
+    契约 §0：入口层 = 从 pack 根往下、唯一选择项还是类目就继续下钻，遇 ≥2 项停。
+    pack 根自己就是 skill（入口直接摆根上）时，入口层就是这一个 skill。
+    **岛内嵌套 skill 不进入口层** —— 单入口形状下入口层就该是 1 项（issue #1 的验收判据）。"""
+    sr = skills_root(tree)
+    if sr["kind"] == "skill":
+        return [("skill", sr["id"], [sr["id"]])]
+    out = []
+    for c in sr["children"]:
+        if c["kind"] == "category":
+            out.append(("category", c["id"], sorted(x["id"] for x in _leaves(c))))
+        elif c["kind"] == "skill":
+            out.append(("skill", c["id"], [c["id"]]))
+    return out
+
+
+def nested_skill_nodes(node):
+    """`node` 之下的**嵌套 skill 节点**（不含 node 自己，深度优先、按 id 排序）。"""
+    out = []
+    for c in node.get("children") or []:
+        if c["kind"] == "skill":
+            out.append(c)
+            out += nested_skill_nodes(c)
+        else:
+            out += nested_skill_nodes(c)
+    return out
 
 
 def _leaves(node):
@@ -1577,11 +1823,15 @@ TEXT_LIKE = {".md", ".markdown", ".txt", ".py", ".sh", ".bash", ".js", ".ts", ".
 
 
 def _doc_nodes(skills, root):
-    """节点 = pack 里的每份文档。**根 = 每个 skill 的 `SKILL.md`**（多入口 = K 个根；单入口 = 1 个）。"""
+    """节点 = pack 里的每份文档。**根 = 每个 skill 的 `SKILL.md`**（多入口 = K 个根；单入口 = 1 个）。
+
+    单入口形状下岛内 skill 住在 `<入口>/references/<岛>/<skill>/` —— 契约 §0：**根只有入口那 1 个**，
+    岛内 skill 是它 `references/` 里的普通文档（`root=False`），不是根。"""
     nodes = {}
     for s in skills:
+        is_root = not is_nested_skill(root, s["id"])
         sk = s["id"] + "SKILL.md"
-        nodes[sk] = {"path": sk, "kind": "instructions", "skill": s["id"], "root": True,
+        nodes[sk] = {"path": sk, "kind": "instructions", "skill": s["id"], "root": is_root,
                      "bytes": s["bytes"], "tok": s["est_tokens"], "lines": s["body_lines"],
                      "desc_chars": s["description_chars"], "name": s["name"]}
         for f in s["files"]:
@@ -2666,11 +2916,17 @@ def cmd_collapse(root, out, apply_changes=False, description=None, entry_dir=Non
 
     分工：机械的（搬目录、生成伞体与各岛 `INDEX.md`）工具做；**那一条 description 必须人来写**——
     它是唯一的常驻触发词，是判断题。所以没 `--description` 时 `--apply` 直接拒绝，不生成半成品。
-    """
-    skills, skipped = [], []
-    tree = walk_dir(root, root, "", tracked_set(root), skipped, skills)
+
+    单位 = **顶层 skill**（`top_level_skills`）：已经收进某个入口 `references/` 的嵌套 skill 不再搬一次，
+    否则在 collapse 过的 pack 上重跑会把岛内 skill 又搬一层。"""
+    skills_all, skipped = [], []
+    tree = walk_dir(root, root, "", tracked_set(root), skipped, skills_all)
     if tree is None:
         print("[collapse] FAIL 这个目录里没有任何 skill（找不到 SKILL.md）")
+        return 1
+    skills = top_level_skills(root, skills_all)
+    if not skills:
+        print("[collapse] FAIL 顶层没有 skill（全都住在别的 skill 的 references/ 里 —— 已经是单入口）")
         return 1
     add_mentions(root, skills)
     edges = cross_skill_edges(root, skills)
@@ -2693,6 +2949,9 @@ def cmd_collapse(root, out, apply_changes=False, description=None, entry_dir=Non
     if not description:
         print("[collapse] 拒绝执行：--description 必填 —— 那一条 description 是唯一的常驻触发词，工具不许代笔")
         return 2
+    # `--description` 落盘前体检（issue #2 的建议 3）：值照写（yaml_scalar 保证合法），但征兆要说出来
+    for w in description_health(description):
+        print(f"[collapse] ⚠️ --description：{w}")
 
     byid = {s["id"]: s for s in skills}
     for name, isl in dirs:
@@ -2706,16 +2965,34 @@ def cmd_collapse(root, out, apply_changes=False, description=None, entry_dir=Non
                 shutil.move(os.path.join(root, src), os.path.join(root, dst))
         with open(os.path.join(ddir, "INDEX.md"), "w", encoding="utf-8") as f:
             f.write(island_index_md(name, isl, byid))
-    head = ("---\nname: %s\ndescription: %s\n---\n\n# %s\n\n" % (entry, description.strip(), entry))
-    with open(os.path.join(root, "skills", entry, "SKILL.md"), "w", encoding="utf-8") as f:
+    # frontmatter 用 `yaml_scalar` 写：值里带 `: `、` #`、块指示符 `>-` 一律加双引号转义，
+    # 不再裸拼 —— 旧写法（`description: %s`）只要值里有 `: ` 就写出非法 YAML（issue #2）。
+    head = ("---\nname: %s\ndescription: %s\n---\n\n# %s\n\n"
+            % (yaml_scalar(entry), yaml_scalar(description.strip()), entry))
+    sk_path = os.path.join(root, "skills", entry, "SKILL.md")
+    with open(sk_path, "w", encoding="utf-8") as f:
         f.write(head + "\n".join(umbrella_body(dirs, byid)) + "\n")
-    # 落盘后回读：技能数必须是 1、入口层必须是 1
+    # 落盘后回读：① **顶层**技能数必须是 1（入口）、入口层必须是 1；② **写出的 frontmatter 必须自己读得回去**
+    # （真 YAML 解析器 / Hermes skill loader / skills-manager 都会读它，工具自带的宽松解析器吃得下坏文件）。
+    # 注意：回读到的 skills2 含岛内嵌套 skill（它们也是 skill），所以判「塌成单入口」要看**顶层**数。
     skills2, skipped2 = [], []
     tree2 = walk_dir(root, root, "", tracked_set(root), skipped2, skills2)
+    n_top = len(top_level_skills(root, skills2)) if tree2 else -1
     n_entry = len(first_layer_entries(tree2)) if tree2 else -1
-    ok = (len(skills2) == 1 and n_entry == 1)
-    print(f"[collapse] 落盘后回读：技能 {len(skills2)} 个 · 入口层 {n_entry} 项 —— "
-          f"{'✅' if ok else '❌ 没塌成单入口'} · 岛 {len(dirs)} 个 · 各岛 INDEX.md 已写")
+    meta2, _, _ = parse_frontmatter(read_text(sk_path))
+    fm_errs = frontmatter_selfcheck(read_text(sk_path))
+    desc_ok = meta2.get("description") == description.strip()
+    ok = (n_top == 1 and n_entry == 1 and not fm_errs and desc_ok)
+    print(f"[collapse] 落盘后回读：顶层技能 {n_top} 个（含岛内嵌套共 {len(skills2)} 个）· "
+          f"入口层 {n_entry} 项 —— {'✅ 已塌成单入口' if ok else '❌ 没塌成单入口'}"
+          f" · 岛 {len(dirs)} 个 · 各岛 INDEX.md 已写")
+    if fm_errs:
+        for e in fm_errs:
+            print(f"[collapse] ⛔ 写出的 frontmatter 不合法：{e}")
+    elif not desc_ok:
+        print(f"[collapse] ⛔ description 回读不一致（写出 {description.strip()!r}，读回 {meta2.get('description')!r}）")
+    else:
+        print("[collapse] ✅ frontmatter 自检：合法 YAML（未加引号的标量里没有 `: `）· description 回读一致")
     return 0 if ok else 1
 
 
@@ -3106,10 +3383,66 @@ def self_test():
         cm = open(os.path.join(out6, "COLLAPSE.md"), encoding="utf-8").read()
         assert "L1  1 项" in cm and "notes/demo" in cm, cm[:200]
         assert cmd_collapse(pack, out6, apply_changes=True) == 2      # 缺 description → 拒绝
-        assert cmd_collapse(pack, out6, apply_changes=True, description="演示：把 demo 收成一个入口。") == 0
+        # issue #2 回归：值里带 `: ` 时写出的 frontmatter 必须仍是合法 YAML（旧实现裸拼 → 真解析器炸）
+        _bad = "入口: 带冒号的值"
+        assert cmd_collapse(pack, out6, apply_changes=True, description=_bad) == 0
+        _ent = os.path.join(pack, "skills", "pack", "SKILL.md")
+        _et = read_text(_ent)
+        assert not frontmatter_selfcheck(_et), frontmatter_selfcheck(_et)
+        assert _et.split("\n")[2] == 'description: "入口: 带冒号的值"', _et.split("\n")[:4]
+        assert parse_frontmatter(_et)[0].get("description") == _bad, "回读的 description 必须与写出的逐字一致"
+        # 有真 YAML 解析器就用它复核（契约 §6：不引依赖，所以只在装了的时候当额外证据）
+        try:
+            import yaml as _yaml
+            assert _yaml.safe_load(_et.split("---")[1])["description"] == _bad, "真 YAML 解析器读不一致"
+        except ImportError:
+            pass
+        # issue #1 回归：collapse 之后 TREE.html 的节点框数必须 == 本 pack 的 SKILL.md 份数
+        # （旧实现 walk_dir 遇 SKILL.md 就 return，岛内 skill 一个框都不画 → 永远 1 个）
+        _nskill = sum(1 for _dp, _dn, _fn in os.walk(pack) for _f in _fn if _f == "SKILL.md")
+        assert _nskill >= 2, f"fixture 该有多个 SKILL.md 才测得出丢节点，实得 {_nskill}"
+        _ov = os.path.join(tmp, "o-vis")
+        assert cmd_visualize(pack, _ov) == 0
+        _hv = open(os.path.join(_ov, "TREE.html"), encoding="utf-8").read()
+        _nrect = _hv.count('class="node"')
+        assert _nrect == _nskill, f"节点框 {_nrect} != SKILL.md 份数 {_nskill}（丢节点）"
+        _mv = open(os.path.join(_ov, "TREE.md"), encoding="utf-8").read()
+        assert f"skill {_nskill} 个" in _mv, _mv[:300]
+        # 入口层仍必须是 1 项（单入口形状），而 skill 数 > 1 —— 这两条一起才是正确形状
+        _tv_skills = []
+        _tv = walk_dir(pack, pack, "", tracked_set(pack), [], _tv_skills)
+        assert len(first_layer_entries(_tv)) == 1, first_layer_entries(_tv)
+        # issue #1 根因 2 回归：工作区有未跟踪的 SKILL.md → visualize 必须报错退出（不许静默空树）
+        # 必须用**真 git 仓库**：非 git 目录下「未跟踪」无从谈起（tracked_set 返回 None，全部算成员）
+        _gr = os.path.join(tmp, "git-pack")
+        os.makedirs(os.path.join(_gr, "skills", "committed"), exist_ok=True)
+        with open(os.path.join(_gr, "skills", "committed", "SKILL.md"), "w") as f:
+            f.write("---\nname: committed\ndescription: 已 commit 的入口。\n---\n\n# c\n")
+        git(_gr, "init", "-q")
+        git(_gr, "-c", "user.name=t", "-c", "user.email=t@t", "add", "-A")
+        git(_gr, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "init")
+        _og = os.path.join(tmp, "o-git")
+        assert cmd_visualize(_gr, _og) == 0, "全是已跟踪文件时该正常出树"
+        assert untracked_skill_files(_gr) == [], untracked_skill_files(_gr)
+        _un = os.path.join(_gr, "skills", "untracked-entry")
+        os.makedirs(_un, exist_ok=True)
+        with open(os.path.join(_un, "SKILL.md"), "w") as f:
+            f.write("---\nname: untracked-entry\ndescription: 还没 commit。\n---\n\n# u\n")
+        assert untracked_skill_files(_gr) == ["skills/untracked-entry/SKILL.md"], untracked_skill_files(_gr)
+        _ou = os.path.join(tmp, "o-un")
+        assert cmd_visualize(_gr, _ou) == 1, "有未跟踪 SKILL.md 时 visualize 该报错退出，不该静默出空树"
+        assert not os.path.isfile(os.path.join(_ou, "TREE.html")), "报错时不该产出空树"
+        shutil.rmtree(_un, ignore_errors=True)
+        # 非 skill pack 的目录：audit 该报 FAIL 退 1，不该 IndexError（实测 312 个目录里 246 个命中）
+        _plain = os.path.join(tmp, "not-a-pack")
+        os.makedirs(_plain, exist_ok=True)
+        with open(os.path.join(_plain, "readme.txt"), "w") as f:
+            f.write("就是个普通目录\n")
+        assert cmd_audit(_plain, os.path.join(tmp, "o-np")) == 1, "没有 SKILL.md 的目录该 FAIL 退 1"
         print("[self-test] ✅ 层（pack→类目→skill）/ 折叠 description / 孤儿 / 悬空 / "
               "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 / 提案器四类动作 / "
-              "layers↔audit 口径对拍 / 派发划批 / 验收（集合级回归拦截 + 梯子）—— 全过")
+              "layers↔audit 口径对拍 / 派发划批 / 验收（集合级回归拦截 + 梯子）/ "
+              "issue #1（节点框数 == SKILL.md 份数 + 未跟踪闸）/ issue #2（冒号值仍是合法 YAML）—— 全过")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

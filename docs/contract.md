@@ -241,3 +241,31 @@ UsingHermes 上实测（`0de1ca9` 起，`--entry-dir using-hermes`，在被测�
 
 分工不变：搬目录、生成伞体与各岛 `INDEX.md` 是机械的，工具做；**那一条 `description` 由模型写**
 （它是唯一的常驻触发词），所以 `--apply` 不给 `--description` 直接拒绝退出，不生成半成品。
+
+### 7.1 写 frontmatter 的硬规则（issue #2 之后）
+
+`collapse` 写入口 `SKILL.md` 的 frontmatter 时，**值一律经 `yaml_scalar()`**：安全的值原样写（保持可读），
+其余整体加双引号并转义 `\` `"` 与换行/制表符。以前是裸拼（`description: %s`），值里带 `: ` 就写出非法
+YAML（真解析器报 `mapping values are not allowed here`）；一批 63 个 collapse 过的 pack 里 **35 个**命中。
+
+- **工具自带的 `parse_frontmatter()` 是手写的宽松子集**（取 `key:` 之后整行），它吃得下 `description: a: b`
+  这种坏写法。所以「工具自己读得通」**不等于**文件合法 —— 它会持续掩盖这类 bug。
+  判合法性只能用 `frontmatter_selfcheck()`（写盘自检）或真 YAML 解析器（外部消费者：Hermes skill loader、
+  skills-manager、任何 `yaml.safe_load`）。
+- `collapse --apply` 落盘后**回读三件事**并一起判：顶层技能数 == 1 · 入口层 == 1 · `frontmatter_selfcheck` 无错
+  且 `description` 回读一致。任一条不过 → 非 0 退出码 + 明确原因。
+- `--description` 落盘前做 `description_health()` 体检：含裸 `: `、残留块指示符片段（`>-` / `|`）、首尾空白
+  都会显式告警（值本身照写，因为 `yaml_scalar` 已保证合法）。
+
+### 7.2 `SKILL.md` 的份数 = skill 数（issue #1 之后）
+
+`walk_dir` **遇到含 `SKILL.md` 的目录仍继续下钻** —— collapse 把成员搬到 `<入口>/references/<岛>/<skill>/`，
+那些 `SKILL.md` 全在入口目录子树里；旧实现一遇 `SKILL.md` 就 `return`，于是岛内 skill 从未被访问
+（`skills=1`、TREE.md 的 L2 表空、TREE.html 只画 1 个框）。下钻到的嵌套 skill 挂成入口节点的**子节点**。
+
+- **验收判据**：`TREE.html` 里 `rect.node` 的个数 == 本 pack 的 `SKILL.md` 份数（`stats["skills"]`）。
+  单入口形状下入口层仍是 1 项，但岛内嵌套 skill 各算一个 skill、各画一个框。
+- 入口层由 `entry_items()` 给：pack 根自己就是 skill（入口摆在根上）时入口层 = 这一个 skill。
+- `visualize` 有一道闸：工作区里存在**未被 git 跟踪**的 `SKILL.md` 时报错退出（退出码 1），提示先 commit。
+  collapse 刚改完还没 commit 时索引里是旧路径，新入口会被当 untracked 跳过 ⇒ 空树 + 退出码 0
+  （一批 63 个 pack 里 25 个命中）。一次不落到的空跑该报错，不该静默交付空树。
