@@ -40,7 +40,8 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 |---|---|---|
 | 根文档 / 任何 `SKILL.md` | 正文 < 5000 est_token；行数三档 50 / 150 / 500 | agentskills.io / `claude-skills-cli` |
 | 任意文档的 `description` | ≤ 1024 字符 | agentskills.io（硬约束） |
-| 任意资源文件（`references/ scripts/ assets/`） | ≤ 20000 B | Dream `check-disclosure.py` 常量 |
+| 任意资源文件（`references/ assets/`） | ≤ 20000 B | Dream `check-disclosure.py` 常量 |
+| `scripts/**` 或脚本后缀文件 | **不设字节上限**（不进超限清单、不建议拆） | 包主口径 2026-10-12：Agent 从不整份读脚本（读 SKILL.md 的调用说明 + 按需 grep），拆它只增加跳转 |
 | 跨文档 | 孤儿（in-degree 0 且非根）；悬空（披露了不存在的）；根选择层近重复（靠 description 选根才算） | 本仓库契约 |
 
 **仍然适用的旧口径**（不要丢）：`MAX_FIRST_LAYER = 20` 是**参考线不是硬闸**（§4）；
@@ -180,6 +181,7 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 | L1 元数据 | **< 200 字符** | `claude-skills-cli` 的 L1 上限 |
 | `description` | hard ≤ **1024 字符** | agentskills.io 规范（硬约束） |
 | 单份 `references/*.md` | 报超 **20000 字节** | Dream 的 `check-disclosure.py` 常量（本机既有口径，沿用） |
+| `scripts/` 下的文件 | **不设字节上限**（不进超限清单、不建议拆） | 包主口径 2026-10-12：Agent 不整份读脚本；脚本的披露要求只有「被所属 `SKILL.md` 点名」 |
 | `fanout` | **不设死值**，报分布 + 校正随机分 | Meta arXiv:2605.24660 |
 | 入口层条目数 | `MAX_FIRST_LAYER = 20`，**参考线不是硬闸** | 出自 Dream 的 `check-disclosure.py` 的 `MAX_FIRST_LAYER_SKILLS`，**不是规范要求**。2026-10-11 定：超了只提示；实际处置走「按互指岛分组」而不是往 20 上削（UsingHermes：28 → 13 项） |
 | 孤儿 | **0** | 本仓库契约（`agent-skill-analysis` 同口径报 `orphans`） |

@@ -1893,6 +1893,7 @@ def _leaves(node):
 CAP_DESC_CHARS = 1024
 CAP_BODY_TOKENS = 5000
 CAP_BODY_LINES = 500
+# 字节上限只管「会被整份读进去的」资源（references/、assets/…）。脚本不属于这类，见 `cap_of`。
 CAP_FILE_BYTES = 20000
 TEXT_LIKE = {".md", ".markdown", ".txt", ".py", ".sh", ".bash", ".js", ".ts", ".json",
              ".yaml", ".yml", ".csv", ".tsv", ".toml", ".ini", ".cfg", ".html", ".svg"}
@@ -2705,7 +2706,10 @@ def cmd_disclosure(root, out):
             if (n["desc_chars"] or 0) > CAP_DESC_CHARS:
                 over.append(f"description {n['desc_chars']} 字符 > {CAP_DESC_CHARS}")
             return over
-        if n["kind"] in ("binary",):
+        # 脚本不设字节上限：Agent 从不整份读脚本 —— 它读 SKILL.md 里那几行调用说明，再按需 grep / 分段读。
+        # 所以「脚本多大」不是披露缺陷，拆它只是把一次调用变成几次跳转。脚本这边唯一的披露要求：
+        # 被所属的 SKILL.md 点名（不点名就是孤儿）。
+        if n["kind"] in ("binary", "script"):
             return []
         if n["bytes"] > CAP_FILE_BYTES:
             return [f"{n['bytes']} B > {CAP_FILE_BYTES} B"]
@@ -2750,7 +2754,8 @@ def cmd_disclosure(root, out):
          "- **L1/L2/…**：离根几步。根 = L1，根披露的 = L2，依次往下。",
          "- **fanout**：这份文档披露了几份别的文档（某一层「摆出几项」= 该层各文档 fanout 之和）。",
          "- **到不了根**：从任何根顺着披露都走不到它（没有任何文档点到它）。",
-         "- **超限**：超过它那类的上限（正文 ≥5000 tok 或 >500 行 · description >1024 字符 · 资源文件 >20000 B）。",
+         "- **超限**：超过它那类的上限（正文 ≥5000 tok 或 >500 行 · description >1024 字符 · 资源文件 >20000 B）。"
+         "**脚本不计**：Agent 不整份读脚本，字节数不是披露缺陷（口径见 `docs/contract.md` §4）。",
          "- **悬空**：写了像本 pack 内的路径，但那个文件不存在。",
          "- **external**：正文里提到的本 pack 之外的文件（不算披露、也不算错）。",
          "- **近重复**：同层两份文档太像，Agent 会选错。", "",
@@ -2803,7 +2808,7 @@ def cmd_disclosure(root, out):
           "- 披露 = 正文里真实点到的另一份文档（先按该文件所在目录、再按 pack 根解析）；"
           "URL、围栏里的路径、没有目录部分的裸文件名都不算。",
           f"- caps（出处 `docs/contract.md` §4）：正文 <{CAP_BODY_TOKENS} tok / ≤{CAP_BODY_LINES} 行 · "
-          f"description ≤{CAP_DESC_CHARS} 字符 · 单份文件 ≤{CAP_FILE_BYTES} B。",
+          f"description ≤{CAP_DESC_CHARS} 字符 · 单份文件（不含 `scripts/`）≤{CAP_FILE_BYTES} B。",
           "- 每个文档在表里恰好出现一次（由命令自己核对：节点数 == 表行数）。", ""]
 
     md = os.path.join(out, "DISCLOSURE.md")
