@@ -273,8 +273,9 @@ YAML（真解析器报 `mapping values are not allowed here`）；一批 63 个 
 那些 `SKILL.md` 全在入口目录子树里；旧实现一遇 `SKILL.md` 就 `return`，于是岛内 skill 从未被访问
 （`skills=1`、TREE.md 的 L2 表空、TREE.html 只画 1 个框）。下钻到的嵌套 skill 挂成入口节点的**子节点**。
 
-- **验收判据**：`TREE.html` 里 `rect.node` 的个数 == 本 pack 的 `SKILL.md` 份数（`stats["skills"]`）。
-  单入口形状下入口层仍是 1 项，但岛内嵌套 skill 各算一个 skill、各画一个框。
+- **验收判据**：`TREE.html` 里 `rect.node` 的个数 == 本 pack 的**文档数**（= `DISCLOSURE.md` 的表行数）。
+  节点 = 每份文档（`SKILL.md`、`references/*.md`、`scripts/*.py` 各算一份），不是每个 `SKILL.md`。
+  根 = 每个 skill 的 `SKILL.md`（多入口 = K 个根；单入口 = 1 个根）。
 - 入口层由 `entry_items()` 给：pack 根自己就是 skill（入口摆在根上）时入口层 = 这一个 skill。
 - `visualize` 有一道闸：工作区里存在**未被 git 跟踪**的 `SKILL.md` 时报错退出（退出码 1），提示先 commit。
   collapse 刚改完还没 commit 时索引里是旧路径，新入口会被当 untracked 跳过 ⇒ 空树 + 退出码 0
@@ -329,7 +330,20 @@ YAML（真解析器报 `mapping values are not allowed here`）；一批 63 个 
 |---|---|---|
 | `waivers.txt` | 包主手写 | 进 —— 那是判断，不是产物 |
 | `reports/<日期>/` | 该包的历史轮次档案（跑完一轮后按 subject 从工具仓库搬回被测包） | 进 —— 这一轮的原件（判官转录 · 题面 · 改前后度量），事后不改 |
-| 量出来的数字（`disclosure.json` · `TODO.md` · `checks.json` · `audit.json` · `TREE.*` …） | 工具 | 落点规则见 issue #5 |
+| 量出来的数字（`disclosure.json` · `TODO.md` · `checks.json` · `audit.json` · `TREE.*` …） | 工具 | **默认落点就是 `<pack>/.skillweave/`（issue #5）** —— 随包 commit |
+
+**默认落点 = 包内 `.skillweave/`（issue #5，2026-10-14 定）**：`tree` / `layers` / `checks` / `audit` /
+`propose` / `disclosure` / `dispatch` 的 baseline / `verify` 的 `RUN.md` / `prepare` 的 `BASELINE.md` /
+`collapse` 的 `COLLAPSE.md` / `judge` / `deliver` —— 这些命令的 `--out` 缺省值一律 `<pack>/.skillweave/`，
+不再是 `tempfile.gettempdir()/skillweave-<pack 名>`。理由：`/tmp` 重启即丢，包还在、量出来的数字没了
+（「上次基线是多少」无从查起）；换台机器复现不了；`git clone` 别人的包拿不到 `DISCLOSURE.md` / `TODO.md`。
+`--out` 保留为**覆盖**用法（写一份不留痕的、或写到别处），缺省必须在包内。
+`visualize` 是例外 —— 它默认落回 **pack 根**（`TREE.md` / `TREE.html` 是给仓库看的产物，见 §7.2）。
+`.skillweave/` 在 `SKIP_DIRS` 里（非成员），所以工具自己写下的产物不会被下一次运行量成「到不了根」。
+
+**哪些产物该进版本库**：`disclosure.json` / `TODO.md` / `TREE.md` / `TREE.html` / `checks.json` /
+`audit.json` / `BASELINE.md` 这类**量出来的事实**要进（下一次谁都能看到上次的基线）；过程垃圾不进 ——
+worktree、`.DS_Store`、跑一半的中间件。包里的 `.gitignore` 按这条写。
 
 **项目数据不进工具仓库**（用户 2026-10-13 定）：SkillWeave 自己就是一个 pack（含 `SKILL.md` 的仓库就是），
 把**别的 pack** 的原始档案放在工具仓库的 `reports/` 里，会随 `git clone` 发给每个克隆它的人。

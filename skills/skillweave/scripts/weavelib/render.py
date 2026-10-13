@@ -1,10 +1,10 @@
 """渲染：TREE.md · TREE.html · LAYERS · DISCLOSURE · TODO 等产物。
 
 从 weave.py 拆出，逻辑未改。"""
-import collections, math, os, re
+import collections, os, re
 from .common import est_tokens, read_text
 from .frontmatter import parse_frontmatter
-from .graph import _waived
+from .graph import _doc_edges, _waived
 from .model import git, is_nested_skill, untracked_skill_files
 from .pack import Pack
 
@@ -52,63 +52,94 @@ def _xml(s):
 
 
 
-def render_tree_md(root, skills, edges, islands, entry, rev, nested_map=None):
-    byid = {s["id"]: s for s in skills}
-    nested_map = nested_map or {}
+def render_tree_md(root, doc_nodes, doc_edges, rev):
+    """文档级 TREE.md：节点 = 每份文档（issue #4）。"""
+    roots = sorted(p for p, n in doc_nodes.items() if n["root"])
+    # 计算披露深度（BFS）
+    depth = {}
+    for p in roots:
+        depth[p] = 1
+    frontier = list(roots)
+    while frontier:
+        nxt = []
+        for p in frontier:
+            for q in sorted(doc_edges.get(p, {})):
+                if q not in depth:
+                    depth[q] = depth[p] + 1
+                    nxt.append(q)
+        frontier = nxt
+    for p in doc_nodes:
+        depth.setdefault(p, None)
+    # 按层分组
+    lv = collections.defaultdict(list)
+    for p in doc_nodes:
+        lv[depth[p]].append(p)
+    levels = sorted(lv, key=lambda x: (x is None, x))
     L = [f"# 文档树 · {os.path.basename(root)}", "",
          f"基准 `{rev}` · 由 `weave.py visualize` 生成，**不要手改**。", "",
-         f"skill {len(skills)} 个 · 入口层 {len(entry)} 项 · 常驻菜单 "
-         f"{est_tokens(chr(10).join(x['description'] for x in skills))} tok · "
-         f"互指岛 {len(islands)} 个", "",
-         "> `skill N 个` = 本 pack 里 `SKILL.md` 的份数。单入口形状下入口只有 1 项（入口层 1 项），",
-         "> 但岛内嵌套 skill（住在入口的 `references/<岛>/<skill>/`）各算一个 —— 所以 N 可以 > 1。", "",
-         "## L1 常驻菜单（Agent 每轮都看到的）", ""]
-    for kind, node_id, members in entry:
-        if kind == "category":
-            tok = est_tokens("\n".join(byid[i]["description"] for i in members))   # L1 常驻口径
-            L.append(f"- **{node_id.rstrip('/')}/** 〔类目〕{len(members)} 项 · {tok} tok")
-            for i in members:
-                s = byid[i]
-                L.append(f"  - {s['name']} — {s['description'][:88]}")
+         f"文档 {len(doc_nodes)} 个 · 根 {len(roots)} 个（= 形状）", "",
+         "> 节点 = 每份文档（`SKILL.md`、`references/*.md`、`scripts/*.py` 各算一份）。",
+         "> 根 = 每个 skill 的 `SKILL.md`（多入口 = K 个根；单入口 = 1 个根）。",
+         "> 层 = 披露深度（L1 = 根文档；L2 = L1 直接披露的；Ln+1 由 Ln 披露）。", ""]
+    for d in levels:
+        if d is None:
+            L += ["## 到不了的文档（没有任何根披露到它们）", ""]
         else:
-            s = byid[node_id]
-            L.append(f"- **{s['name']}** 〔散项〕{est_tokens(s['description'])} tok — {s['description'][:88]}")
-            for ns in nested_map.get(node_id) or []:
-                L.append(f"  - ↳ **{ns['name']}** 〔岛内嵌套 skill〕`{ns['id']}` · "
-                         f"{ns['est_tokens']} tok — {ns['description'][:80]}")
-    L += ["", "## L2 每个 skill 的正文与 L3 按需文件", "",
-          "| skill | 正文 | 行 | L3 文件 | 孤儿 | 悬空 |", "|---|---|---|---|---|---|"]
-    for s in sorted(skills, key=lambda s: -s["est_tokens"]):
-        l3 = len(s["files"]) - 1
-        L.append(f"| {'  ' * (s['id'].count('/') - 1)}{s['name']} | {s['est_tokens']} tok | "
-                 f"{s['body_lines']} | {l3} | {len(s['orphans'])} | {len(s['broken'])} |")
-    L += ["", "## 互指岛（数据给的分层）", ""]
-    for n, isl in enumerate(islands, 1):
-        inner = sum(1 for (a, b) in edges if a in isl and b in isl)
-        L.append(f"### 岛 {n} · {len(isl)} 个 · 岛内互指 {inner} 条")
-        L.append("")
-        for i in isl:
-            L.append(f"- {byid[i]['name']}  `{i}`")
+            L += [f"## L{d}（{len(lv[d])} 份）", ""]
+        L += ["| 文档 | fanout（披露几项） | 体积 | 判定 |", "|---|---|---|---|"]
+        for p in sorted(lv[d]):
+            n = doc_nodes[p]
+            size = (f"{n['tok']} tok / {n['lines']} 行" if n["tok"] is not None
+                    else f"{n['bytes']} B")
+            bad = []
+            if n["root"]:
+                bad.append("根")
+            L.append(f"| `{p}` | {len(doc_edges.get(p, {}))} | {size} | {' · '.join(bad) or '✅'} |")
         L.append("")
     L += ["## 口径", "",
-          "- L1 = 所有 skill 的 `name`+`description`（常驻）；L2 = 单个 `SKILL.md` 正文（触发时载入）；"
-          "L3 = `references/scripts/assets`（按需）。",
+          "- 节点 = 每份文档（`SKILL.md`、`references/*.md`、`scripts/*.py` 各算一份）。",
+          "- 根 = 每个 skill 的 `SKILL.md`（多入口 = K 个根；单入口 = 1 个根）。",
+          "- 层 = 披露深度（L1 = 根文档；L2 = L1 直接披露的；Ln+1 由 Ln 披露）。",
+          "- 披露 = 正文里真实点到的另一份文档（先按该文件所在目录、再按 pack 根解析）；",
+          "URL、围栏里的路径、没有目录部分的裸文件名都不算。",
           f"- `tok` = `est_tokens`：CJK ×1 + 其它 ×0.25（估算）。",
-          f"- 互指 = 正文点名同 pack 技能名 + 引用解析到别的 skill 目录；岛 = 互指图的连通分量。",
-          "- 入口层 = 从 pack 根往下、唯一选择项还是类目就继续下钻，遇 ≥2 项停；它下面的条目数就是 Agent 第一次看到的菜单大小。",
           ""]
     return "\n".join(L)
 
 
 
 
-def render_tree_html(root, skills, edges, islands, entry, rev, stats, nested_map=None):
-    byid = {s["id"]: s for s in skills}
-    nested_map = nested_map or {}
-    isl_of = {i: n for n, isl in enumerate(islands, 1) for i in isl}
+def render_tree_html(root, doc_nodes, doc_edges, rev):
+    """文档级 TREE.html：节点 = 每份文档（issue #4）。
+
+    根 = 每个 skill 的 `SKILL.md`（多入口 = K 个根；单入口 = 1 个根）。
+    边 = 披露（正文里真实写出的另一份文档路径，口径同 disclosure）。
+    层 = 披露深度（L1 = 根文档；Ln+1 由 Ln 披露）。
+    """
+    roots = sorted(p for p, n in doc_nodes.items() if n["root"])
+    # 计算披露深度（BFS）
+    depth = {}
+    for p in roots:
+        depth[p] = 1
+    frontier = list(roots)
+    while frontier:
+        nxt = []
+        for p in frontier:
+            for q in sorted(doc_edges.get(p, {})):
+                if q not in depth:
+                    depth[q] = depth[p] + 1
+                    nxt.append(q)
+        frontier = nxt
+    for p in doc_nodes:
+        depth.setdefault(p, None)
+    # 按层分组
+    lv = collections.defaultdict(list)
+    for p, n in doc_nodes.items():
+        lv[depth[p]].append(p)
+    levels = sorted(lv, key=lambda x: (x is None, x))
     W = 1680
-    P = []          # svg 片段
-    y = 196         # 数字卡片占到 132，标题与第一批框都从下面起（第一版压在卡片上，实测）
+    P = []
+    y = 196
 
     def rect(x, yy, w, h, fill, stroke, rx=8, sw=1.2, op=1.0, cls=None):
         c = f' class="{cls}"' if cls else ""
@@ -123,9 +154,9 @@ def render_tree_html(root, skills, edges, islands, entry, rev, stats, nested_map
     # 标题 + 数字
     text(40, 46, f"文档树 · {os.path.basename(root)}", 24, "#f2f2f7", weight="600")
     text(40, 74, f"{rev} · weave.py visualize 生成 · 不要手改", 12, "#9aa0b0", mono=True)
-    nums = [("skill", stats["skills"]), ("入口层", stats["entry"]), ("常驻 tok", stats["resident"]),
-            ("互指岛", stats["islands"]), ("L2 超限", stats["over_l2"]),
-            ("孤儿", stats["orphans"]), ("悬空", stats["broken"])]
+    nums = [("文档", len(doc_nodes)), ("根", len(roots)),
+            ("层数", len([x for x in levels if x is not None])),
+            ("到不了根", len(lv.get(None, [])))]
     x = 40
     for k, v in nums:
         rect(x, 92, 150, 40, "#20222c", "#33364a", rx=6)
@@ -133,120 +164,28 @@ def render_tree_html(root, skills, edges, islands, entry, rev, stats, nested_map
         text(x + 10, 126, str(v), 15, "#f2f2f7", weight="600")
         x += 162
 
-    # L1 → L2 树
-    text(40, y - 12, "L1 常驻菜单 → L2 正文 → L3 按需文件", 15, "#c9cdea", weight="600")
-    text(560, y - 12, "· 每个 skill 上的 tok = L2 正文；类目头上的 L1 tok = 描述常驻", 12, "#7d8496")
-    for kind, node_id, members in entry:
-        isl = isl_of.get(node_id) or isl_of.get(members[0])
-        col = ISLAND_COLORS[(isl - 1) % len(ISLAND_COLORS)]
-        if kind == "category":
-            tok = est_tokens("\n".join(byid[i]["description"] for i in members))   # L1 常驻口径
-            h = 30 + 26 * ((len(members) + 2) // 3)
-            rect(40, y, 1596, h, "#191b24", col, rx=10, sw=1.6, cls="node")
-            text(56, y + 21, f"{node_id.rstrip('/')}/", 14, "#f2f2f7", weight="600")
-            text(250, y + 21, f"〔类目〕{len(members)} 项 · L1 {tok} tok · 岛 {isl}", 12, col, mono=True)
-            cx, cy = 56, y + 34
-            for i in members:
-                s = byid[i]
-                chip = f"{s['name']} {s['est_tokens']}tok"
-                wpx = 9 * len(chip) + 16
-                if cx + wpx > 1600:
-                    cx, cy = 56, cy + 26
-                rect(cx, cy, wpx, 20, "#232634", "#3a3f52", rx=4, sw=0.8)
-                text(cx + 8, cy + 14, chip, 11.5, "#dfe3f2", mono=True)
-                cx += wpx + 8
-            y += h + 10
+    # 文档树：按层渲染
+    text(40, y - 12, "文档树（节点 = 每份文档；层 = 披露深度）", 15, "#c9cdea", weight="600")
+    y += 10
+    for d in levels:
+        if d is None:
+            label = "到不了根"
+            col = "#7d8496"
         else:
-            s = byid[node_id]
-            rect(40, y, 1596, 30, "#191b24", col, rx=10, sw=1.6, cls="node")
-            text(56, y + 21, s["name"], 14, "#f2f2f7", weight="600")
-            nest = nested_map.get(node_id) or []
-            text(420, y + 21, f"〔散项 · 岛 {isl} · 单独成岛——和本包别的 skill 一条互指都没有〕"
-                              f"L1 {est_tokens(s['description'])} tok · "
-                              f"L2 {s['est_tokens']} tok · L3 {len(s['files']) - 1} 个文件",
-                 12, col, mono=True)
-            y += 40
-            if nest:      # 入口之下还住着 skill（单入口形状：`references/<岛>/<skill>/`）→ 逐个画框
-                # 这些框是 `stats["skills"]` 的一部分：旧实现不下钻，岛内 skill 一个框都不画
-                text(64, y + 12, f"↳ 入口之下还有 {len(nest)} 个 skill（岛内嵌套，住在这个入口的 "
-                                 f"references/ 里）—— 它们各自也是本 pack 的一个 skill", 11.5, "#9aa0b0")
-                y += 24
-                for ns in nest:
-                    depth = ns["id"].count("/") - node_id.count("/")
-                    x0 = 40 + 26 * depth
-                    rect(x0, y, 1596 - (x0 - 40), 26, "#15171f", "#3a3f52", rx=6, sw=0.9, cls="node")
-                    text(x0 + 14, y + 18, ns["name"], 12.5, "#dfe3f2", weight="600")
-                    text(x0 + 260, y + 18, f"`{ns['id']}` · L2 {ns['est_tokens']} tok · "
-                                           f"L3 {len(ns['files'])} 个文件 · 岛 {isl}",
-                         11, col, mono=True)
-                    y += 30
-    y += 24
-
-    # 互指岛：圆环 + 弦。**不在圆上写长名字** —— 21 个长名绕一圈必然叠字（实测第一版看不清），
-    # 改成节点带编号、框内配图例；编号从 12 点方向顺时针。
-    text(40, y, f"互指图：{len(islands)} 个岛（岛 = 互指图连通分量；弦 = 一条互指；编号从 12 点方向顺时针，"
-                f"对应框内图例）", 15, "#c9cdea", weight="600")
-    y += 16
-    boxes = []
-    for n, isl in enumerate(islands, 1):
-        k = len(isl)
-        r = 0.0 if k == 1 else 30 + 3.2 * k
-        maxlen = max(len(byid[sid]["name"]) for sid in isl)
-        cw = int(6.2 * maxlen) + 26
-        cols = 1 if k <= 8 else 2
-        rows = (k + cols - 1) // cols
-        w = max(190, cw + 24) if k == 1 else max(240, cols * cw + 24)
-        h = int(2 * r + 8 + rows * 14 + 54) if k > 1 else 152
-        boxes.append({"n": n, "isl": isl, "k": k, "r": r, "cols": cols, "rows": rows,
-                      "cw": cw, "w": w, "h": h})
-    rows_pack = []
-    x, cur = 40, []
-    for b in boxes:
-        if cur and x + b["w"] > 1640:
-            rows_pack.append(cur)
-            cur = []
-            x = 40
-        cur.append(b)
-        x += b["w"] + 14
-    if cur:
-        rows_pack.append(cur)
-    for packrow in rows_pack:
-        rh = max(b["h"] for b in packrow)
-        x = 40
-        for b in packrow:
-            n, isl, k, r, cols, cw, w, h = b["n"], b["isl"], b["k"], b["r"], b["cols"], b["cw"], b["w"], b["h"]
-            col = ISLAND_COLORS[(n - 1) % len(ISLAND_COLORS)]
-            rect(x, y, w, h, "#15171f", col, rx=10, sw=1.4, op=0.95)
-            inner = [(a, bb) for (a, bb) in edges if a in isl and bb in isl]
-            text(x + 12, y + 20, f"岛 {n} · {k} 个 · 互指 {len(inner)} 条", 12, col, weight="600", mono=True)
-            if k == 1:
-                cx, cy = x + w / 2, y + 74
-                P.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="6" fill="{col}" stroke="#0d0e14" stroke-width="1.2"/>')
-                text(cx, cy + 34, byid[isl[0]]["name"], 10.5, "#b9bfd4", anchor="middle", mono=True)
-                text(cx, cy + 50, "与包内其它 skill 一条互指都没有", 9.5, "#7d8496", anchor="middle")
-            else:
-                cx, cy = x + 20 + r, y + 44 + r
-                pos = {}
-                for i, sid in enumerate(isl):
-                    ang = 2 * math.pi * i / k - math.pi / 2
-                    pos[sid] = (cx + r * math.cos(ang), cy + r * math.sin(ang))
-                for (a, bb) in inner:
-                    (ax, ay), (bx, by) = pos[a], pos[bb]
-                    P.append(f'<line x1="{ax:.1f}" y1="{ay:.1f}" x2="{bx:.1f}" y2="{by:.1f}" '
-                             f'stroke="{col}" stroke-width="1.1" opacity="0.45"/>')
-                for i, sid in enumerate(isl):
-                    px, py = pos[sid]
-                    ang = 2 * math.pi * i / k - math.pi / 2
-                    P.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="5" fill="{col}" stroke="#0d0e14" stroke-width="1.2"/>')
-                    text(px + 10 * math.cos(ang), py + 10 * math.sin(ang) + 3, str(i + 1), 8, "#c9cdea",
-                         anchor="middle" if abs(math.cos(ang)) < 0.7 else ("start" if math.cos(ang) > 0 else "end"),
-                         mono=True)
-                ly = y + 44 + 2 * r + 14
-                for i, sid in enumerate(isl):
-                    c_, r_ = i % cols, i // cols
-                    text(x + 12 + c_ * cw, ly + r_ * 14, f"{i + 1}. {byid[sid]['name']}", 9.5, "#b9bfd4", mono=True)
-            x += w + 14
-        y += rh + 14
+            label = f"L{d}"
+            col = ISLAND_COLORS[(d - 1) % len(ISLAND_COLORS)]
+        text(40, y + 14, f"{label}（{len(lv[d])} 份）", 12, col, weight="600", mono=True)
+        y += 22
+        for p in sorted(lv[d]):
+            n = doc_nodes[p]
+            size = (f"{n['tok']} tok / {n['lines']} 行" if n["tok"] is not None
+                    else f"{n['bytes']} B")
+            fanout = len(doc_edges.get(p, {}))
+            rect(40, y, 1596, 26, "#15171f", col, rx=6, sw=0.9, cls="node")
+            text(56, y + 18, p, 12, "#dfe3f2", weight="600", mono=True)
+            text(500, y + 18, f"{size} · fanout {fanout}", 11, col, mono=True)
+            y += 30
+        y += 10
 
     svg = "\n".join(P)
     return f"""<!doctype html>
@@ -267,10 +206,11 @@ def render_tree_html(root, skills, edges, islands, entry, rev, stats, nested_map
 </svg>
 <footer>
  由 <code>weave.py visualize</code> 生成 · 基准 <code>{_xml(rev)}</code> ·
- 口径：L1 = 全部 skill 的 name+description（常驻）· L2 = SKILL.md 正文 · L3 = references/scripts/assets（按需）·
- tok = CJK×1 + 其它×0.25（估算）· 互指 = 正文点名 + 引用落到别的 skill 目录 · 岛 = 互指图连通分量<br>
- 节点框（<code>rect.node</code>）数 = 本 pack 的 <code>SKILL.md</code> 份数 = <b>{stats["skills"]}</b> 个 skill
-（单入口形状下入口层仍是 1 项；岛内嵌套 skill 各画一个框）。
+ 口径：节点 = 每份文档（<code>SKILL.md</code>、<code>references/*.md</code>、<code>scripts/*.py</code> 各算一份）·
+ 根 = 每个 skill 的 <code>SKILL.md</code>（多入口 = K 个根；单入口 = 1 个根）·
+ 层 = 披露深度（L1 = 根文档；Ln+1 由 Ln 披露）<br>
+ 节点框（<code>rect.node</code>）数 = 文档数 = <b>{len(doc_nodes)}</b> 份
+（= <code>DISCLOSURE.md</code> 的表行数）。
 </footer></div></body></html>
 """
 
@@ -373,6 +313,14 @@ def render_collapse_md(root, skills, edges, islands, dirs, entry_dir, desc, befo
 
 
 
+def _doc_stats(nodes, edges, broken, external, over, orphan):
+    """文档级 stats：节点数 = 文档数（issue #4）。"""
+    roots = [p for p, n in nodes.items() if n["root"]]
+    return {"docs": len(nodes), "roots": len(roots),
+            "over": len(over), "orphans": len(orphan),
+            "broken": len(broken), "external": len(external)}
+
+
 def cmd_visualize(root, out):
     """把文档树落成两份给人/给 agent 看的产物：`TREE.md` + `TREE.html`。"""
     # 闸：工作区里还有未跟踪的 `SKILL.md` 就**报错退出**，不静默交付空树。
@@ -396,28 +344,21 @@ def cmd_visualize(root, out):
         print(f"[visualize] ⚠️ 跳过 {len(pack.skipped)} 个未跟踪的 skill 形目录："
               f"{', '.join(pack.skipped[:3])}{'…' if len(pack.skipped) > 3 else ''}")
     root, skills = pack.root, pack.skills
-    edges, islands, entry = pack.edges(), pack.islands(), pack.entry()
-    over_l2 = [s for s in skills if s["est_tokens"] > 5000 or s["body_lines"] > 500]
-    stats = {"skills": len(skills), "entry": len(entry), "islands": len(islands),
-             "resident": pack.resident_tokens(),
-             "resident_chars": sum(s["description_chars"] for s in skills),
-             "over_l2": len(over_l2),
-             "orphans": sum(len(s["orphans"]) for s in skills),
-             "broken": sum(len(s["broken"]) for s in skills)}
+    # issue #4：节点 = 文档（每份 `.md` / `.py` / …），不是 SKILL.md。
+    # 数据源用 `_doc_nodes()` + `_doc_edges()`（与 disclosure 同一口径），不再用 skill 级数据。
+    doc_nodes = _doc_nodes(skills, root)
+    broken, external = [], []
+    doc_edges = _doc_edges(root, doc_nodes, broken, external)
     rev = _rev(root)
-    # 每个入口 skill 之下的嵌套 skill（单入口形状的岛内 skill）→ 交给渲染器画出来，
-    # 这样「TREE.html 节点框数 == 本 pack 的 SKILL.md 数」这条验收判据才成立。
-    nested_map = pack.nested_skill_nodes()
     os.makedirs(out, exist_ok=True)
     md = os.path.join(out, "TREE.md")
     html = os.path.join(out, "TREE.html")
     with open(md, "w", encoding="utf-8") as f:
-        f.write(render_tree_md(root, skills, edges, islands, entry, rev, nested_map))
+        f.write(render_tree_md(root, doc_nodes, doc_edges, rev))
     with open(html, "w", encoding="utf-8") as f:
-        f.write(render_tree_html(root, skills, edges, islands, entry, rev, stats, nested_map))
-    print(f"[visualize] 入口层={len(entry)} 互指岛={len(islands)} 常驻={stats['resident']}tok "
-          f"孤儿={stats['orphans']} 悬空={stats['broken']}")
-    print(f"[visualize] skill={stats['skills']} 个（= 本 pack 的 SKILL.md 数；岛内嵌套 skill 也算）")
+        f.write(render_tree_html(root, doc_nodes, doc_edges, rev))
+    stats = _doc_stats(doc_nodes, doc_edges, broken, external, [], [])
+    print(f"[visualize] 文档={stats['docs']} 个 · 根={stats['roots']} 个（= 形状）")
     print(f"[visualize] 出: {md}")
     print(f"[visualize] 出: {html}")
     return 0

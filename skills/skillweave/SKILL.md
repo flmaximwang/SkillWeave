@@ -60,24 +60,25 @@ deliver   交付                        → **默认**合回真包 main + push �
 SW=<本 skill 的 scripts/weave.py 绝对路径>     # 装好后：<skills 目录>/skillweave/scripts/weave.py
 PACK=<要分析的 pack 目录>                      # 例：某个 skill 仓库的根
 
-python3 "$SW" tree   "$PACK" --out /tmp/sw     # 文档树：pack → 类目 → skill → 章节/文件
-python3 "$SW" layers "$PACK" --out /tmp/sw     # 老口径的层汇总（常驻成本 / 正文规模 / 孤儿与悬空）；新口径用 disclosure
-python3 "$SW" audit  "$PACK" --out /tmp/sw     # 审计四段：体积 / 孤儿悬空 / 抢题（父目录 + 岛×岛 + 非字面信号）/ 成本两组数
-python3 "$SW" checks "$PACK" --out /tmp/sw     # 七条检查（含硬编码路径、内嵌密钥；命中退 1）
-python3 "$SW" propose "$PACK" --out /tmp/sw    # 四类动作的提案：**默认 dry-run，不改盘**
-python3 "$SW" visualize "$PACK"                 # 生成物落回 pack：TREE.md + TREE.html（文档树与互指图的文本版与可视化）
-python3 "$SW" collapse  "$PACK" --out /tmp/sw   # 可选方案：塌成「L1 = 1 个 skill 入口」的账 + 伞体 + git mv 清单（dry-run）
-python3 "$SW" disclosure "$PACK" --out /tmp/sw            # 第二步：披露链递归 + 逐文档体检 → DISCLOSURE.md
-python3 "$SW" prepare "$PACK" --dest /tmp/pw/ws --out /tmp/pw   # 第一步：拿一份可回滚、可对账的工作副本
-python3 "$SW" deliver "$PACK"                      # 最后一步（默认动作）：合回真包 main + push + 清 worktree/分支
-python3 "$SW" deliver "$PACK" --dry-run            # 只看要做什么，不动盘
-python3 "$SW" deliver "$PACK" --keep-worktree      # 想留在副本上继续改：显式说，别默认
-python3 "$SW" collapse  "$PACK" --out /tmp/sw --apply --entry-dir using-hermes \
+# 默认 --out = <pack>/.skillweave/（issue #5：随包 commit，不丢）；--out 可覆盖
+python3 "$SW" tree   "$PACK"                    # 文档树：pack → 类目 → skill → 章节/文件
+python3 "$SW" layers "$PACK"                    # 老口径的层汇总（常驻成本 / 正文规模 / 孤儿与悬空）；新口径用 disclosure
+python3 "$SW" audit  "$PACK"                    # 审计四段：体积 / 孤儿悬空 / 抢题（父目录 + 岛×岛 + 非字面信号）/ 成本两组数
+python3 "$SW" checks "$PACK"                    # 七条检查（含硬编码路径、内嵌密钥；命中退 1）
+python3 "$SW" propose "$PACK"                   # 四类动作的提案：**默认 dry-run，不改盘**
+python3 "$SW" visualize "$PACK"                 # 生成物落回 pack 根：TREE.md + TREE.html（文档级，issue #4）
+python3 "$SW" collapse  "$PACK"                 # 可选方案：塌成「L1 = 1 个 skill 入口」的账 + 伞体 + git mv 清单（dry-run）
+python3 "$SW" disclosure "$PACK"               # 第二步：披露链递归 + 逐文档体检 → DISCLOSURE.md
+python3 "$SW" prepare "$PACK" --dest /tmp/pw/ws  # 第一步：拿一份可回滚、可对账的工作副本
+python3 "$SW" deliver "$PACK"                   # 最后一步（默认动作）：合回真包 main + push + 清 worktree/分支
+python3 "$SW" deliver "$PACK" --dry-run         # 只看要做什么，不动盘
+python3 "$SW" deliver "$PACK" --keep-worktree   # 想留在副本上继续改：显式说，别默认
+python3 "$SW" collapse  "$PACK" --apply --entry-dir using-hermes \
         --description "…"                       # 真塌：搬目录 + 写伞体与各岛 INDEX.md；**没 --description 直接拒绝**
-python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json   # 只执行机械那部分
+python3 "$SW" propose "$PACK" --apply --apply-group /tmp/map.json   # 只执行机械那部分
 ```
 
-产物落在 `--out`：`tree.json` / `LAYERS.md` / `audit.json` / `checks.json` / `proposals.json` + `PROPOSALS.md`。
+产物落在 `--out`（默认 `<pack>/.skillweave/`，issue #5）：`tree.json` / `LAYERS.md` / `audit.json` / `checks.json` / `proposals.json` + `PROPOSALS.md`。
 **先跑 `checks`**：它命中的硬编码路径/密钥是安全与可移植问题，先解决再谈结构。
 `propose` 每条提案带 `文件:行` + diff 形状 + 是否 `auto_applyable`；`needs_model=True` 的那些**必须你来判断**。
 
@@ -85,9 +86,9 @@ python3 "$SW" propose "$PACK" --out /tmp/sw --apply --apply-group /tmp/map.json 
 与 `TREE.html`（自包含、离线可开；互指图画成圆环 + 弦，节点带编号 + 框内图例）。两份都是**生成物，不要手改**。
 互指图的边 = 「某个 skill 的任何文本文件里点到另一个 skill 的**目录名**」；岛 = 该图的连通分量。
 
-**验收判据（issue #1 后立的规矩）**：`TREE.html` 里 `rect.node` 的个数 == 本 pack 的 `SKILL.md` 份数
-（= 命令自报的 `skill N 个`）。单入口形状下入口层仍是 1 项，但岛内嵌套 skill（住在入口的
-`references/<岛>/<skill>/`）各算一个 skill、各画一个框。**工具自报的数不等于事实时就是 bug**。
+**验收判据（issue #4 改成文档口径）**：`TREE.html` 里 `rect.node` 的个数 == 本 pack 的**文档数**
+（= `DISCLOSURE.md` 的表行数）。节点 = 每份文档（`SKILL.md`、`references/*.md`、`scripts/*.py` 各算一份），
+不是每个 `SKILL.md`。根 = 每个 skill 的 `SKILL.md`（多入口 = K 个根；单入口 = 1 个根）。
 `visualize` 另有一道闸：工作区里存在**未被 git 跟踪**的 `SKILL.md` 时报错退出（退 1）并提示先 commit ——
 collapse 刚改完还没 commit 时索引里是旧路径，新入口会被当 untracked 跳过，静默出一棵空树（退出码 0）。
 

@@ -11,7 +11,7 @@ from .frontmatter import frontmatter_selfcheck, parse_frontmatter
 from .graph import _findings, _pack_files, _read_waivers, _waived, dup_pairs, first_layer_entries
 from .model import git, tracked_set, untracked_skill_files, walk_dir
 from .pack import Pack
-from .render import _rev, cmd_visualize
+from .render import _doc_nodes, _rev, cmd_visualize
 from .transform import cmd_apply, cmd_collapse, cmd_prepare, cmd_propose, propose_actions
 
 
@@ -112,12 +112,14 @@ def self_test():
         l2 = json.load(open(os.path.join(out5, "layers.json")))["L2"]["over_token"]
         au = [r["id"] for r in json.load(open(os.path.join(out5, "audit.json")))["size"] if r["over_token"]]
         assert l2 == au, (l2, au)
-        # 可视化：两份产物都要出，且每个 skill 在互指图上正好一个点（丢节点就是画错了）
+        # 可视化：两份产物都要出，节点 = 每份文档（issue #4）
         assert cmd_visualize(pack, out5) == 0
         mdv = open(os.path.join(out5, "TREE.md"), encoding="utf-8").read()
         htv = open(os.path.join(out5, "TREE.html"), encoding="utf-8").read()
-        assert "notes/demo/" in mdv and "demo" in htv, (mdv[:200], htv[:200])
-        assert htv.count("<circle") == 1, htv.count("<circle")
+        assert "notes/demo/SKILL.md" in mdv and "notes/demo/SKILL.md" in htv, (mdv[:200], htv[:200])
+        # 节点框数 == 文档数（= DISCLOSURE.md 的表行数）
+        _ndocs = len(_doc_nodes(Pack.load(pack).skills, pack))
+        assert htv.count('class="node"') == _ndocs, (htv.count('class="node"'), _ndocs)
         # 第二步 disclosure：层 = 披露深度；每个文档恰好出现一次；超限带「超多少」
         out8 = os.path.join(tmp, "o8")
         assert cmd_disclosure(pack, out8) == 0
@@ -167,6 +169,26 @@ def self_test():
         assert cmd_disclosure(pack, out9) == 0
         t1 = open(os.path.join(out9, "TODO.md"), encoding="utf-8").read()
         assert "没人点名是刻意的" in t1, t1[:400]
+        # issue #5 回归：`--out` 缺省值必须是**包内** `<pack>/.skillweave/`，不是系统临时目录。
+        # 旧实现写在 tempfile.gettempdir()，重启即丢、换机器复现不了、clone 别人的包拿不到产物。
+        _swout = os.path.join(pack, ".skillweave")
+        for _f in ("DISCLOSURE.md", "disclosure.json", "TODO.md", "checks.json", "audit.json"):
+            if os.path.exists(os.path.join(_swout, _f)):
+                os.remove(os.path.join(_swout, _f))
+        assert main(["disclosure", pack]) == 0, "不带 --out 的 disclosure 该成功"
+        assert os.path.isfile(os.path.join(_swout, "DISCLOSURE.md")), \
+            "issue #5：disclosure 缺省产物该落在包内 .skillweave/"
+        assert os.path.isfile(os.path.join(_swout, "TODO.md")), "issue #5：TODO.md 也该在包内"
+        assert main(["checks", pack]) == 1, "checks 有命中该退 1"
+        assert os.path.isfile(os.path.join(_swout, "checks.json")), \
+            "issue #5：checks 缺省产物该落在包内 .skillweave/"
+        assert main(["audit", pack]) == 0
+        assert os.path.isfile(os.path.join(_swout, "audit.json")), \
+            "issue #5：audit 缺省产物该落在包内 .skillweave/"
+        # `.skillweave/` 是非成员目录（SKIP_DIRS）→ 工具自己写下的产物不会变成「到不了根」
+        _dsw = json.load(open(os.path.join(_swout, "disclosure.json"), encoding="utf-8"))
+        assert not any(".skillweave" in p for p in _dsw["nodes"]), \
+            f"工具产物进了文档树：{sorted(_dsw['nodes'])}"
         # prepare 的两条路：git 仓库 → worktree；非 git → copy + git init
         _repo = os.path.join(tmp, "repo-in")
         os.makedirs(os.path.join(_repo, "skills", "demo"))
@@ -417,7 +439,7 @@ def self_test():
             assert _yaml.safe_load(_et.split("---")[1])["description"] == _bad, "真 YAML 解析器读不一致"
         except ImportError:
             pass
-        # issue #1 回归：collapse 之后 TREE.html 的节点框数必须 == 本 pack 的 SKILL.md 份数
+        # issue #1 回归：collapse 之后 TREE.html 的节点框数必须 == 文档数（issue #4 改成文档口径）
         # （旧实现 walk_dir 遇 SKILL.md 就 return，岛内 skill 一个框都不画 → 永远 1 个）
         _nskill = sum(1 for _dp, _dn, _fn in os.walk(pack) for _f in _fn if _f == "SKILL.md")
         assert _nskill >= 2, f"fixture 该有多个 SKILL.md 才测得出丢节点，实得 {_nskill}"
@@ -425,9 +447,10 @@ def self_test():
         assert cmd_visualize(pack, _ov) == 0
         _hv = open(os.path.join(_ov, "TREE.html"), encoding="utf-8").read()
         _nrect = _hv.count('class="node"')
-        assert _nrect == _nskill, f"节点框 {_nrect} != SKILL.md 份数 {_nskill}（丢节点）"
+        _ndocs = len(_doc_nodes(Pack.load(pack).skills, pack))
+        assert _nrect == _ndocs, f"节点框 {_nrect} != 文档数 {_ndocs}（丢节点）"
         _mv = open(os.path.join(_ov, "TREE.md"), encoding="utf-8").read()
-        assert f"skill {_nskill} 个" in _mv, _mv[:300]
+        assert f"文档 {_ndocs} 个" in _mv, _mv[:300]
         # 入口层仍必须是 1 项（单入口形状），而 skill 数 > 1 —— 这两条一起才是正确形状
         _tv_skills = []
         _tv = walk_dir(pack, pack, "", tracked_set(pack), [], _tv_skills)
@@ -559,8 +582,10 @@ def self_test():
               "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 / 提案器四类动作 / "
               "layers↔audit 口径对拍 / 派发划批 / 验收（集合级回归拦截 + 梯子）/ "
               "交付 deliver（默认合回真包 main + push 回读 + 清 worktree/分支） / "
-              "issue #1（节点框数 == SKILL.md 份数 + 未跟踪闸）/ issue #2（冒号值仍是合法 YAML）/ "
-              "issue #3（跨岛同题必须被比到）/ 工具目录 .skillweave/ 非成员（免检表读得到、档案不进度量）"
+              "issue #1（未跟踪闸）/ issue #2（冒号值仍是合法 YAML）/ "
+              "issue #3（跨岛同题必须被比到）/ issue #4（节点框数 == 文档数）/ "
+              "issue #5（产物默认落包内 .skillweave/）/ "
+              "工具目录 .skillweave/ 非成员（免检表读得到、档案不进度量）"
               "—— 全过")
         return 0
     finally:

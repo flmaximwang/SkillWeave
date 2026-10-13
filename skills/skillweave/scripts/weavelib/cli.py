@@ -1,7 +1,7 @@
 """CLI 入口与子命令派发。
 
 从 weave.py 拆出，逻辑未改。"""
-import argparse, json, os, tempfile
+import argparse, json, os
 from .analysis import cmd_audit, cmd_checks, cmd_judge, cmd_layers, cmd_score
 from .common import count, strip_private
 from .deliver import cmd_deliver
@@ -53,19 +53,19 @@ def main(argv=None):
 
     if a.cmd == "layers":
         root = os.path.abspath(a.pack.rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        out = a.out or os.path.join(root, ".skillweave")
         return cmd_layers(root, out)
     if a.cmd == "checks":
         root = os.path.abspath(a.pack.rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        out = a.out or os.path.join(root, ".skillweave")
         return cmd_checks(root, out)
     if a.cmd == "audit":
         root = os.path.abspath(a.pack.rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        out = a.out or os.path.join(root, ".skillweave")
         return cmd_audit(root, out)
     if a.cmd == "propose":
         root = os.path.abspath(a.pack.rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        out = a.out or os.path.join(root, ".skillweave")
         return cmd_propose(root, out, apply_changes=a.apply, group_map=a.apply_group)
     if a.cmd == "visualize":
         root = os.path.abspath(a.pack.rstrip("/"))
@@ -73,7 +73,7 @@ def main(argv=None):
         return cmd_visualize(root, out)
     if a.cmd == "disclosure":
         root = os.path.abspath(a.pack.rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        out = a.out or os.path.join(root, ".skillweave")
         return cmd_disclosure(root, out)
     if a.cmd == "dispatch":
         root = os.path.abspath(a.pack.rstrip("/"))
@@ -97,27 +97,28 @@ def main(argv=None):
     if a.cmd == "deliver":
         # F 阶段交付：默认合回真包 main + push + 清 worktree/分支（不是等人点头的动作）
         root = os.path.abspath(a.pack.rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        out = a.out or os.path.join(root, ".skillweave")
         return cmd_deliver(root, out, main_branch=a.main, push=not a.no_push,
                            keep_worktree=a.keep_worktree, dry=a.dry_run)
     if a.cmd == "prepare":
         root = os.path.abspath(a.pack.rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        out = a.out or os.path.join(root, ".skillweave")
         return cmd_prepare(root, out, dest=a.dest, shape=a.shape, description=a.description)
     if a.cmd == "collapse":
         root = os.path.abspath(a.pack.rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        out = a.out or os.path.join(root, ".skillweave")
         return cmd_collapse(root, out, apply_changes=a.apply, description=a.description,
                             entry_dir=a.entry_dir)
     if a.cmd == "judge":
         root = os.path.abspath((a.pack or ".").rstrip("/"))
-        out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+        out = a.out or os.path.join(root, ".skillweave")
         if not a.prompts:
             print("[judge] 需要 --prompts <题面 json>（题面必须冻结，不许现编）")
             return 2
         return cmd_judge(root, a.prompts, out)
     if a.cmd == "score":
-        out = a.out or tempfile.gettempdir()
+        root = os.path.abspath((a.pack or ".").rstrip("/"))
+        out = a.out or os.path.join(root, ".skillweave")
         if not a.key or not a.judge:
             print("[score] 需要 --key <金标 json> --judge <判官输出文件…>")
             return 2
@@ -126,7 +127,7 @@ def main(argv=None):
     if not os.path.isdir(root):
         print(f"[tree] FAIL 目录不存在: {root}")
         return 1
-    out = a.out or os.path.join(tempfile.gettempdir(), "skillweave-" + os.path.basename(root))
+    out = a.out or os.path.join(root, ".skillweave")
     os.makedirs(out, exist_ok=True)
 
     pack = Pack.load(root)
