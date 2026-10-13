@@ -8,7 +8,7 @@ from .common import read_text
 from .deliver import cmd_deliver
 from .disclosure import cmd_disclosure, cmd_dispatch, cmd_verify
 from .frontmatter import frontmatter_selfcheck, parse_frontmatter
-from .graph import _findings, _read_waivers, _waived, dup_pairs, first_layer_entries
+from .graph import _findings, _pack_files, _read_waivers, _waived, dup_pairs, first_layer_entries
 from .model import git, tracked_set, untracked_skill_files, walk_dir
 from .pack import Pack
 from .render import _rev, cmd_visualize
@@ -453,6 +453,32 @@ def self_test():
         assert cmd_visualize(_gr, _ou) == 1, "有未跟踪 SKILL.md 时 visualize 该报错退出，不该静默出空树"
         assert not os.path.isfile(os.path.join(_ou, "TREE.html")), "报错时不该产出空树"
         shutil.rmtree(_un, ignore_errors=True)
+        # 工具目录 `.skillweave/` **不是 pack 成员**：包主的免检表 + 历次度量 + 按 subject 搬回这份包的
+        # 历史轮次档案都住这里（口径 docs/contract.md §9）。它若进了度量，工具自己写下的产物
+        # （`DISCLOSURE.md`、别人那 2.5 MB 档案）会变成下一次运行量出来的「到不了根」——
+        # 同一个包跑两遍给出两个数。
+        _sw = os.path.join(_gr, ".skillweave", "reports", "skillweave-2026-10-11")
+        os.makedirs(_sw, exist_ok=True)
+        with open(os.path.join(_sw, "LAYERS.md"), "w") as f:
+            f.write("# 历史轮次的层读数（真实档案长这样）\n")
+        with open(os.path.join(_sw, "layers.json"), "w") as f:
+            f.write('{"轮次": "2026-10-11"}\n')
+        with open(os.path.join(_gr, ".skillweave", "waivers.txt"), "w") as f:
+            f.write("*/assets/*.png        给人看的图，Agent 不读\n")
+        _psw = Pack.load(_gr)
+        assert _psw is not None, "多了一个 .skillweave/，pack 就认不出来了"
+        assert [s["id"] for s in _psw.skills] == ["skills/committed/"], [s["id"] for s in _psw.skills]
+        assert not any(".skillweave" in c["id"] for c in _psw.tree["children"]), \
+            "工具目录进了文档树 —— 同一份 pack 跑两遍会给出两个数"
+        assert not any(".skillweave" in f["path"] for s in _psw.skills for f in s["files"]), \
+            "工具目录进了 skill 的文件清单"
+        assert not any(".skillweave" in f for f in _pack_files(_gr)), ".skillweave 必须被 _pack_files 排除"
+        assert [w[0] for w in _read_waivers(_gr)] == ["*/assets/*.png"], "免检表仍要读得到"
+        _osw = os.path.join(tmp, "o-sw")
+        assert cmd_disclosure(_gr, _osw) == 0
+        _dj = json.load(open(os.path.join(_osw, "disclosure.json"), encoding="utf-8"))
+        assert len(_dj["nodes"]) == 1 and not any(".skillweave" in p for p in _dj["nodes"]), \
+            f"工具目录变成了文档节点：{sorted(_dj['nodes'])}"
         # 非 skill pack 的目录：audit 该报 FAIL 退 1，不该 IndexError（实测 312 个目录里 246 个命中）
         _plain = os.path.join(tmp, "not-a-pack")
         os.makedirs(_plain, exist_ok=True)
@@ -534,7 +560,8 @@ def self_test():
               "layers↔audit 口径对拍 / 派发划批 / 验收（集合级回归拦截 + 梯子）/ "
               "交付 deliver（默认合回真包 main + push 回读 + 清 worktree/分支） / "
               "issue #1（节点框数 == SKILL.md 份数 + 未跟踪闸）/ issue #2（冒号值仍是合法 YAML）/ "
-              "issue #3（跨岛同题必须被比到）—— 全过")
+              "issue #3（跨岛同题必须被比到）/ 工具目录 .skillweave/ 非成员（免检表读得到、档案不进度量）"
+              "—— 全过")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

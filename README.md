@@ -62,7 +62,8 @@ python3 scripts/weave.py collapse  <pack 目录> --out DIR --apply --entry-dir <
 python3 scripts/weave.py --self-test
 ```
 
-实测（2026-10-11 · UsingHermes 基准 `b8298f4`，详见 `reports/2026-10-11-usinghermes/report-usinghermes.md`）：
+实测（2026-10-11 · UsingHermes 基准 `b8298f4`，详见那个包里的
+`.skillweave/reports/skillweave-2026-10-11/report-usinghermes.md` —— 档案随被测包走，见下）：
 
 ```
 AgentSkill-UsingHermes  L1 技能=125 入口层摆出 68 项（散 51 + 类目 17）常驻 20864 字符 ≈ 6443 token ❌超上限20
@@ -93,7 +94,13 @@ AgentSkill-SoftwareDev  L1 技能=30  入口层 30 项（无类目）· ≈900 t
 - [`docs/prior-art.md`](docs/prior-art.md) —— 外部实测结论（分层披露值多少、只看 description 会掉多少分、
   层深该怎么评）。
 - [`docs/similar-work.md`](docs/similar-work.md) —— **同类公开项目实勘**：已有的做到哪一步、本仓库还剩什么。
-- `reports/` —— 在真实 pack 上跑出来的度量留档。
+- **轮次档案不在本仓库** —— 在真实 pack 上跑出来的原始档案按 subject 拆回各自的被测仓库，
+  `<被测包>/.skillweave/reports/<日期>/`：`AgentSkill-UsingHermes`（2026-10-11）·
+  `AgentSkill-UsingBioXTASRAW`（2026-10-11）· `AgentSkill-DoingSAXS`（2026-10-11）·
+  `LabProjectManagement`（2026-10-12）。
+  理由：本仓库自己就是一个 pack（按 §输入是什么 的定义，含 `SKILL.md` 的仓库就是），
+  把**别的 pack** 的原始档案放在这里，会随 `git clone` 发给每个克隆它的人。
+  工具侧口径写死在 [`docs/contract.md` §9](docs/contract.md)。
 
 ## 开发计划（唯一真相，随仓库提交）
 

@@ -6,7 +6,11 @@ from .common import body_counts, content_digest, est_tokens, extract_declared_re
 from .frontmatter import meta_list, parse_frontmatter
 
 
-SKIP_DIRS = {".git", ".github", "node_modules", "__pycache__", ".venv", "venv"}
+# `.skillweave` = **工具自己的目录**（包主的免检表 + 该包的历史轮次档案 + 量出来的数字）：
+# **不是 pack 成员**。一处修齐 —— `graph._pack_files()` 早就排除了它，walker 没排除，于是
+# 「工具自己写下的产物」会变成下一次运行量出来的发现（`DISCLOSURE.md` 落进包里就成了一份
+# 「到不了根」的文档），同一个包跑两遍给出两个数。口径见 `docs/contract.md` §9。
+SKIP_DIRS = {".git", ".github", "node_modules", "__pycache__", ".venv", "venv", ".skillweave"}
 
 
 SKIP_FILES = {".DS_Store"}

@@ -317,3 +317,21 @@ YAML（真解析器报 `mapping values are not allowed here`）；一批 63 个 
 
 每对都带 `scopes`（`parent` / `entry`）、`signals`、`sim_desc`，写进 `audit.json` 与提案的 `evidence`，
 人核对时能看到「为什么算候选」。回归断言在 `--self-test` 的 issue #3 段。
+
+## 9. 工具目录 `.skillweave/`（**非成员**）与「项目数据不进 skill 包」
+
+`.skillweave/` 与 `.git` / `__pycache__` 同级：**走树时一律跳过**（`SKIP_DIRS`）。三处口径必须一致 ——
+`walk_dir`（文档树）、`analyze_skill`（skill 的文件清单）、`graph._pack_files()`（派发读的包文件）。
+`_pack_files()` 一开始就排除了它，walker 之前没排除，于是工具自己写下的产物会变成**下一次运行量出来的发现**：
+`DISCLOSURE.md` 落进包里，下一次 `disclosure` 就把它算成一份「到不了根」的文档 —— 同一个包跑两遍给出两个数。
+
+| `.skillweave/` 里放什么 | 谁写 | 进版本库？ |
+|---|---|---|
+| `waivers.txt` | 包主手写 | 进 —— 那是判断，不是产物 |
+| `reports/<日期>/` | 该包的历史轮次档案（跑完一轮后按 subject 从工具仓库搬回被测包） | 进 —— 这一轮的原件（判官转录 · 题面 · 改前后度量），事后不改 |
+| 量出来的数字（`disclosure.json` · `TODO.md` · `checks.json` · `audit.json` · `TREE.*` …） | 工具 | 落点规则见 issue #5 |
+
+**项目数据不进工具仓库**（用户 2026-10-13 定）：SkillWeave 自己就是一个 pack（含 `SKILL.md` 的仓库就是），
+把**别的 pack** 的原始档案放在工具仓库的 `reports/` 里，会随 `git clone` 发给每个克隆它的人。
+档案按 subject 拆回各自的被测仓库：`<被测包>/.skillweave/reports/<日期>/`（原 `reports/2026-10-11-usinghermes`
+等四份就是这样搬走的）。工具仓库只留指路，不留数据。
