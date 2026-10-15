@@ -406,10 +406,13 @@ ACTION = {
 
 
 
-def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers):
+def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers, auto_waived=None):
     # 返回 (文本, 待办数, 豁免数)：打印与表头都取这里的数，避免两处各算一遍对不上
-    """一张能照着做的清单：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判。豁免的单列一栏。"""
-    todo, waived = [], []
+    """一张能照着做的清单：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判。
+
+    豁免分两栏：**自动**（`templates/` · `examples/` · `tests/` 资源目录，无需写 waivers.txt）
+    与**手动**（命中包里 `.skillweave/waivers.txt`）。"""
+    auto, todo, waived = [], [], []
 
     def add(kind, path, num, action, who, extra=""):
         why = _waived(path, waivers)
@@ -435,19 +438,30 @@ def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers):
     for r, a_, b_ in dup:
         a, who = ACTION["近重复"]
         add("近重复", f"{a_} ↔ {b_}", f"相似度 {r}", a, who, extra=b_)
+    for p in (auto_waived or []):                  # 自动豁免单列一栏：资源目录不要求被引用，不进待办
+        auto.append({"path": p, "num": f"{nodes[p]['bytes']} B", "why": "自动豁免：资源目录"})
 
     L = [f"# 待办 · {os.path.basename(root)}", "",
          "由 `weave.py disclosure` 生成。术语见 `DISCLOSURE.md` 头部术语表。", "",
          f"- **待办 {len(todo)} 条**（机械可判 {sum(1 for r in todo if r['who'] == '机械可判')} · "
          f"待模型 {sum(1 for r in todo if r['who'] == '待模型')}）",
-         f"- **已豁免 {len(waived)} 条**（按包里 `.skillweave/waivers.txt`，共 {len(waivers)} 条规则）", "",
+         f"- **已豁免 {len(auto) + len(waived)} 条（自动 {len(auto)} · 手动 {len(waived)}）**"
+         f"（按包里 `.skillweave/waivers.txt`，共 {len(waivers)} 条规则）", "",
          "## 待办（照着做）", "",
          "| # | 文档 | 问题 | 数字 | 建议动作 | 谁判 |", "|---|---|---|---|---|---|"]
     for i, r in enumerate(todo, 1):
         L.append(f"| {i} | `{r['path']}` | {r['kind']} | {r['num']} | {r['action']} | {r['who']} |")
     if not todo:
         L.append("| — | — | — | — | 没有待办 | — |")
-    L += ["", "## 已豁免（匹配了 waivers.txt，不动它）", "",
+    L += ["", "## 已豁免 · 自动（资源目录：`templates/` · `examples/` · `tests/`）", "",
+          "这些文件不要求被 `SKILL.md` 显式引用，**无需**写入 `.skillweave/waivers.txt`；"
+          "若确实被引用，仍验证路径正确性（悬空照报）。", "",
+          "| 文档 | 问题 | 数字 | 理由 |", "|---|---|---|---|"]
+    for r in auto:
+        L.append(f"| `{r['path']}` | 到不了根 | {r['num']} | 自动豁免：资源目录 |")
+    if not auto:
+        L.append("| — | — | — | 没有自动豁免的资源文件 |")
+    L += ["", "## 已豁免 · 手动（匹配了 waivers.txt，不动它）", "",
           "| 文档 | 问题 | 数字 | 理由 |", "|---|---|---|---|"]
     for r in waived:
         L.append(f"| `{r['path']}` | {r['kind']} | {r['num']} | {r['why']} |")
@@ -456,8 +470,9 @@ def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers):
     L += ["", "## 免检表长什么样（`<pack>/.skillweave/waivers.txt`）", "",
           "```",
           "# 一行一条：<glob>  两个以上空格  理由（# 开头是注释）",
+          "# templates/ · examples/ · tests/ 下的文件已自动豁免，不必写进来；waivers.txt 只写其他特殊情况。",
           "*/assets/*.png             给人看的图，Agent 不读",
           "*/test-prompts.json        测试留档，本来就不该被披露",
           "```", "",
           "豁免是**包主的判断**，写在包里、工具只匹配；没写规则的按上面的建议动作办。", ""]
-    return "\n".join(L), len(todo), len(waived)
+    return "\n".join(L), len(todo), len(auto) + len(waived)

@@ -27,6 +27,22 @@ CAP_BODY_LINES = 500
 CAP_FILE_BYTES = 20000
 
 
+# 资源目录**自动豁免**：这三个目录下的文件不要求被 SKILL.md 显式引用。它们进「已豁免」而不进
+# 「待办」，waivers.txt 不必手写（口径 docs/contract.md §0.6）。但若确实被引用，路径仍要存在 ——
+# 悬空照报，豁免的只是「到不了根」这一条。
+AUTO_WAIVED_DIRS = ["templates", "examples", "tests"]
+
+
+AUTO_WAIVE_REASON = "自动豁免：资源目录"
+
+
+def _auto_waived(path):
+    """路径里带 `templates/` · `examples/` · `tests/` **目录段** = 自动豁免的资源文件。
+
+    只看目录段（末尾是文件名，不算）：一份文件叫 `templates`（无后缀）不该被误判。"""
+    return any(d in AUTO_WAIVED_DIRS for d in path.replace(os.sep, "/").split("/")[:-1])
+
+
 
 
 # ────────────────────────── 派发与验收（第三步的机械部分） ──────────────────────────
@@ -281,14 +297,18 @@ def cmd_disclosure(root, out):
             return [f"{n['bytes']} B > {CAP_FILE_BYTES} B"]
         return []
 
-    over_all, orphan_all = [], []
+    over_all, orphan_all, auto_waived_all = [], [], []
     for p, n in sorted(nodes.items()):
         n["over"] = cap_of(n)
         n["orphan"] = (not n["root"]) and indeg.get(p, 0) == 0
+        n["waived"] = bool(n["orphan"] and _auto_waived(p))
+        n["waive_reason"] = AUTO_WAIVE_REASON if n["waived"] else None
         n["depth"] = depth[p]
         if n["over"]:
             over_all.append((p, n["over"]))
-        if n["orphan"]:
+        if n["waived"]:
+            auto_waived_all.append(p)
+        elif n["orphan"]:
             orphan_all.append(p)
 
     lv = collections.defaultdict(list)
@@ -308,7 +328,8 @@ def cmd_disclosure(root, out):
     waivers = _read_waivers(root)
     os.makedirs(out, exist_ok=True)
     todo_md = os.path.join(out, "TODO.md")
-    todo_text, n_todo, n_waived_rows = render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers)
+    todo_text, n_todo, n_waived_rows = render_todo_md(
+        root, nodes, over_all, orphan_all, broken, dup, waivers, auto_waived_all)
     with open(todo_md, "w", encoding="utf-8") as f:
         f.write(todo_text)
 
@@ -330,13 +351,14 @@ def cmd_disclosure(root, out):
          f"- 根：**{len(roots)} 个**（每个 skill 的 `SKILL.md` 是一个根；1 个 = 单入口形状）",
          f"- 文档节点：**{len(nodes)} 份** · 层数：**{len([x for x in levels if x is not None])}**",
          f"- 超限：**{len(over_all)}** 份 · 到不了根：**{len(orphan_all)}** 份 · "
+         f"自动豁免（资源目录）：**{len(auto_waived_all)}** 份 · "
          f"悬空引用：**{len(broken)}** 条 · 外部引用（不算披露）：**{len(external)}** 条",
          f"- 根选择层近重复（Jaccard≥0.5·靠 description 选根才算）：**{len(dup)}** 对",
          f"- **待办 {n_todo} 条 · 已豁免 {n_waived_rows} 条** → 见同目录 [`TODO.md`](TODO.md)"
          f"（豁免规则 {len(waivers)} 条，来自包里 `.skillweave/waivers.txt`）", ""]
     for d in levels:
         if d is None:
-            L += ["## 到不了的文档（没有任何根披露到它们）", ""]
+            L += ["## 到不了的文档（没有任何根披露到它们；`templates/`·`examples/`·`tests/` 自动豁免）", ""]
         else:
             L += [f"## L{d}（{len(lv[d])} 份）", ""]
         L += ["| 文档 | fanout（披露几项） | 体积 | 判定 |", "|---|---|---|---|"]
@@ -347,7 +369,7 @@ def cmd_disclosure(root, out):
             if n["over"]:
                 bad.append("⚠️ 超限 " + "; ".join(n["over"]))
             if n["orphan"]:
-                bad.append("⚠️ 孤儿")
+                bad.append("自动豁免（资源目录）" if n["waived"] else "⚠️ 孤儿")
             if any(b[0] == p for b in broken):
                 bad.append("❌ 有悬空引用")
             if n["root"]:
@@ -385,13 +407,15 @@ def cmd_disclosure(root, out):
         json.dump({"roots": roots, "levels": {str(k): sorted(v) for k, v in lv.items()},
                    "nodes": {p: {k: v for k, v in n.items()} for p, n in nodes.items()},
                    "edges": {p: ts for p, ts in edges.items()}, "broken": broken, "external": external,
-                   "over": over_all, "orphans": orphan_all, "root_near_dup": dup},
+                   "over": over_all, "orphans": orphan_all, "auto_waived": auto_waived_all,
+                   "root_near_dup": dup},
                   f, ensure_ascii=False, indent=1, sort_keys=True)
     assert rows == len(nodes), f"对账失败：表行数 {rows} != 节点数 {len(nodes)}"
     print(f"[disclosure] 待办清单 → {todo_md}")
     print(f"[disclosure] 根 {len(roots)} 个（=形状）· 层 " +
           " → ".join(f"L{d}={len(lv[d])}" if d is not None else f"未分层={len(lv[d])}" for d in levels) +
           f" · 文档 {len(nodes)} 份（表行数 {rows} 对账 ✅）· 超限 {len(over_all)} · "
-          f"到不了根 {len(orphan_all)} · 悬空 {len(broken)} · external {len(external)}")
+          f"到不了根 {len(orphan_all)} · 自动豁免 {len(auto_waived_all)} · "
+          f"悬空 {len(broken)} · external {len(external)}")
     print(f"[disclosure] 出: {md}")
     return 0
