@@ -390,6 +390,9 @@ def _doc_nodes(skills, root):
                 n["tok"], n["lines"] = est_tokens(t), len(body.split("\n"))
                 n["desc_chars"] = len((meta.get("description") or "").strip())
                 n["name"] = meta.get("name") or n["name"]
+            elif f["kind"] == "reference":    # `references/` 单文件按行数过 cap（Anthropic 建议 < 300 行）
+                t = read_text(os.path.join(root, n["path"]))
+                n["tok"], n["lines"] = est_tokens(t), len(t.split("\n"))
             nodes[n["path"]] = n
     return nodes
 
