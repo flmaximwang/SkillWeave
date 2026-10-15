@@ -1,0 +1,41 @@
+name: SkillWeave Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  self-check:
+    name: Self-check and fixtures
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 门禁一：工具自身合规（对 SkillWeave 自己跑 disclosure，待办为空才退 0）
+      - name: Run self-check
+        run: python3 scripts/weave.py self-check
+
+      # 门禁二：全部 fixture（caps 表、披露链、豁免规则、派发/交付等）
+      - name: Run fixture tests
+        run: python3 scripts/weave.py --self-test
+
+      # 失败时把 disclosure 报告（self-check 与 --self-test 都落临时目录）留下，方便排查
+      - name: Upload disclosure report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disclosure-report
+          path: |
+            /tmp/skillweave-self-*/
+            ${{ runner.temp }}/skillweave-self-*/
+            /tmp/weave-selftest-*/
+          if-no-files-found: warn
