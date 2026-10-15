@@ -1,7 +1,5 @@
 # SkillWeave
 
-[![Tests](https://github.com/flmaximwang/SkillWeave/actions/workflows/test.yml/badge.svg)](https://github.com/flmaximwang/SkillWeave/actions/workflows/test.yml)
-
 分析一个 **skill pack**，构建它的**文档树**，并据此优化**分层披露**结构 —— 让每一级摆出的选项数，
 都还在「能一次选对」的范围内。
 
@@ -17,26 +15,43 @@
 - pack 在 git 仓库里时，只算 **git 跟踪**的文件为成员；目录里躺着的未跟踪垃圾（例如别人跑批留下的 `~/`
   树）单列出来，**不混进任何度量**。
 
-## 三级披露（要处理的核心问题）
+## 两层披露架构（要处理的核心问题）
 
-| 级 | 是什么 | 谁在付代价 | 本仓库量的东西 |
+Agent 读一个 skill pack 是**分层披露**的：先只看到一份**精简入口**，需要细节时再顺着引用按需载入。
+推荐的结构只有**两层**：
+
+| 层 | 是什么 | 谁在付代价 | 本仓库量的东西 |
 |---|---|---|---|
-| **L1 · 第一级** | **整个 pack 里所有 skill 的 `name` + `description`** —— Agent 第一次做选择时看到的菜单 | 常驻上下文（每会话都付） | **入口层摆出几项**（散技能 + 类目）、常驻字符/估算 token、是否超过第一层上限、有没有 `description` 超 1024 字符 |
-| **L2 · 第二级** | 某个 skill 被选中后载入的 **`SKILL.md` 正文** | 触发时载入 | 正文估算 token / 行数（对照 <5000 token、50/150/500 行三档）、它点名了多少个同 pack 兄弟 |
-| **L3 · 第三级** | 该 skill 的 `references/` `scripts/` `assets/` | 按需读 | 文件数与体积、最大文件、**孤儿文件**、**悬空引用** |
+| **L1 · 精简入口** | `SKILL.md`：触发条件 · 核心概念 · 流程概览 · 验收标准（目标 ~80 行） | 触发时载入（常驻的是整个 pack 所有 skill 的 `name` + `description` 菜单） | 正文估算 token / 行数（建议 < 5000 token / < 500 行）、`name` / `description` 是否超上限、**入口层摆出几项**（散技能 + 类目） |
+| **L2 · 详细资料** | `references/`：命令参考 · 工作流 · 概念定义 · 四类动作指南 | 按需读 | 每份规模（建议 < 300 行）、是否被 L1 点名（**到不了根**）、路径是否存在（**悬空**） |
 
-> **第一级披露的问题就是这个仓库存在的理由**：pack 一大，第一级菜单就长 —— 本机实测
+工具按**披露深度**递归量整棵文档树：根（每个 skill 的 `SKILL.md`）= L1，根直接披露的 = L2，依次递推；
+**建议停在 L2，出现 L3 及更深只警告、不退出**（Anthropic 建议不超过 L2）。
+
+> **入口层摆出的选项数就是这个仓库存在的理由**：pack 一大，第一级菜单就长 —— 本机实测
 > `AgentSkill-UsingHermes` 的入口层摆出 **69 项**（散技能 52 + 类目 17），Agent 在这一级选错就再也到不了
 > 正确的细节。工具要能**量**它，并给出**收敛**方案：把散技能归入类目（一级选择拆成两级）、合并近重复项、
 > 改写 `description` 的触发词。
 
 ## 现在能跑的东西
 
+一次完整流程（`prepare` → `disclosure` → `dispatch` → `verify` → `deliver`）：
+
+```bash
+python3 scripts/weave.py prepare   <pack 目录> --dest /tmp/ws   # ① 拷一份由 git 管的工作副本 + BASELINE.md（交互式选执行者）
+python3 scripts/weave.py disclosure /tmp/ws                     # ② 建文档树 + 逐文档体检 → TODO.md，照它改
+python3 scripts/weave.py dispatch   /tmp/ws                     # ③ 事实补全 + 划批 + batch-N.prompt.md（末尾带执行方式）
+python3 scripts/weave.py verify     /tmp/ws --state dispatch/state.json --expect-fixed <ids>   # ④ 复测四判据
+python3 scripts/weave.py deliver    /tmp/ws                     # ⑤ 合回真包 main + push + 回读 + 重跑 visualize + 清理
+```
+
+单条命令速查：
+
 ```bash
 # 文档树：pack → 类目 → skill → 章节/文件；出 tree.json（机器读）+ TREE.md（人读）
 python3 scripts/weave.py tree   <pack 目录> [--out DIR]
 
-# 三级披露：L1 菜单与常驻成本 + L2 正文规模 + L3 孤儿与悬空；出 layers.json + LAYERS.md
+# 分层披露（老口径）：L1 常驻菜单 + L2 正文规模 + L3 孤儿与悬空；出 layers.json + LAYERS.md
 python3 scripts/weave.py layers <pack 目录> [--out DIR]
 
 # 审计四段：体积 / 孤儿悬空 / 同层抢题 / 成本两组数；出 audit.json
@@ -51,7 +66,7 @@ python3 scripts/weave.py propose <pack 目录> --out DIR --apply                
 python3 scripts/weave.py propose <pack 目录> --out DIR --apply-group map.json  # 执行你给的归位映射（git mv）
 
 python3 scripts/weave.py visualize <pack 目录> [--out DIR]      # 生成 TREE.md + TREE.html（默认落回 pack 根）
-                                                                # 三级披露文本版 + 自包含可视化；互指岛的圆环 + 弦图
+                                                                # 分层披露文本版 + 自包含可视化；互指岛的圆环 + 弦图
 python3 scripts/weave.py disclosure <pack 目录> [--out DIR]     # 第二步：披露链递归 + 逐文档体检 → DISCLOSURE.md
 python3 scripts/weave.py prepare   <pack 目录> --dest WORK/ws --out DIR   # 第一步：拷一份由 git 管的工作副本
                                                           # 出 BASELINE.md：推导的 L1 + 两种形状同口径的账 + 待选形状
@@ -84,7 +99,6 @@ python3 scripts/weave.py self-check
 ```
 AgentSkill-UsingHermes  L1 技能=125 入口层摆出 68 项（散 51 + 类目 17）常驻 20864 字符 ≈ 6443 token ❌超上限20
                         L2 超限 16（token 单口径 14；最大 21427 tok / 747 行）  L3 468 文件 / 6.86 MB · 孤儿 104 · 悬空 46
-Dream                   L1 技能=2   入口层 2 项 · 常驻 ≈268 token ✅              L3 悬空 15
 AgentSkill-SoftwareDev  L1 技能=30  入口层 30 项（无类目）· ≈900 token ❌超上限20  L2 超限 9 个
 ```
 
@@ -92,24 +106,36 @@ AgentSkill-SoftwareDev  L1 技能=30  入口层 30 项（无类目）· ≈900 t
 
 | 已有 | 它管什么 | 本仓库补什么 |
 |---|---|---|
-| `Dream` 的 `check-disclosure.py` | **入口层条目数**与**单个** `SKILL.md` 的规模（行/字节/文档字节/被点名的兄弟数） | 整棵**文档树**、**披露链递归**（层=披露深度，L1..Ln）与逐文档体检、同层抢题、路由可测、按度量重构并重测 |
 | `agent-skill-analysis`（MIT·npm） | 单个 skill 目录 → 结构化 JSON（frontmatter/outline/files/refs/orphans/digest） | **pack 层**：多 skill 的母树、L1 菜单、跨 skill 抢题 |
 | `skill-tools`（Apache-2.0·npm） | per-skill 校验/lint/打分 + BM25 检索式路由 | **判官式**路由评测（逐题金标 + 校正随机分）、重测闭环 |
 | Hermes 的 `load-external-skill-index` / `skill-routing-blind-test` | Hermes 里的索引成本与盲测口径 | 去掉框架依赖，输入只认 pack 目录 |
 
 ## 形状（硬约束）
 
-- 第一层只放：定义 · 方法 · 每步一行转指；细节下沉 `docs/`，每份都被点名（无孤儿文档）。
+- 第一层只放：定义 · 方法 · 每步一行转指；细节下沉 `references/`，每份都被点名（无孤儿文档）。
 - 上限是**可自检的常量**，超限即报（`--self-test` 与 `layers` 都会判）。
 - 判据只求真命令与实测输出：改完必须能重跑出一份新的度量，不许写「应该好了」。
 
 ## 依据与契约
 
-- [`docs/flow.md`](docs/flow.md) — **流程（按架构写）**：A 取景 → **B 机械构建文档树** → C 读树 → D 改树 → E 复测 → F 验收交付（唯一流程来源）
-- [`docs/contract.md`](docs/contract.md) —— 节点 schema、三级披露定义、每层要量的量、caps 表（每条带出处）。
+**外部规范（caps 口径只认这两份）**：
+
+- [agentskills.io 规范](https://agentskills.io/specification) —— `name` ≤ 64 字符 · `description` ≤ 1024 字符（硬约束）、
+  `SKILL.md` + 可选 `scripts/` `references/` `assets/` 的目录约定、分层披露（正文 < 5000 token 建议）。
+- [Anthropic Skill 编写最佳实践](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) ——
+  `SKILL.md` 正文 < 500 行、`references/` 单文件保持聚焦、引用只留一层深。
+
+本次重构对齐的规范（`0-manage-skills-by-maxim`）与 ticket 清单见
+[`docs/SPEC-align-with-new-skill-management.md`](docs/SPEC-align-with-new-skill-management.md)。
+
+**本仓库文档**：
+
+- [`docs/flow.md`](docs/flow.md) — **流程（按架构写）**：A 取景 → **B 机械构建文档树** → C 读树 → D 改树 → E 复测 → F 验收交付（唯一流程来源；skill 端的权威版本在 `skills/skillweave/references/workflow.md`）
+- [`docs/contract.md`](docs/contract.md) —— 节点 schema、披露深度定义、每层要量的量、caps 表（每条带出处）。
 - [`docs/prior-art.md`](docs/prior-art.md) —— 外部实测结论（分层披露值多少、只看 description 会掉多少分、
   层深该怎么评）。
 - [`docs/similar-work.md`](docs/similar-work.md) —— **同类公开项目实勘**：已有的做到哪一步、本仓库还剩什么。
+- [`CHANGELOG.md`](CHANGELOG.md) —— 对外变更记录（本次重构见 `[Unreleased]`）。
 - **轮次档案不在本仓库** —— 在真实 pack 上跑出来的原始档案按 subject 拆回各自的被测仓库，
   `<被测包>/.skillweave/reports/<日期>/`：`AgentSkill-UsingHermes`（2026-10-11）·
   `AgentSkill-UsingBioXTASRAW`（2026-10-11）· `AgentSkill-DoingSAXS`（2026-10-11）·

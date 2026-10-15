@@ -373,6 +373,6 @@ if a.cmd == "help":
 ### 相关文档
 
 - [agentskills.io 规范](https://agentskills.io/specification)
-- [Anthropic Skills 最佳实践](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prompt-library#skills)
+- [Anthropic Skills 最佳实践](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
 - 新 skill 管理规范：`/Users/maxim/Documents/Habit/SkillManagement/skills/0-manage-skills-by-maxim/SKILL.md`
 - 当前架构文档：`docs/architecture-review-2026-10-12.md`

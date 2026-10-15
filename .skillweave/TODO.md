@@ -1,4 +1,4 @@
-# 待办 · ticket-05
+# 待办 · SkillWeave
 
 由 `weave.py disclosure` 生成。术语见 `DISCLOSURE.md` 头部术语表。
 

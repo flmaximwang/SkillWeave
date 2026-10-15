@@ -36,7 +36,7 @@ ASSET_EXT = {".png", ".jpg", ".jpeg", ".svg", ".gif", ".pdf", ".zip", ".ico", ".
 SRC_AGENTSKILLS = "agentskills.io 规范"
 SRC_ANTHROPIC = "Anthropic Skills 最佳实践"
 URL_AGENTSKILLS = "https://agentskills.io/specification"
-URL_ANTHROPIC = "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prompt-library#skills"
+URL_ANTHROPIC = "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices"
 
 CAP_NAME_CHARS = 64        # SRC_AGENTSKILLS · 错误
 CAP_DESC_CHARS = 1024      # SRC_AGENTSKILLS · 错误（硬约束）

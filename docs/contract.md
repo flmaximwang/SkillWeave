@@ -1,4 +1,4 @@
-# 契约：文档树的节点 schema 与「三级披露」的定义
+# 契约：文档树的节点 schema 与「披露深度」的定义
 
 **流程见 [`flow.md`](flow.md)**（按架构写：A 取景 / B 机械构建文档树 / C 读树 / D 改树 / E 复测 / F 验收交付）——
 唯一流程来源；本文件只管口径（层、节点、caps、依赖政策）。
@@ -34,17 +34,18 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 多入口：L1=39 → L2=118 → L3=3          · 到不了根=28 · 文档 188 份 · 超限 10 · 悬空  91 · external 388
 ```
 
-**逐文档体检**（同一张判据表按层 × 文档类型跑，每个文档都要过自己那类 cap）：
+**逐文档体检**（同一张判据表按层 × 文档类型跑，每个文档都要过自己那类 cap；来源只有 agentskills.io 与 Anthropic 两类）：
 
-| 文档类型 | 闸 | 出处 |
+| 文档类型 | 闸 | 来源 |
 |---|---|---|
-| 根文档 / 任何 `SKILL.md` | 正文 < 5000 est_token；行数三档 50 / 150 / 500 | agentskills.io / `claude-skills-cli` |
-| 任意文档的 `description` | ≤ 1024 字符 | agentskills.io（硬约束） |
-| 任意资源文件（`references/ assets/`） | ≤ 20000 B | Dream `check-disclosure.py` 常量 |
-| `scripts/**` 或脚本后缀文件 | **不设字节上限**（不进超限清单、不建议拆）；**也不做「悬空」检查**（脚本里的路径字面量不是披露意图） | 包主口径 2026-10-12：Agent 从不整份读脚本（读 SKILL.md 的调用说明 + 按需 grep），拆它只增加跳转 |
-| 跨文档 | 孤儿（in-degree 0 且非根）；悬空（披露了不存在的）；根选择层近重复（靠 description 选根才算） | 本仓库契约 |
+| 任意 `SKILL.md` 的 `name` | ≤ 64 字符 | agentskills.io 规范 |
+| 任意文档的 `description` | ≤ 1024 字符 | agentskills.io 规范（硬约束） |
+| 根文档 / 任何 `SKILL.md` 正文 | 建议 < 5000 est_token；建议 < 500 行 | Anthropic 实践 |
+| `references/` 单文件 | 建议 < 300 行 | Anthropic 实践 |
+| 资源文件（`assets/` 等）与 `scripts/**` | **不设字节/行数上限**（不进超限清单、不建议拆）；`scripts/**` **也不做「悬空」检查**（脚本里的路径字面量不是披露意图） | 本工具口径：Agent 不整份读脚本与二进制资源 |
+| 跨文档 | 到不了根（in-degree 0 且非根）；悬空（披露了不存在的）；根选择层近重复（靠 description 选根才算）；披露过深（L3+，只警告） | 本仓库契约 |
 
-**仍然适用的旧口径**（不要丢）：`MAX_FIRST_LAYER = 20` 是**参考线不是硬闸**（§4）；
+**入口层条目数** `FIRST_LAYER_REFERENCE = 20` 是**工具的分组启发式，不是规范要求**（`layers` 里只提示、不拦任何命令）；
 「入口层」= 从 pack 根下钻到 ≥2 个选择项为止的那一层（多入口形状下它给出「Agent 第一次点击看到几项」）。
 
 节点与字段名**沿用 `tanker327/agent-skill-analysis` 的口径**（见 `docs/similar-work.md` A1），
@@ -196,19 +197,37 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 
 ## 4. caps（阈值）与出处
 
-| 阈值 | 值 | 出处与口径 |
-|---|---|---|
-| `SKILL.md` 正文 | 建议 **< 5000 token** | agentskills.io 规范 / Claude 作者规范；拆文件建议 |
-| 正文行数（三档） | 50 / 150 / 500 | `claude-skills-cli` 的 default / `--lenient` / `--loose`（500 = 官方上限） |
-| L1 元数据 | **< 200 字符** | `claude-skills-cli` 的 L1 上限 |
-| `description` | hard ≤ **1024 字符** | agentskills.io 规范（硬约束） |
-| 单份 `references/*.md` | 报超 **20000 字节** | Dream 的 `check-disclosure.py` 常量（本机既有口径，沿用） |
-| `scripts/` 下的文件 | **不设字节上限**（不进超限清单、不建议拆） | 包主口径 2026-10-12：Agent 不整份读脚本；脚本的披露要求只有「被所属 `SKILL.md` 点名」 |
-| `fanout` | **不设死值**，报分布 + 校正随机分 | Meta arXiv:2605.24660 |
-| 入口层条目数 | `MAX_FIRST_LAYER = 20`，**参考线不是硬闸** | 出自 Dream 的 `check-disclosure.py` 的 `MAX_FIRST_LAYER_SKILLS`，**不是规范要求**。2026-10-11 定：超了只提示；实际处置走「按互指岛分组」而不是往 20 上削（UsingHermes：28 → 13 项） |
-| 孤儿 | **0** | 本仓库契约（`agent-skill-analysis` 同口径报 `orphans`） |
+**只认两类来源**：`agentskills.io` 规范（硬约束 → 违规记「错误」）与 `Anthropic Skills` 公开实践（建议值 → 违规记「警告」，只提示、不拦）。
+表中每个数字都必须能追到这两个来源之一；**不许出现没有出处的自创数字**。阈值的唯一代码出处是 `skills/skillweave/scripts/weavelib/common.py` 的 `CAPS` / `CAP_*`。
 
-表中每个数字都必须能追到 `docs/similar-work.md` / `docs/prior-art.md` 的对应条目；**不许出现没有出处的自创数字**。
+| 检查项 | 上限 | 来源 | 违规时行为 |
+|---|---|---|---|
+| `name` | ≤ 64 字符 | agentskills.io 规范 | 错误 |
+| `description` | ≤ 1024 字符 | agentskills.io 规范（硬约束） | 错误 |
+| SKILL.md 正文 | 建议 < 5000 token | Anthropic 实践 | 警告 |
+| SKILL.md 行数 | 建议 < 500 行 | Anthropic 实践 | 警告 |
+| `references/` 单文件 | 建议 < 300 行 | Anthropic 实践 | 警告 |
+| 允许的目录 | `scripts/` · `references/` · `assets/` · `templates/` · `examples/` · `tests/` | agentskills.io + 扩展 | 警告未知目录 |
+| 披露深度 | 建议 L2，警告 L3+ | Anthropic 实践 | 警告 |
+
+**参考文档**
+- agentskills.io 规范：<https://agentskills.io/specification>
+- Anthropic Skills 最佳实践：<https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices>
+
+**已删除的旧口径**（别再引回来）：
+- Dream `check-disclosure.py` 的 **20000 B 资源上限**；
+- 「包主口径 2026-10-12」的脚本字节口径（结论保留，改归本工具口径，见下）；
+- `claude-skills-cli` 的 **50 / 150 / 500 行三档**（收敛为单一建议值 500 行）；
+- Dream `check-disclosure.py` 的 `MAX_FIRST_LAYER_SKILLS` 硬闸（收敛为参考线，见下）。
+
+**表中数字之外的处置口径**：
+- **脚本与二进制资源不设上限**：Agent 从不整份读脚本 —— 它读 `SKILL.md` 里那几行调用说明，再按需 grep / 分段读；
+  二进制资源同理。所以「多大」不是披露缺陷。脚本这边唯一的披露要求是**被所属的 `SKILL.md` 点名**（不点名就是孤儿）。
+  同源口径：**脚本类文档也不做「悬空」检查**（§3）。
+- **入口层条目数** `FIRST_LAYER_REFERENCE = 20` 是**工具的分组启发式，不是规范要求**（代码里只为 `layers` 出一条提示、
+  `propose` 触发「归入类目」建议）；实际处置走「按互指岛分组」，不往 20 上削。
+- **`fanout` 不设死值**：报分布 + 校正随机分（Meta arXiv:2605.24660），依据见 §2。
+- **孤儿 0 容忍**：本仓库契约（`agent-skill-analysis` 同口径报 `orphans`），属于工具契约、不是外部规范，故不列进上表。
 
 ## 5. 最小示例（真实产物片段：`tree.json` 里的一个 skill 节点）
 
@@ -241,7 +260,8 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 
 ## 7. 两种形状：多入口（默认）与单入口（可选）
 
-同一个 pack 有两种摆法，工具两种都能算、能画、能落。**默认多入口；单入口要专门点名才做**。
+同一个 pack 有两种摆法，**工具两种都支持、都能算、能画、能落，不强制任何一种**：默认多入口
+（每个 skill 各自是根）；单入口要专门点名（启动参数 `--shape single`，或对已有的包跑 `collapse`）才做。
 
 | | 多入口（默认） | 单入口（`weave.py collapse`） |
 |---|---|---|

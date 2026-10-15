@@ -33,7 +33,9 @@
 - 用**硬上限**强制分层披露：L1 元数据 **<200 字符**、L2 正文 **≈50 行**、L3 `references/` 不限；
   `validate` 三档（默认 50 行 / `--lenient` 150 / `--loose` 500 = Anthropic 官方上限）；`init` 生成骨架。
 
-**意义**：这就是 SkillWeave 计划里那张 caps 表，**已有具体数字与三档口径**——直接引用，不自创。
+**意义**：它的 per-skill 披露打分启发了 SkillWeave 的 caps 表。**SkillWeave 不再沿用它那套硬上限与
+三档口径** —— 已收敛到 agentskills.io（`name` / `description`）+ Anthropic 实践（< 5000 token /
+< 500 行 / `references/` < 300 行）的建议值，见 `docs/contract.md` §4。
 
 ### A4. 其它同类（同类形状，未逐个深挖）
 

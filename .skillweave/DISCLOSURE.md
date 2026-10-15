@@ -1,4 +1,4 @@
-# 披露链 · ticket-05
+# 披露链 · SkillWeave
 
 ## 术语表
 
@@ -32,7 +32,7 @@
 | 文档 | fanout（披露几项） | 体积 | 判定 |
 |---|---|---|---|
 | `skills/skillweave/references/commands.md` | 24 | 3421 tok / 235 行 | ✅ |
-| `skills/skillweave/references/concepts.md` | 26 | 2646 tok / 125 行 | ✅ |
+| `skills/skillweave/references/concepts.md` | 26 | 2691 tok / 126 行 | ✅ |
 | `skills/skillweave/references/group.md` | 9 | 802 tok / 59 行 | ✅ |
 | `skills/skillweave/references/merge.md` | 8 | 836 tok / 51 行 | ✅ |
 | `skills/skillweave/references/pitfalls.md` | 1 | 1627 tok / 83 行 | ✅ |
@@ -43,7 +43,7 @@
 | `skills/skillweave/scripts/weavelib/__init__.py` | 1 | 974 B | ✅ |
 | `skills/skillweave/scripts/weavelib/analysis.py` | 10 | 21637 B | ✅ |
 | `skills/skillweave/scripts/weavelib/cli.py` | 0 | 14808 B | ✅ |
-| `skills/skillweave/scripts/weavelib/common.py` | 22 | 9589 B | ✅ |
+| `skills/skillweave/scripts/weavelib/common.py` | 22 | 9576 B | ✅ |
 | `skills/skillweave/scripts/weavelib/deliver.py` | 0 | 11423 B | ✅ |
 | `skills/skillweave/scripts/weavelib/disclosure.py` | 10 | 28910 B | ✅ |
 | `skills/skillweave/scripts/weavelib/frontmatter.py` | 0 | 6927 B | ✅ |

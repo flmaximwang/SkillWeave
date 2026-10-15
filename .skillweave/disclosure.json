@@ -59,8 +59,8 @@
   },
   "skills/skillweave/references/concepts.md": {
    "docs/contract.md": 3,
-   "docs/prior-art.md": 83,
-   "docs/similar-work.md": 83,
+   "docs/prior-art.md": 84,
+   "docs/similar-work.md": 84,
    "skills/skillweave/SKILL.md": 6,
    "skills/skillweave/references/commands.md": 9,
    "skills/skillweave/references/concepts.md": 9,
@@ -71,19 +71,19 @@
    "skills/skillweave/references/split.md": 9,
    "skills/skillweave/references/workflow.md": 9,
    "skills/skillweave/scripts/weave.py": 9,
-   "skills/skillweave/scripts/weavelib/__init__.py": 88,
-   "skills/skillweave/scripts/weavelib/analysis.py": 88,
-   "skills/skillweave/scripts/weavelib/cli.py": 88,
-   "skills/skillweave/scripts/weavelib/common.py": 88,
-   "skills/skillweave/scripts/weavelib/deliver.py": 88,
-   "skills/skillweave/scripts/weavelib/disclosure.py": 88,
-   "skills/skillweave/scripts/weavelib/frontmatter.py": 88,
-   "skills/skillweave/scripts/weavelib/graph.py": 88,
-   "skills/skillweave/scripts/weavelib/model.py": 88,
-   "skills/skillweave/scripts/weavelib/pack.py": 88,
-   "skills/skillweave/scripts/weavelib/render.py": 88,
-   "skills/skillweave/scripts/weavelib/selftest.py": 88,
-   "skills/skillweave/scripts/weavelib/transform.py": 88
+   "skills/skillweave/scripts/weavelib/__init__.py": 89,
+   "skills/skillweave/scripts/weavelib/analysis.py": 89,
+   "skills/skillweave/scripts/weavelib/cli.py": 89,
+   "skills/skillweave/scripts/weavelib/common.py": 89,
+   "skills/skillweave/scripts/weavelib/deliver.py": 89,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 89,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 89,
+   "skills/skillweave/scripts/weavelib/graph.py": 89,
+   "skills/skillweave/scripts/weavelib/model.py": 89,
+   "skills/skillweave/scripts/weavelib/pack.py": 89,
+   "skills/skillweave/scripts/weavelib/render.py": 89,
+   "skills/skillweave/scripts/weavelib/selftest.py": 89,
+   "skills/skillweave/scripts/weavelib/transform.py": 89
   },
   "skills/skillweave/references/group.md": {
    "skills/skillweave/SKILL.md": 52,
@@ -320,7 +320,7 @@
   [
    "skills/skillweave/references/concepts.md",
    "/.skillweave/waivers.txt",
-   117
+   118
   ],
   [
    "skills/skillweave/references/pitfalls.md",
@@ -447,18 +447,18 @@
    "waived": false
   },
   "skills/skillweave/references/concepts.md": {
-   "bytes": 8725,
+   "bytes": 8860,
    "depth": 2,
    "desc_chars": null,
    "kind": "reference",
-   "lines": 125,
+   "lines": 126,
    "name": "concepts.md",
    "orphan": false,
    "over": [],
    "path": "skills/skillweave/references/concepts.md",
    "root": false,
    "skill": "skills/skillweave/",
-   "tok": 2646,
+   "tok": 2691,
    "waive_reason": null,
    "waived": false
   },
@@ -623,7 +623,7 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/common.py": {
-   "bytes": 9589,
+   "bytes": 9576,
    "depth": 2,
    "desc_chars": null,
    "kind": "script",
