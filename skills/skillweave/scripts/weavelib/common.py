@@ -22,6 +22,37 @@ ASSET_EXT = {".png", ".jpg", ".jpeg", ".svg", ".gif", ".pdf", ".zip", ".ico", ".
 
 
 
+# ── caps（阈值）：**唯一出处**，口径见 `docs/contract.md` §4 ──
+# 只认两类来源，别的一律不引：
+#   · agentskills.io 规范 —— 硬约束，违规记「错误」；
+#   · Anthropic Skills 最佳实践 —— 建议值，违规记「警告」（只提示，不拦）。
+# 已删除的旧口径：Dream 的 20000 B 资源上限、50/150/500 行三档、`MAX_FIRST_LAYER=20` 硬闸。
+SRC_AGENTSKILLS = "agentskills.io 规范"
+SRC_ANTHROPIC = "Anthropic Skills 最佳实践"
+URL_AGENTSKILLS = "https://agentskills.io/specification"
+URL_ANTHROPIC = "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prompt-library#skills"
+
+CAP_NAME_CHARS = 64        # SRC_AGENTSKILLS · 错误
+CAP_DESC_CHARS = 1024      # SRC_AGENTSKILLS · 错误（硬约束）
+CAP_BODY_TOKENS = 5000     # SRC_ANTHROPIC · 警告
+CAP_BODY_LINES = 500       # SRC_ANTHROPIC · 警告
+CAP_REF_LINES = 300        # SRC_ANTHROPIC · 警告
+
+# 入口层「摆出多少项」的工程参考线：**不是规范要求**，超了只在 layers 里提示、供分组决策，不拦任何命令。
+FIRST_LAYER_REFERENCE = 20
+
+# `（检查项, 上限, 来源, 违规时行为）` —— 契约、报告、测试共用一张表，避免各写一遍漂移。
+CAPS = [
+    ("`name`", f"≤ {CAP_NAME_CHARS} 字符", SRC_AGENTSKILLS, "错误"),
+    ("`description`", f"≤ {CAP_DESC_CHARS} 字符", f"{SRC_AGENTSKILLS}（硬约束）", "错误"),
+    ("SKILL.md 正文", f"建议 < {CAP_BODY_TOKENS} token", SRC_ANTHROPIC, "警告"),
+    ("SKILL.md 行数", f"建议 < {CAP_BODY_LINES} 行", SRC_ANTHROPIC, "警告"),
+    ("`references/` 单文件", f"建议 < {CAP_REF_LINES} 行", SRC_ANTHROPIC, "警告"),
+]
+
+
+
+
 
 def read_text(path):
     try:

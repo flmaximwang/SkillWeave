@@ -2,7 +2,8 @@
 
 从 weave.py 拆出，逻辑未改。"""
 import codecs, json, os, re
-from .common import est_tokens, kind_of_file
+from .common import (CAP_BODY_LINES, CAP_BODY_TOKENS, CAP_DESC_CHARS, FIRST_LAYER_REFERENCE,
+                     est_tokens, kind_of_file)
 from .graph import dup_pairs, iter_text_files
 from .model import is_nested_skill, skills_root, top_level_skills
 from .pack import Pack
@@ -26,7 +27,7 @@ def cmd_layers(root, out):
     l1_text = "\n".join(s["description"] for s in skills)
     os.makedirs(out, exist_ok=True)
 
-    over_l2 = [s for s in skills if s["est_tokens"] > 5000 or s["body_lines"] > 500]
+    over_l2 = [s for s in skills if s["est_tokens"] > CAP_BODY_TOKENS or s["body_lines"] > CAP_BODY_LINES]
     l3_files = [f for s in skills for f in s["files"] if f["kind"] != "instructions"]
     orphans = [(s["id"], o) for s in skills for o in s["orphans"]]
     broken = [(s["id"], b) for s in skills for b in s["broken"]]
@@ -42,13 +43,13 @@ def cmd_layers(root, out):
                "first_layer_loose_skills": len(loose), "first_layer_categories": len(cats),
                "menu_entries": [c["id"] for c in entries],
                "resident_chars": l1_chars, "resident_est_tokens": est_tokens(l1_text),
-               "over_1024_chars": [s["id"] for s in skills if s["description_chars"] > 1024]},
+               "over_1024_chars": [s["id"] for s in skills if s["description_chars"] > CAP_DESC_CHARS]},
         "L2": {"over_limit": [{"id": s["id"], "est_tokens": s["est_tokens"], "lines": s["body_lines"]}
                                for s in sorted(over_l2, key=lambda s: -s["est_tokens"])],
-                # 口径：over_limit = token>5000 **或** 行数>500（两个闸任一超）；
+                # 口径：over_limit = token>CAP_BODY_TOKENS **或** 行数>CAP_BODY_LINES（两个闸任一超）；
                 # over_token = 只用 token 闸，专门给 audit 对拍用（两个命令的数必须能对上）。
                 "over_token": [s["id"] for s in sorted(skills, key=lambda s: -s["est_tokens"])
-                               if s["est_tokens"] > 5000],
+                               if s["est_tokens"] > CAP_BODY_TOKENS],
                "max_many": sorted([{"id": s["id"], "est_tokens": s["est_tokens"], "lines": s["body_lines"]}
                                    for s in skills], key=lambda r: -r["est_tokens"])[:5],
                "sibling_mentions_max": sorted([{"id": s["id"], "mentions": len(s["mentions"])}
