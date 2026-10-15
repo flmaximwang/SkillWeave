@@ -38,9 +38,18 @@
 ## ⚠️ 待处理的 Ticket（1/5）
 
 ### Ticket 04: 添加披露深度警告（L3+ 警告但不退出）
-**状态**: ⚠️ 实现完成但合并遇到冲突
-**问题**: ticket-04 的实现基于旧的 main，包含了与 ticket-01/02 冲突的改动
-**解决方案**: 需要手动提取深度警告的核心功能，避免覆盖已合并的 caps 表和自动豁免功能
+**状态**: ✅ 已完成（commit a54ad3e）
+**处理方式**: ticket-04 分支基于旧 main，直接 merge 会回退 ticket-01/02 的 caps 表与自动豁免。
+改为在 main 上手工重放 ticket-04 的改动（disclosure.py / render.py / selftest.py）。
+**实测证据**（四层链 fixture `SKILL.md→ref1→ref2→ref3`）:
+```
+[disclosure] 披露深度：L1=1 → L2=1 → L3=1 → L4=1
+  ⚠️ 检测到 L4 层（Anthropic 建议不超过 L2）
+  深层文档 2 份：L4 skills/deep/references/ref3.md · L3 skills/deep/references/ref2.md
+exit=0        ← 不退出
+depth_histogram = {'1': 1, '2': 1, '3': 1, '4': 1}
+TODO.md 第 12-13 行 = 两条「披露过深」待办
+```
 
 **核心改动**（需要提取）:
 - 计算每个文档的披露深度（depth 字段）
@@ -51,7 +60,7 @@
 
 ## 📊 当前 Main 分支状态
 
-**最新 commit**: 1f051a5 (chore: 忽略 worktrees/ 目录)
+**最新 commit**: a54ad3e (feat(#04): 披露深度 L3+ 只警告不退出)
 **Self-test**: ✅ 全部通过
 **Disclosure 检查**: 
 ```

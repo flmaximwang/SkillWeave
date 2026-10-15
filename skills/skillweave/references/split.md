@@ -9,8 +9,8 @@ python3 "$SW" audit "$PACK" --out /tmp/sw
 python3 "$SW" layers "$PACK" --out /tmp/sw
 ```
 
-- 需要拆的信号：`est_tokens > 5000`，或行数落在 `loose`/`over-500` 档（50 / 150 / 500 三档口径见
-  `docs/contract.md` §4），或 `counts.long_paragraphs / code_blocks` 明显偏高（它们就是「该拆」的可量信号）。
+- 需要拆的信号：`est_tokens > 5000`，或行数超过建议值 500 行（caps 与出处见
+  `references/concepts.md`），或 `counts.long_paragraphs / code_blocks` 明显偏高（它们就是「该拆」的可量信号）。
 - 具体到哪几段：`tree` 里该 skill 的 `children` 是标题节点（带行号），挑**成块**的标题整段下沉。
 
 ## 不拆脚本（口径）
