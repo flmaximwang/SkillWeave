@@ -512,6 +512,38 @@ def self_test():
         _dj = json.load(open(os.path.join(_osw, "disclosure.json"), encoding="utf-8"))
         assert len(_dj["nodes"]) == 1 and not any(".skillweave" in p for p in _dj["nodes"]), \
             f"工具目录变成了文档节点：{sorted(_dj['nodes'])}"
+        # ticket 02：templates/ · examples/ · tests/ 下的文件**自动豁免**（不算「到不了根」、不进待办），
+        # 但确实被引用时路径仍要存在（悬空照报）。waivers.txt 不必手写这三个目录。
+        _awd = os.path.join(tmp, "auto-waive-pack")
+        _asd = os.path.join(_awd, "skills", "aw")
+        os.makedirs(os.path.join(_asd, "templates"))
+        os.makedirs(os.path.join(_asd, "examples"))
+        os.makedirs(os.path.join(_asd, "tests"))
+        open(os.path.join(_asd, "templates", "schema.json"), "w").write('{"a": 1}\n')   # 未被引用 → 自动豁免
+        open(os.path.join(_asd, "examples", "demo.md"), "w").write("示例\n")             # 未被引用 → 自动豁免
+        open(os.path.join(_asd, "templates", "used.json"), "w").write('{"b": 2}\n')     # 被正确引用 → 进披露链
+        # 路径**运行时拼出来**：本文件（selftest.py）自己也在 pack 里被 disclosure 扫，
+        # 留完整反引号路径会让工具把 fixture 的假引用算成自己的悬空。
+        _used_ref, _gone_ref = "templates/" + "used.json", "templates/" + "gone.json"
+        open(os.path.join(_asd, "SKILL.md"), "w").write(
+            "---\nname: aw\ndescription: 自动豁免样例。\n---\n\n# aw\n\n"
+            f"正确引用：`{_used_ref}`\n路径写错：`{_gone_ref}`\n")
+        _oaw = os.path.join(tmp, "o-auto-waive")
+        assert cmd_disclosure(_awd, _oaw) == 0, "自动豁免 fixture 该能跑通"
+        _daw = json.load(open(os.path.join(_oaw, "disclosure.json"), encoding="utf-8"))
+        _schema, _demo = "skills/aw/templates/schema.json", "skills/aw/examples/demo.md"
+        assert _schema in _daw["nodes"] and _demo in _daw["nodes"], sorted(_daw["nodes"])
+        assert _schema not in _daw["orphans"] and _demo not in _daw["orphans"], \
+            f"资源目录下的文件不该算到不了根：{_daw['orphans']}"
+        assert _schema in _daw["auto_waived"] and _demo in _daw["auto_waived"], _daw["auto_waived"]
+        assert "skills/aw/templates/used.json" not in _daw["orphans"], "被正确引用的资源文件不该算到不了根"
+        assert any(b[1] == "templates/gone.json" for b in _daw["broken"]), \
+            f"资源目录里写错的路径仍要报悬空：{_daw['broken']}"
+        _taw = open(os.path.join(_oaw, "TODO.md"), encoding="utf-8").read()
+        assert "已豁免 2 条（自动 2 · 手动 0）" in _taw, _taw[:400]
+        assert _schema not in _taw.split("## 已豁免", 1)[0], "自动豁免的文件不该在待办表"
+        assert _demo not in _taw.split("## 已豁免", 1)[0], "自动豁免的文件不该在待办表"
+        assert _schema in _taw.split("## 已豁免 · 自动", 1)[1], "自动豁免该单列一栏"
         # 非 skill pack 的目录：audit 该报 FAIL 退 1，不该 IndexError（实测 312 个目录里 246 个命中）
         _plain = os.path.join(tmp, "not-a-pack")
         os.makedirs(_plain, exist_ok=True)
@@ -623,6 +655,7 @@ def self_test():
               "issue #1（未跟踪闸）/ issue #2（冒号值仍是合法 YAML）/ "
               "issue #3（跨岛同题必须被比到）/ issue #4（节点框数 == 文档数）/ "
               "issue #5（产物默认落包内 .skillweave/）/ "
+              "ticket 02（templates/examples/tests 资源目录自动豁免） / "
               "issue #08（子命令参数错误统一格式 + 简要帮助）/ "
               "工具目录 .skillweave/ 非成员（免检表读得到、档案不进度量）"
               "—— 全过")
