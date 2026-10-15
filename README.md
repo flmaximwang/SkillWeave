@@ -1,5 +1,7 @@
 # SkillWeave
 
+[![Tests](https://github.com/flmaximwang/SkillWeave/actions/workflows/test.yml/badge.svg)](https://github.com/flmaximwang/SkillWeave/actions/workflows/test.yml)
+
 分析一个 **skill pack**，构建它的**文档树**，并据此优化**分层披露**结构 —— 让每一级摆出的选项数，
 都还在「能一次选对」的范围内。
 
