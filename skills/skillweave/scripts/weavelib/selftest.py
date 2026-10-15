@@ -244,7 +244,9 @@ def self_test():
         assert not os.path.exists(os.path.join(_plain, ".git")), "原目录不该被 git init"
 
         # 派发：事实补全 + 批次 + 计数起点
-        assert cmd_dispatch(pack, out9, batch_size=10) == 0, "dispatch 该成功"
+        _dbuf = io.StringIO()
+        with contextlib.redirect_stdout(_dbuf):
+            assert cmd_dispatch(pack, out9, batch_size=10) == 0, "dispatch 该成功"
         pl = json.load(open(os.path.join(out9, "dispatch", "plan.json"), encoding="utf-8"))
         ids = [it["id"] for b in pl["batches"] for it in b["items"]]
         assert ids and len(ids) == len(set(ids)), "条目 id 必须唯一"
@@ -253,6 +255,10 @@ def self_test():
         assert "## 条目与事实" in pr and ("包内没有同名文件" in pr or "候选" in pr or "二级标题" in pr), \
             "prompt 里必须有事实补全段"
         assert os.path.isfile(os.path.join(out9, "dispatch", "state.json")), "缺 state.json"
+        # ticket 07：没有执行者配置 → 只警告、不阻塞（退 0，prompt 里不加「执行方式」、plan.json 无 executor）
+        assert "警告：未找到执行者配置" in _dbuf.getvalue(), _dbuf.getvalue()
+        assert "## 执行方式" not in pr, "没有执行者配置时不该追加执行方式章节"
+        assert "executor" not in pl, "没有执行者配置时 plan.json 不该有 executor 字段"
 
         st = os.path.join(out9, "dispatch", "state.json")
         # ── 落盘器：锚点 / 白名单 / 拆分守恒 / 单条回退 ──
@@ -450,6 +456,20 @@ def self_test():
         assert "{model}" in _ec["command_template"] and "{input}" in _ec["command_template"], _ec
         base = open(os.path.join(out7, "BASELINE.md"), encoding="utf-8").read()
         assert "执行者：opencode (deepseek-v4.1-flash)" in base, base[:400]
+        # ticket 07：dispatch 读副本 dispatch 目录下的 executor.json → 每个 prompt 末尾追加「## 执行方式」，
+        # 占位符换成实际文件名；并把整份配置记进 plan.json
+        _o_de = os.path.join(tmp, "o-dispatch-exec")
+        assert cmd_dispatch(dest7, _o_de) == 0, "带执行者配置的 dispatch 该成功"
+        _pe = json.load(open(os.path.join(_o_de, "dispatch", "plan.json"), encoding="utf-8"))
+        assert _pe.get("executor", {}).get("type") == "opencode", _pe.get("executor")
+        assert _pe["executor"].get("command_template"), "plan.json 里该带整份执行者配置"
+        _pt = open(os.path.join(_o_de, "dispatch", "batch-1.prompt.md"), encoding="utf-8").read()
+        assert "## 执行方式" in _pt and "**类型**: opencode" in _pt, _pt[-400:]
+        assert ("opencode --model deepseek-v4.1-flash --prompt batch-1.prompt.md "
+                "--output batch-1.proposal.json") in _pt, _pt[-400:]
+        assert "`{input}`: 本文件路径（batch-1.prompt.md）" in _pt, _pt[-400:]
+        assert "`{output}`: 提案输出文件（batch-1.proposal.json）" in _pt, _pt[-400:]
+        assert "请手动执行上述 prompt" not in _pt, "opencode 不该出现 manual 专属提示"
         # 已有配置 → 沿用（不再问、不改内容）；非交互默认 manual 也不阻塞
         assert cmd_prepare(pack, out7, dest=dest7, executor="manual") == 2, "副本已存在时必须拒绝覆盖"
         assert "A 单入口" in base and "B 多入口" in base and "待用户选" in base, base[:200]
@@ -681,6 +701,8 @@ def self_test():
               "issue #5（产物默认落包内 .skillweave/）/ "
               "ticket 02（templates/examples/tests 资源目录自动豁免） / "
               "ticket 04（披露深度 L3+ 只警告不退出） / "
+              "ticket 06（执行者配置：prepare 询问并持久化） / "
+              "ticket 07（dispatch 读执行者配置 → prompt 末尾输出执行说明） / "
               "issue #08（子命令参数错误统一格式 + 简要帮助）/ "
               "工具目录 .skillweave/ 非成员（免检表读得到、档案不进度量）"
               "—— 全过")

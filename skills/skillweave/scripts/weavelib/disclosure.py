@@ -46,6 +46,29 @@ def _scan_fresh(root, tag="scan"):
 
 
 
+def _executor_section(executor, batch_num):
+    """D 阶段给每个 prompt 追加的「## 执行方式」：把执行者配置的命令模板填成**可照抄的一行**。
+
+    配置来自 prepare 写下的 executor.json（落在副本的 dispatch 目录下；ticket 06 定结构：
+    type、model、command_template 三个字段）。{model} / {input} / {output} 三个占位符在这里换成实际值 ——
+    用户（或 CI）看到 prompt 文件末尾就知道怎么执行，不必回头翻文档或回忆。"""
+    prompt_name = f"batch-{batch_num}.prompt.md"
+    output_name = f"batch-{batch_num}.proposal.json"
+    cmd = (executor.get("command_template") or "")
+    cmd = cmd.replace("{model}", executor.get("model", ""))
+    cmd = cmd.replace("{input}", prompt_name)
+    cmd = cmd.replace("{output}", output_name)
+    lines = ["---", "", "## 执行方式", "",
+             f"**类型**: {executor.get('type', '?')}", "",
+             "**命令**:", "```bash", cmd, "```", "",
+             "**说明**:",
+             f"- `{{input}}`: 本文件路径（{prompt_name}）",
+             f"- `{{output}}`: 提案输出文件（{output_name}）", ""]
+    if executor.get("type") == "manual":
+        lines += ["请手动执行上述 prompt，将提案以 JSON 格式写入输出文件。", ""]
+    return "\n".join(lines)
+
+
 def cmd_dispatch(root, out, batch_size=25, refresh_baseline=False):   # batch_size = 每批最多几条
     """派发前的事实补全 + 批次划分 + prompt 落盘 + 计数起点。产物：dispatch/{plan.json,state.json,batch-*.md}"""
     dj, _ = _scan_fresh(root, "dispatch")
@@ -73,12 +96,23 @@ def cmd_dispatch(root, out, batch_size=25, refresh_baseline=False):   # batch_si
     base_rev = _rev(root)
     d = os.path.join(out, "dispatch")
     os.makedirs(d, exist_ok=True)
+    # 执行者配置（ticket 06 由 prepare 写进副本 → ticket 07 在这里读）：副本 dispatch 目录下的 executor.json。
+    # 读到了就把执行说明追加进每个 prompt、并把整份配置记进 plan.json；**读不到只警告，不阻塞**。
+    executor = None
+    executor_config_path = os.path.join(root, "dispatch", "executor.json")
+    if os.path.exists(executor_config_path):
+        with open(executor_config_path, encoding="utf-8") as f:
+            executor = json.load(f)
     plan = {"pack": os.path.basename(root), "base_rev": base_rev, "batch_size": batch_size,
             "baseline": os.path.join(d, "baseline.json"), "batches": []}
+    if executor is not None:
+        plan["executor"] = executor
     for n, skills in enumerate(batches, 1):
         items = sorted((it for sk in skills for it in by_skill[sk]), key=lambda x: (x["kind"], x["path"]))
         b = {"id": f"B{n}", "skills": skills, "items": items}
         text = _prompt_for(b, root, F, files, dj, base_rev, os.path.basename(root))
+        if executor is not None:               # 说明也进 prompt hash：换执行者 = 换了输入（R4）
+            text = text.rstrip("\n") + "\n\n" + _executor_section(executor, n)
         b["prompt"] = f"dispatch/batch-{n}.prompt.md"
         b["prompt_sha256"] = hashlib.sha256(text.encode()).hexdigest()[:16]
         with open(os.path.join(d, f"batch-{n}.prompt.md"), "w", encoding="utf-8") as f:
@@ -119,6 +153,10 @@ def cmd_dispatch(root, out, batch_size=25, refresh_baseline=False):   # batch_si
              "history": (prev or {}).get("history", [])}
     with open(os.path.join(d, "state.json"), "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+    if executor is None:
+        # 不阻塞：没有执行者配置照常派发（prompt 仍然完整），只是少一节「怎么执行」的提示。
+        print("[dispatch] 警告：未找到执行者配置（dispatch/executor.json）")
+        print("           提示：运行 prepare 时选择执行者，或手动创建配置文件")
     print(f"[dispatch] {len(plan['batches'])} 批 · {plan['todo']} 条 · 基线 rev {base_rev}")
     for b in plan["batches"]:
         print(f"[dispatch]   {b['id']}: {len(b['skills'])} 个 skill / {len(b['items'])} 条 → {b['prompt']}")
