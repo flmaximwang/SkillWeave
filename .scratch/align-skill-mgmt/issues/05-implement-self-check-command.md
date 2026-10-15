@@ -108,3 +108,52 @@
 
 **验收口径提醒**：self-check 通过 ≠ 全文零发现。它要求 **`disclosure.json` 里 `waived` 之外的条目为空**。
 所以 ticket 03 与 ticket 05 谁先合并会影响读数 —— 建议 03（点名脚本）先落地，05 再收口。
+
+---
+
+## 执行方案（已定，2026-10-16 · Phase 3）
+
+三件事，都要做：
+
+### 1. 工具口径：脚本类文档不做「悬空」检查（方案 A）
+
+`skills/skillweave/scripts/weavelib/*.py` 里 12 条悬空全部来自 **fixture 字符串**与**注释里的举例路径**，
+不是披露意图。这与契约 §4 已确立的「脚本不设字节上限」**同源**：Agent 不整份读脚本，
+脚本里的路径字面量不构成披露。
+
+- 在 `disclosure.py` / `graph.py` 生成 broken 列表处：**跳过脚本类文档**
+  （判据复用既有的「脚本后缀」判定，别新造一套）。
+- **必须留一条反向闸**：markdown 文档（`SKILL.md` / `references/*.md`）里的悬空**照报**。
+  用 fixture 证明：一个 markdown 里写 `` `references/nope.md` `` → 仍进 broken；
+  一个 `.py` 里写同样字面量 → 不进 broken。
+- 契约里写清这条口径（`docs/contract.md` §3 引用解析那一节 + `references/concepts.md` 同步）。
+
+### 2. 包侧：SKILL.md 点名 `scripts/weavelib/`
+
+13 个「到不了根」全是 `scripts/weavelib/*.py`。契约 §3 规定「点名含**目录级**」——
+SKILL.md 里点名目录 `scripts/weavelib/` 即可覆盖整目录。
+
+- 在 `skills/skillweave/SKILL.md` 的相应位置（第 36 行附近，讲实现脚本那段）补一句，
+  形如：`weavelib/` 承放实现模块（见 `scripts/weavelib/`），入口 `scripts/weave.py` 只做转发。
+- 注意措辞要让 `_doc_edges` 真的解析到该目录（写成相对路径 `scripts/weavelib/`）。
+- 改完 `到不了根` 必须 **13 → 0**。
+
+### 3. 实现 `self-check` 子命令
+
+- `analysis.py` 加 `cmd_self_check(root)`：对仓库自身跑 disclosure 到临时目录，
+  读 `disclosure.json`，**未豁免条目（over / orphans / broken / deep）+ 自动豁免之外的手动豁免**为空 → 退 0，否则退 1 并列出前 10 条。
+- `cli.py` 加 `self-check` 子命令（定位仓库根：从 weavelib 向上 4 层）。
+- 若 `disclosure.json` 缺机器可读的 issues 字段，补一个（别让 self-check 去解析 Markdown）。
+- README 加「验证工具自身合规」一节。
+
+### 验收（真跑，把读数贴进提交信息）
+
+```
+python3 scripts/weave.py self-check        → PASS（退 0）
+python3 scripts/weave.py disclosure .      → 超限 0 · 到不了根 0 · 悬空 0
+python3 scripts/weave.py --self-test       → 全过（含新的「markdown 悬空仍报 / 脚本悬空不报」fixture）
+```
+
+**注意**：`.skillweave/` 里 main 上已提交的 `disclosure.json` / `TODO.md` / `DISCLOSURE.md`
+是 ticket 03 时点的快照，你的改动会让它们过期 —— 收尾时**在仓库根重跑一遍 disclosure**
+（默认 `--out` 落包内）并一起提交，别让包里的数字和实际不符。
