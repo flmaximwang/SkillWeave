@@ -1,6 +1,8 @@
 """CLI 入口与子命令派发。
 
-从 weave.py 拆出，逻辑未改。"""
+从 weave.py 拆出，逻辑未改。issue #08 起：所有参数错误走**同一套格式**
+（`print_usage_error`），错误消息 = [命令名] 错误描述 + 用法示例 + 一句话说明；
+不带命令时给出简要帮助，而不是长篇 argparse usage。"""
 import argparse, json, os
 from .analysis import cmd_audit, cmd_checks, cmd_judge, cmd_layers, cmd_score
 from .common import count, strip_private
@@ -13,10 +15,80 @@ from .render import cmd_visualize, render_md
 from .transform import cmd_apply, cmd_collapse, cmd_prepare, cmd_propose
 
 
+# 每个子命令的 (用法, 一句话说明) —— 帮助与错误消息的**唯一来源**（issue #08）。
+# `usage` 不含 "weave.py " 前缀：print_usage_error / --help 会自己拼。
+COMMANDS = {
+    "tree":       ("tree <pack> [--out DIR]",
+                   "构建文档树 → tree.json + TREE.md"),
+    "layers":     ("layers <pack> [--out DIR]",
+                   "三级披露分层账（L1/L2/L3 体积与超限）"),
+    "checks":     ("checks <pack> [--out DIR]",
+                   "安全与可移植检查（引用/预算/name/硬编码路径/内嵌密钥），命中即 exit 1"),
+    "audit":      ("audit <pack> [--out DIR]",
+                   "审计四段：体积 / 孤儿悬空 / 同层抢题 / 成本两组数"),
+    "propose":    ("propose <pack> [--out DIR] [--apply] [--apply-group MAP]",
+                   "四类动作的提案（拆/分/并/改写）：默认 dry-run 只出提案"),
+    "judge":      ("judge <pack> --prompts <题面.json> [--out DIR]",
+                   "生成判官输入文件（judge-input.txt）和金标文件（judge-key.json）"),
+    "score":      ("score --key <金标.json> --judge <判官输出文件…> [--out DIR]",
+                   "对判官输出打分（含校正随机分）"),
+    "visualize":  ("visualize <pack> [--out DIR]",
+                   "生成可视化文件（TREE.md + TREE.html）"),
+    "collapse":   ("collapse <pack> [--out DIR] [--entry-dir NAME] [--apply --description \"…\"]",
+                   "把 pack 塌成单入口（L1=1）：默认 dry-run"),
+    "prepare":    ("prepare <pack> --dest WORK/ws [--out DIR] [--shape single|multi]",
+                   "创建工作副本并初始化流程"),
+    "disclosure": ("disclosure <pack> [--out DIR]",
+                   "构建文档树并生成待办清单（TODO.md）"),
+    "dispatch":   ("dispatch <pack> [--out DIR] [--batch-size N] [--refresh-baseline]",
+                   "派发前事实补全 + 划批 + 落 prompt + 计数起点"),
+    "verify":     ("verify <pack> --state <dispatch/state.json> --expect-fixed <id…> [--splits <json>] [--out DIR]",
+                   "集合级对账（闸 1）：该消的消了 · 无新增 · external 不变 · 拆分守恒"),
+    "apply":      ("apply <pack> --proposals <提案.json…>  |  apply <pack> --revert <条目 id> [--state STATE] [--out DIR]",
+                   "逐条校验并落盘，或用 --revert 回退一条"),
+    "deliver":    ("deliver <work/ws> [--dry-run] [--no-push] [--keep-worktree] [--main BRANCH] [--out DIR]",
+                   "合并改动回真包并推送"),
+}
+
+# `<pack>` 可省略的子命令（默认当前目录）：judge / score 吃的参数本身已定位了包或输入。
+_PACK_OPTIONAL = {"judge", "score"}
+
+
+def print_usage_error(cmd, error, usage, description):
+    """统一的参数错误格式：[命令名] 错误描述 + 用法示例 + 一句话说明。"""
+    print(f"[{cmd}] 错误: {error}")
+    print(f"用法: weave.py {usage}")
+    print(f"说明: {description}")
+
+
+def print_main_help():
+    """不带命令时给**简要帮助**（不是 argparse 的整页 usage）。"""
+    print("用法: weave.py <command> <pack> [options]")
+    print()
+    print("常用命令:")
+    print("  disclosure  构建文档树并生成待办清单（TODO.md）")
+    print("  visualize   生成可视化文件（TREE.md + TREE.html）")
+    print("  prepare     创建工作副本并初始化流程")
+    print("  deliver     合并改动回真包并推送")
+    print()
+    print("运行 'weave.py <command> --help' 查看具体命令的选项")
+    print("运行 'weave.py --self-test' 验证工具自身")
+    print("运行 'weave.py self-check' 检查工具合规性")
+
+
+def print_command_help(cmd):
+    """`weave.py <command> --help` 的详细帮助：用法 + 说明 + 例子提示。"""
+    usage, description = COMMANDS[cmd]
+    print(f"[{cmd}]")
+    print(f"用法: weave.py {usage}")
+    print(f"说明: {description}")
+    print("提示: 运行 'weave.py --help' 查看全部命令；参数错误会显示这一条用法")
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露")
+    ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露",
+                                 add_help=False)
+    ap.add_argument("-h", "--help", action="store_true", help="显示帮助")
     ap.add_argument("cmd", nargs="?",
                     choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize",
                              "collapse", "prepare", "disclosure", "dispatch", "verify", "apply", "deliver"])
@@ -47,8 +119,19 @@ def main(argv=None):
     if a.self_test:
         from .selftest import self_test
         return self_test()
-    if not a.cmd or (a.cmd != "score" and not a.pack):
-        ap.print_usage()
+    if a.help:
+        # `weave.py --help` 给总览；`weave.py <command> --help` 给该命令的详细帮助。
+        if a.cmd:
+            print_command_help(a.cmd)
+        else:
+            print_main_help()
+        return 0
+    if not a.cmd:
+        print_main_help()
+        return 2
+    # 需要 `<pack>` 的子命令：缺了就用统一格式报错（而不是 argparse 的整页 usage）。
+    if a.cmd not in _PACK_OPTIONAL and not a.pack:
+        print_usage_error(a.cmd, "缺少 <pack> 参数", *COMMANDS[a.cmd])
         return 2
 
     if a.cmd == "layers":
@@ -83,13 +166,21 @@ def main(argv=None):
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(root, "dispatch")
         if not a.revert and not a.proposals:
-            print("[apply] 需要 --proposals <提案 json…>，或用 --revert <条目 id> 回退一条")
+            print_usage_error("apply", "需要 --proposals <提案 json…> 或 --revert <条目 id>",
+                              *COMMANDS["apply"])
+            return 2
+        if a.revert and a.proposals:
+            print_usage_error("apply", "--proposals 与 --revert 不能同时用（二选一）",
+                              *COMMANDS["apply"])
             return 2
         return cmd_apply(root, a.proposals, a.state, out, revert_id=a.revert)
     if a.cmd == "verify":
         root = os.path.abspath(a.pack.rstrip("/"))
         if not a.state:
-            print("[verify] 需要 --state <dispatch/state.json>（计数在那份文件里，不在谁记忆里）")
+            print_usage_error("verify", "缺少 --state 参数", *COMMANDS["verify"])
+            return 2
+        if not a.expect_fixed:
+            print_usage_error("verify", "缺少 --expect-fixed 参数", *COMMANDS["verify"])
             return 2
         # RUN.md / PARKED.md 落在 state 旁边（dispatch/），不落临时目录 —— 无人值守跑完要能直接读到
         out = a.out or os.path.dirname(os.path.abspath(a.state))
@@ -107,20 +198,27 @@ def main(argv=None):
     if a.cmd == "collapse":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(root, ".skillweave")
+        if a.apply and not a.description:
+            print_usage_error("collapse", "--apply 需要 --description",
+                              *COMMANDS["collapse"])
+            return 2
         return cmd_collapse(root, out, apply_changes=a.apply, description=a.description,
                             entry_dir=a.entry_dir)
     if a.cmd == "judge":
         root = os.path.abspath((a.pack or ".").rstrip("/"))
         out = a.out or os.path.join(root, ".skillweave")
         if not a.prompts:
-            print("[judge] 需要 --prompts <题面 json>（题面必须冻结，不许现编）")
+            print_usage_error("judge", "缺少 --prompts 参数", *COMMANDS["judge"])
             return 2
         return cmd_judge(root, a.prompts, out)
     if a.cmd == "score":
         root = os.path.abspath((a.pack or ".").rstrip("/"))
         out = a.out or os.path.join(root, ".skillweave")
-        if not a.key or not a.judge:
-            print("[score] 需要 --key <金标 json> --judge <判官输出文件…>")
+        if not a.key:
+            print_usage_error("score", "缺少 --key 参数", *COMMANDS["score"])
+            return 2
+        if not a.judge:
+            print_usage_error("score", "缺少 --judge 参数", *COMMANDS["score"])
             return 2
         return cmd_score(a.key, a.judge, out)
     root = os.path.abspath(a.pack.rstrip("/"))

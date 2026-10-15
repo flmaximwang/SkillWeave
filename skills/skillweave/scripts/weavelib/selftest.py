@@ -1,7 +1,7 @@
 """自检：`--self-test` 的全部断言。
 
 从 weave.py 拆出，逻辑未改。"""
-import difflib, json, os, re, shutil, tempfile
+import contextlib, difflib, io, json, os, re, shutil, tempfile
 from .analysis import cmd_audit, cmd_checks, cmd_judge, cmd_layers, cmd_score
 from .cli import main
 from .common import read_text
@@ -578,6 +578,34 @@ def self_test():
         _brs = (git(_dp, "branch", "--list", "skillweave/deliver-pack").stdout or "").strip()
         assert _brs == "", f"交付该把分支删掉，实得 {_brs!r}"
         assert cmd_deliver(_dp, _od) == 1, "对主 clone 本身跑 deliver 该拒（没有可合回的分支）"
+        # CLI 参数错误消息（issue #08）：统一格式 = [命令] 错误 / 用法 / 说明；缺命令给简要帮助。
+        def _cli(*argv):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = main(list(argv))
+            return rc, buf.getvalue()
+
+        rc, o = _cli("judge", pack)
+        assert rc == 2 and "[judge] 错误" in o and "--prompts" in o \
+            and "用法: weave.py judge" in o and "说明:" in o, o
+        rc, o = _cli("score")
+        assert rc == 2 and "[score] 错误" in o and "--key" in o and "--judge" in o, o
+        rc, o = _cli("apply", pack)
+        assert rc == 2 and "--proposals" in o and "--revert" in o, o
+        rc, o = _cli("verify", pack)
+        assert rc == 2 and "--state" in o, o
+        rc, o = _cli("verify", pack, "--state", "state.json")
+        assert rc == 2 and "--expect-fixed" in o, o
+        rc, o = _cli("collapse", pack, "--apply")
+        assert rc == 2 and "--description" in o, o
+        rc, o = _cli("disclosure")
+        assert rc == 2 and "缺少 <pack>" in o and "用法: weave.py disclosure" in o, o
+        rc, o = _cli()
+        assert rc == 2 and "常用命令" in o and "disclosure" in o, o
+        rc, o = _cli("--help")
+        assert rc == 0 and "常用命令" in o, o
+        rc, o = _cli("disclosure", "--help")
+        assert rc == 0 and "用法: weave.py disclosure" in o, o
         print("[self-test] ✅ 层（pack→类目→skill）/ 折叠 description / 孤儿 / 悬空 / "
               "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 / 提案器四类动作 / "
               "layers↔audit 口径对拍 / 派发划批 / 验收（集合级回归拦截 + 梯子）/ "
@@ -585,6 +613,7 @@ def self_test():
               "issue #1（未跟踪闸）/ issue #2（冒号值仍是合法 YAML）/ "
               "issue #3（跨岛同题必须被比到）/ issue #4（节点框数 == 文档数）/ "
               "issue #5（产物默认落包内 .skillweave/）/ "
+              "issue #08（子命令参数错误统一格式 + 简要帮助）/ "
               "工具目录 .skillweave/ 非成员（免检表读得到、档案不进度量）"
               "—— 全过")
         return 0
