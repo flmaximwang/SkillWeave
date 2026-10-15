@@ -48,10 +48,13 @@ COMMANDS = {
                    "逐条校验并落盘，或用 --revert 回退一条"),
     "deliver":    ("deliver <work/ws> [--dry-run] [--no-push] [--keep-worktree] [--main BRANCH] [--out DIR]",
                    "合并改动回真包并推送"),
+    "self-check": ("self-check",
+                   "对 SkillWeave 仓库自身跑 disclosure，要求待办清单为空（豁免除外）"),
 }
 
-# `<pack>` 可省略的子命令（默认当前目录）：judge / score 吃的参数本身已定位了包或输入。
-_PACK_OPTIONAL = {"judge", "score"}
+# `<pack>` 可省略的子命令（默认当前目录）：judge / score 吃的参数本身已定位了包或输入；
+# self-check 检查的是**工具自己**（仓库根从 `weavelib` 反推），不需要 `<pack>`。
+_PACK_OPTIONAL = {"judge", "score", "self-check"}
 
 
 def print_usage_error(cmd, error, usage, description):
@@ -91,7 +94,8 @@ def main(argv=None):
     ap.add_argument("-h", "--help", action="store_true", help="显示帮助")
     ap.add_argument("cmd", nargs="?",
                     choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize",
-                             "collapse", "prepare", "disclosure", "dispatch", "verify", "apply", "deliver"])
+                             "collapse", "prepare", "disclosure", "dispatch", "verify", "apply", "deliver",
+                             "self-check"])
     ap.add_argument("--prompts", default=None)
     ap.add_argument("--key", default=None)
     ap.add_argument("--judge", nargs="*", default=[])
@@ -135,6 +139,13 @@ def main(argv=None):
     if a.cmd not in _PACK_OPTIONAL and not a.pack:
         print_usage_error(a.cmd, "缺少 <pack> 参数", *COMMANDS[a.cmd])
         return 2
+
+    if a.cmd == "self-check":
+        from .analysis import cmd_self_check
+        # 仓库根：从 `weavelib/` 向上 4 层 —— scripts/ → skillweave/ → skills/ → 仓库根。
+        here = os.path.dirname(os.path.abspath(__file__))       # …/skills/skillweave/scripts/weavelib
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(here))))
+        return cmd_self_check(root)
 
     if a.cmd == "layers":
         root = os.path.abspath(a.pack.rstrip("/"))

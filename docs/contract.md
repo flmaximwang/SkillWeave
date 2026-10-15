@@ -41,7 +41,7 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
 | 根文档 / 任何 `SKILL.md` | 正文 < 5000 est_token；行数三档 50 / 150 / 500 | agentskills.io / `claude-skills-cli` |
 | 任意文档的 `description` | ≤ 1024 字符 | agentskills.io（硬约束） |
 | 任意资源文件（`references/ assets/`） | ≤ 20000 B | Dream `check-disclosure.py` 常量 |
-| `scripts/**` 或脚本后缀文件 | **不设字节上限**（不进超限清单、不建议拆） | 包主口径 2026-10-12：Agent 从不整份读脚本（读 SKILL.md 的调用说明 + 按需 grep），拆它只增加跳转 |
+| `scripts/**` 或脚本后缀文件 | **不设字节上限**（不进超限清单、不建议拆）；**也不做「悬空」检查**（脚本里的路径字面量不是披露意图） | 包主口径 2026-10-12：Agent 从不整份读脚本（读 SKILL.md 的调用说明 + 按需 grep），拆它只增加跳转 |
 | 跨文档 | 孤儿（in-degree 0 且非根）；悬空（披露了不存在的）；根选择层近重复（靠 description 选根才算） | 本仓库契约 |
 
 **仍然适用的旧口径**（不要丢）：`MAX_FIRST_LAYER = 20` 是**参考线不是硬闸**（§4）；
@@ -178,8 +178,14 @@ UsingHermes 实测（`weave.py disclosure`，2026-10-11）：
   指向 pack 外的记 `external`。**两类不算引用、记 `example`**：① 出现在代码围栏内的路径（示例脚本/产物名）；
   ② 没有目录部分的裸文件名（`run.py`、`fig.pdf`、`README.md` 这类正文里泛指的名字；裸 `SKILL.md` 是自指，仍按 resolved 记）。
   依据：对拍实测（`docs/compare-tools.md` §5）旧口径把示例当 broken，6 条里 4 条是误报。
+- **脚本类文档不做「悬空」检查**：`scripts/**` 或脚本后缀的文件里，路径字面量多是 fixture 与注释里的举例，
+  **不是披露意图** —— 与 §4「脚本不设字节上限」同源（Agent 不整份读脚本）。判据复用既有的脚本后缀判定
+  （`kind_of_file` → `kind == "script"`）。脚本这边唯一的披露要求仍是**被所属 `SKILL.md` 点名**（含目录级），
+  否则照记「到不了根」。**反向闸**：markdown 文档里的悬空**照报**（`--self-test` 有正反两条 fixture）。
 - **孤儿**：skill 目录内除 `SKILL.md` 外的文件，**没有被任何祖先点名** = `orphans`。
   「点名」含**目录级**：正文点名了 `templates/README.md`，则 `templates/` 整目录算被点名（该目录下的文件都不算孤儿）。
+  正文若**整段**点名一个目录路径（如 `` `scripts/weavelib/` ``，尾 `/`），则该目录下的所有文档都算被它披露到 ——
+  `_doc_edges` 把它展开成子节点（目录自身不是文档节点）；目录不存在不计悬空（悬空只针对文件路径）。
   0 容忍，但报告里只列清单，不自动删。
 - **互指边与「岛」（`visualize` 用）**：A→B 当且仅当 **A 的任何一个文本文件里出现 B 的目录名**
   （`(?<![\w-])<slug>(?![\w-])`）。岛 = 该有向图**忽略方向**后的连通分量。

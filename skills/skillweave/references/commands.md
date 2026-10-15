@@ -221,3 +221,14 @@ commit）+ 重跑 `visualize` + 清 worktree/分支。一步做完，**不需要
 **四道闸不过即停**：主 clone 工作区干净且 checkout 在 `--main`（默认 `main`）上；副本工作区干净；
 `--ff-only`（不 ff 先在副本里 rebase 到 main，冲突即 abort 且真包未动）；不 `--force`。
 要停在副本上，得用 `--keep-worktree` / `--no-push` 显式说。
+
+## self-check
+
+```bash
+python3 "$SW" self-check          # 不需要 <pack>：检查的是工具自己（仓库根从 weavelib 反推）
+```
+
+**自举检查**：对 SkillWeave 仓库自身跑一遭 `disclosure`（产物落临时目录，不碰包内 `.skillweave/`），
+读 `disclosure.json.issues`，**未豁免条目为空**才 PASS（退 0），否则列出前 10 条并退 1。用户和 CI
+可用它确认「工具自己符合规范」。两条支撑口径：脚本类文档不做悬空检查、markdown 里悬空照报；
+`SKILL.md` 按**目录**点名覆盖整目录（见 `docs/contract.md` §3/§4）。

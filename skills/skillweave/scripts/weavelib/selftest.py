@@ -2,7 +2,7 @@
 
 从 weave.py 拆出，逻辑未改。"""
 import contextlib, difflib, io, json, os, re, shutil, tempfile
-from .analysis import cmd_audit, cmd_checks, cmd_judge, cmd_layers, cmd_score
+from .analysis import cmd_audit, cmd_checks, cmd_judge, cmd_layers, cmd_score, cmd_self_check
 from .cli import main
 from .common import read_text
 from .deliver import cmd_deliver
@@ -588,6 +588,58 @@ def self_test():
         assert _schema not in _taw.split("## 已豁免", 1)[0], "自动豁免的文件不该在待办表"
         assert _demo not in _taw.split("## 已豁免", 1)[0], "自动豁免的文件不该在待办表"
         assert _schema in _taw.split("## 已豁免 · 自动", 1)[1], "自动豁免该单列一栏"
+        # ticket 05：脚本类文档**不做悬空检查**（脚本里的路径字面量多是 fixture 与注释里的举例，
+        # 与「脚本不计字节」同源），但 markdown 里的悬空**照报** —— 一条反向闸不可少。
+        _sb = os.path.join(tmp, "script-broken-pack")
+        _sbd = os.path.join(_sb, "skills", "sb")
+        os.makedirs(os.path.join(_sbd, "references"))
+        os.makedirs(os.path.join(_sbd, "scripts"))
+        _lit = "references/" + "missing.md"           # 运行时拼：免得本文件自己带上这串字面量
+        open(os.path.join(_sbd, "SKILL.md"), "w").write(
+            "---\nname: sb\ndescription: 脚本不做悬空检查。\n---\n\n# sb\n\n"
+            "见 `references/keep.md`，脚本见 `scripts/tool.py`。\n")
+        open(os.path.join(_sbd, "references", "keep.md"), "w").write("# keep\n")
+        open(os.path.join(_sbd, "references", "has-bad.md"), "w").write(
+            f"# markdown 悬空\n\n另见 `{_lit}`。\n")                    # markdown：照报
+        open(os.path.join(_sbd, "scripts", "tool.py"), "w").write(
+            f"# 脚本里的路径字面量\nNOTE = \"见 `{_lit}` 就懂了\"\n")     # 脚本：不报
+        _osb = os.path.join(tmp, "o-script-broken")
+        assert cmd_disclosure(_sb, _osb) == 0
+        _dsb = json.load(open(os.path.join(_osb, "disclosure.json"), encoding="utf-8"))
+        assert any(b[0] == "skills/sb/references/has-bad.md" and b[1] == _lit for b in _dsb["broken"]), \
+            f"markdown 里的悬空必须照报：{_dsb['broken']}"
+        assert not any(b[0].endswith("tool.py") for b in _dsb["broken"]), \
+            f"脚本类文档不该做悬空检查：{_dsb['broken']}"
+
+        # ticket 05：根文档按**目录**点名（`scripts/weavelib/`）→ 整目录不算「到不了根」（契约 §3）。
+        _dpk = os.path.join(tmp, "dir-named-pack")
+        _dpd = os.path.join(_dpk, "skills", "dn")
+        os.makedirs(os.path.join(_dpd, "scripts", "weavelib"))
+        for _f in ("a.py", "b.py"):
+            open(os.path.join(_dpd, "scripts", "weavelib", _f), "w").write("# x\n")
+        _dirref = "scripts/" + "weavelib/"
+        open(os.path.join(_dpd, "SKILL.md"), "w").write(
+            "---\nname: dn\ndescription: 目录级点名。\n---\n\n# dn\n\n"
+            f"实现在 `{_dirref}`。\n")
+        _odn = os.path.join(tmp, "o-dir-named")
+        assert cmd_disclosure(_dpk, _odn) == 0
+        _ddn = json.load(open(os.path.join(_odn, "disclosure.json"), encoding="utf-8"))
+        assert not _ddn["orphans"], f"目录级点名该覆盖整目录：{_ddn['orphans']}"
+        assert "skills/dn/scripts/weavelib/a.py" in _ddn["levels"].get("2", []), _ddn["levels"]
+
+        # ticket 05：self-check —— 对包自身跑 disclosure，未豁免条目为空才退 0，否则退 1。
+        _scp = os.path.join(tmp, "selfcheck-pack")
+        os.makedirs(os.path.join(_scp, "skills", "ok"), exist_ok=True)
+        open(os.path.join(_scp, "skills", "ok", "SKILL.md"), "w").write(
+            "---\nname: ok\ndescription: 干净包。\n---\n\n# ok\n")
+        _scbuf = io.StringIO()
+        with contextlib.redirect_stdout(_scbuf):
+            assert cmd_self_check(_scp) == 0, "干净包该自举 PASS"
+            open(os.path.join(_scp, "skills", "ok", "SKILL.md"), "a").write(
+                "见 `references/gone.md`。\n")
+            assert cmd_self_check(_scp) == 1, "有未豁免悬空该自举 FAIL"
+        assert "PASS" in _scbuf.getvalue() and "FAIL" in _scbuf.getvalue(), _scbuf.getvalue()
+
         # 非 skill pack 的目录：audit 该报 FAIL 退 1，不该 IndexError（实测 312 个目录里 246 个命中）
         _plain = os.path.join(tmp, "not-a-pack")
         os.makedirs(_plain, exist_ok=True)
@@ -701,6 +753,7 @@ def self_test():
               "issue #5（产物默认落包内 .skillweave/）/ "
               "ticket 02（templates/examples/tests 资源目录自动豁免） / "
               "ticket 04（披露深度 L3+ 只警告不退出） / "
+              "ticket 05（脚本不做悬空检查 / 目录级点名 / self-check） / "
               "ticket 06（执行者配置：prepare 询问并持久化） / "
               "ticket 07（dispatch 读执行者配置 → prompt 末尾输出执行说明） / "
               "issue #08（子命令参数错误统一格式 + 简要帮助）/ "

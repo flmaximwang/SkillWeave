@@ -62,6 +62,20 @@ python3 scripts/weave.py collapse  <pack 目录> --out DIR --apply --entry-dir <
 python3 scripts/weave.py --self-test
 ```
 
+## 验证工具自身合规
+
+SkillWeave 自己就是一个 pack（按上面的定义，含 `SKILL.md` 的仓库就是）。`self-check` 对**仓库自身**跑
+一遭 `disclosure`，要求待办清单为空（豁免除外）—— 这是「工具自己符合规范」的可验证证据，用户和 CI 随时可跑：
+
+```bash
+# 自举检查：对 SkillWeave 自己跑 disclosure，待办为空 → PASS（退 0），否则退 1 并列出问题
+python3 scripts/weave.py self-check
+```
+
+两条支撑它的口径（见 [`docs/contract.md` §3/§4](docs/contract.md)）：**脚本类文档不做「悬空」检查**
+（脚本里的路径字面量多是 fixture / 注释举例，与「脚本不设字节上限」同源），而 **markdown 里悬空照报**；
+`SKILL.md` 按**目录**点名 `` `scripts/weavelib/` `` 即可覆盖整目录。
+
 实测（2026-10-11 · UsingHermes 基准 `b8298f4`，详见那个包里的
 `.skillweave/reports/skillweave-2026-10-11/report-usinghermes.md` —— 档案随被测包走，见下）：
 

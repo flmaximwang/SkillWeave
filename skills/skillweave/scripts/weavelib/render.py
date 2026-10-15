@@ -410,13 +410,11 @@ ACTION = {
 
 
 
-def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers, auto_waived=None, deep_all=()):
-    # 返回 (文本, 待办数, 豁免数)：打印与表头都取这里的数，避免两处各算一遍对不上
-    """一张能照着做的清单：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判。
+def todo_rows(nodes, over_all, orphan_all, broken, dup, waivers, auto_waived=None, deep_all=()):
+    """TODO 的机器可读行 —— 与 `render_todo_md` 同源产出，避免「人读清单」与「机器清单」两套口径漂移。
 
-    豁免分两栏：**自动**（`templates/` · `examples/` · `tests/` 资源目录，无需写 waivers.txt）
-    与**手动**（命中包里 `.skillweave/waivers.txt`）。
-    `deep_all` = [(path, "L{d}（被 L{d-1} 的 {parent} 引用）"), …]，披露深度 ≥ L3 的文档。"""
+    返回 `(auto, todo, waived)`：每行 = `{kind, path, num, action, who, why}`；`todo` 是待办、
+    `waived` 是命中 `waivers.txt` 的手动豁免、`auto` 是资源目录自动豁免（不要求被引用）。"""
     auto, todo, waived = [], [], []
 
     def add(kind, path, num, action, who, extra=""):
@@ -448,6 +446,19 @@ def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers, auto
         add("披露过深", p, num, a, who)
     for p in (auto_waived or []):                  # 自动豁免单列一栏：资源目录不要求被引用，不进待办
         auto.append({"path": p, "num": f"{nodes[p]['bytes']} B", "why": "自动豁免：资源目录"})
+    return auto, todo, waived
+
+
+
+
+def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers, auto_waived=None, deep_all=()):
+    # 返回 (文本, 待办数, 豁免数)：打印与表头都取这里的数，避免两处各算一遍对不上
+    """一张能照着做的清单：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判。
+
+    豁免分两栏：**自动**（`templates/` · `examples/` · `tests/` 资源目录，无需写 waivers.txt）
+    与**手动**（命中包里 `.skillweave/waivers.txt`）。
+    `deep_all` = [(path, "L{d}（被 L{d-1} 的 {parent} 引用）"), …]，披露深度 ≥ L3 的文档。"""
+    auto, todo, waived = todo_rows(nodes, over_all, orphan_all, broken, dup, waivers, auto_waived, deep_all)
 
     L = [f"# 待办 · {os.path.basename(root)}", "",
          "由 `weave.py disclosure` 生成。术语见 `DISCLOSURE.md` 头部术语表。", "",

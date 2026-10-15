@@ -33,7 +33,8 @@ license: MIT
 
 ## 快速开始
 
-实现脚本是本 skill 自包含的 `scripts/weave.py`（仓库根的同名脚本只做转发）。
+实现脚本是本 skill 自包含的 `scripts/weave.py`（仓库根的同名脚本只做转发）；实现模块住在
+`scripts/weavelib/`，入口只做转发。
 
 ```bash
 SW=<weave.py 绝对路径>     # <skills 目录>/skillweave/scripts/weave.py
@@ -69,7 +70,7 @@ python3 "$SW" deliver    "$PACK"   # 默认动作：合回真包 main + push + �
 
 1. **改完必须重跑**：`layers` 的 L1 条目数、常驻 token、L2 超限数、L3 孤儿数四项前后对照。
 2. **TODO 清空**：`disclosure` 的 `TODO.md` 里除已豁免与 `PARKED.md` 外没有剩余条目。
-3. **自举通过**：工具自己也要过自己的检查（`checks` 无安全/可移植命中、`--self-test` 全过）。
+3. **自举通过**：工具自己也要过自己的检查（`self-check` 待办为空、`checks` 无安全/可移植命中、`--self-test` 全过）。
 
 一切数字来自命令输出，不许凭印象；报告里每个数都要带产生它的命令。改动在副本上做，验证通过后
 **默认 `deliver` 合回真包 main 并 push**。
