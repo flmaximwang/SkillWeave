@@ -404,17 +404,19 @@ ACTION = {
     "到不了根": ("判：该被引用（加一条引用）· 该删 · 还是刻意的（免检）", "待模型"),
     "悬空": ("**先判**：包内路径写错（改路径）· 还是在说包外文件（免检）→ 再动手", "待模型"),
     "近重复": ("合并 / 改写其中一条 description", "待模型"),
+    "披露过深": ("考虑：上提到 L2（让 SKILL.md 直接引用）· 合并到父文档 · 或接受当前深度", "待模型"),
 }
 
 
 
 
-def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers, auto_waived=None):
+def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers, auto_waived=None, deep_all=()):
     # 返回 (文本, 待办数, 豁免数)：打印与表头都取这里的数，避免两处各算一遍对不上
     """一张能照着做的清单：每条 = 文档 · 问题 · 数字 · 建议动作 · 谁判。
 
     豁免分两栏：**自动**（`templates/` · `examples/` · `tests/` 资源目录，无需写 waivers.txt）
-    与**手动**（命中包里 `.skillweave/waivers.txt`）。"""
+    与**手动**（命中包里 `.skillweave/waivers.txt`）。
+    `deep_all` = [(path, "L{d}（被 L{d-1} 的 {parent} 引用）"), …]，披露深度 ≥ L3 的文档。"""
     auto, todo, waived = [], [], []
 
     def add(kind, path, num, action, who, extra=""):
@@ -441,6 +443,9 @@ def render_todo_md(root, nodes, over_all, orphan_all, broken, dup, waivers, auto
     for r, a_, b_ in dup:
         a, who = ACTION["近重复"]
         add("近重复", f"{a_} ↔ {b_}", f"相似度 {r}", a, who, extra=b_)
+    for p, num in deep_all:                        # 披露过深：只警告不退出（spec §4）
+        a, who = ACTION["披露过深"]
+        add("披露过深", p, num, a, who)
     for p in (auto_waived or []):                  # 自动豁免单列一栏：资源目录不要求被引用，不进待办
         auto.append({"path": p, "num": f"{nodes[p]['bytes']} B", "why": "自动豁免：资源目录"})
 

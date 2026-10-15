@@ -297,6 +297,24 @@ def cmd_disclosure(root, out):
         elif n["orphan"]:
             orphan_all.append(p)
 
+    # 披露深度：报分布，L3+ **只警告不退出**（spec §4 —— 量出完整问题清单，不拒绝分析）。
+    # 一个节点可能有多条入边；取「depth == d-1 的那条」当它的父，作为「谁引用了它」的证据。
+    inbound = collections.defaultdict(list)
+    for src, ts in edges.items():
+        for q in ts:
+            inbound[q].append(src)
+    max_depth = max((n["depth"] for n in nodes.values() if n["depth"] is not None), default=1)
+    depth_histogram = {d: sum(1 for n in nodes.values() if n["depth"] == d)
+                       for d in range(1, max_depth + 1)}
+    deep_docs = []                              # [(path, depth, parent_path)]，按深度降序
+    for p in sorted(nodes, key=lambda x: (-(nodes[x]["depth"] or 0), x)):
+        d = nodes[p]["depth"]
+        if d is None or d < 3:
+            continue
+        parents = sorted(q for q in inbound.get(p, []) if nodes.get(q, {}).get("depth") == d - 1)
+        deep_docs.append((p, d, parents[0] if parents else "?"))
+    deep_all = [(p, f"L{d}（被 L{d - 1} 的 {parent} 引用）") for p, d, parent in deep_docs]
+
     lv = collections.defaultdict(list)
     for p, n in nodes.items():
         lv[n["depth"]].append(p)
@@ -315,7 +333,7 @@ def cmd_disclosure(root, out):
     os.makedirs(out, exist_ok=True)
     todo_md = os.path.join(out, "TODO.md")
     todo_text, n_todo, n_waived_rows = render_todo_md(
-        root, nodes, over_all, orphan_all, broken, dup, waivers, auto_waived_all)
+        root, nodes, over_all, orphan_all, broken, dup, waivers, auto_waived_all, deep_all)
     with open(todo_md, "w", encoding="utf-8") as f:
         f.write(todo_text)
 
@@ -396,7 +414,8 @@ def cmd_disclosure(root, out):
                    "nodes": {p: {k: v for k, v in n.items()} for p, n in nodes.items()},
                    "edges": {p: ts for p, ts in edges.items()}, "broken": broken, "external": external,
                    "over": over_all, "orphans": orphan_all, "auto_waived": auto_waived_all,
-                   "root_near_dup": dup},
+                   "root_near_dup": dup,
+                   "depth_histogram": {str(k): v for k, v in depth_histogram.items()}},
                   f, ensure_ascii=False, indent=1, sort_keys=True)
     assert rows == len(nodes), f"对账失败：表行数 {rows} != 节点数 {len(nodes)}"
     print(f"[disclosure] 待办清单 → {todo_md}")
@@ -405,5 +424,12 @@ def cmd_disclosure(root, out):
           f" · 文档 {len(nodes)} 份（表行数 {rows} 对账 ✅）· 超限 {len(over_all)} · "
           f"到不了根 {len(orphan_all)} · 自动豁免 {len(auto_waived_all)} · "
           f"悬空 {len(broken)} · external {len(external)}")
+    print(f"[disclosure] 披露深度：" +
+          " → ".join(f"L{d}={depth_histogram[d]}" for d in range(1, max_depth + 1)))
+    if max_depth >= 3:
+        print(f"  ⚠️ 检测到 L{max_depth} 层（Anthropic 建议不超过 L2）")
+        print(f"  深层文档 {len(deep_docs)} 份（显示前 5 个）：")
+        for p, d, _parent in deep_docs[:5]:
+            print(f"    L{d} {p}")
     print(f"[disclosure] 出: {md}")
     return 0

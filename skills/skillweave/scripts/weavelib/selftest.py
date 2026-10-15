@@ -680,6 +680,7 @@ def self_test():
               "issue #3（跨岛同题必须被比到）/ issue #4（节点框数 == 文档数）/ "
               "issue #5（产物默认落包内 .skillweave/）/ "
               "ticket 02（templates/examples/tests 资源目录自动豁免） / "
+              "ticket 04（披露深度 L3+ 只警告不退出） / "
               "issue #08（子命令参数错误统一格式 + 简要帮助）/ "
               "工具目录 .skillweave/ 非成员（免检表读得到、档案不进度量）"
               "—— 全过")
