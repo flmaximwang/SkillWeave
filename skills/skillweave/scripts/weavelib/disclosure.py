@@ -7,7 +7,7 @@ from .common import (CAP_BODY_LINES, CAP_BODY_TOKENS, CAP_DESC_CHARS, CAP_NAME_C
 from .graph import _content_key, _doc_edges, _doc_inbound, _findings, _pack_files, _prompt_for, _read_waivers, _waived
 from .model import git
 from .pack import Pack
-from .render import _doc_nodes, _rev, render_todo_md
+from .render import ACTION, _doc_nodes, _rev, render_todo_md, todo_rows
 
 
 # 资源目录**自动豁免**：这三个目录下的文件不要求被 SKILL.md 显式引用。它们进「已豁免」而不进
@@ -374,6 +374,17 @@ def cmd_disclosure(root, out):
         root, nodes, over_all, orphan_all, broken, dup, waivers, auto_waived_all, deep_all)
     with open(todo_md, "w", encoding="utf-8") as f:
         f.write(todo_text)
+    # 机器可读的待办（`disclosure.json.issues`）：`self-check` 直接读它，不去解析 Markdown。
+    # 字段与 TODO.md 同源（`todo_rows`），并带 waived 判定 —— 未豁免条目为空才算自举通过。
+    _auto_rows, _todo_rows, _waived_rows = todo_rows(
+        nodes, over_all, orphan_all, broken, dup, waivers, auto_waived_all, deep_all)
+    issues = ([{"path": r["path"], "kind": r["kind"], "detail": r["num"], "waived": False,
+                "action": r["action"], "who": r["who"]} for r in _todo_rows]
+              + [{"path": r["path"], "kind": r["kind"], "detail": r["num"], "waived": True,
+                  "action": r["action"], "who": r["who"], "why": r["why"]} for r in _waived_rows]
+              + [{"path": r["path"], "kind": "到不了根", "detail": r["num"], "waived": True,
+                  "action": ACTION["到不了根"][0], "who": ACTION["到不了根"][1], "why": r["why"]}
+                 for r in _auto_rows])
 
     L = [f"# 披露链 · {os.path.basename(root)}", "",
          "## 术语表", "",
@@ -386,7 +397,8 @@ def cmd_disclosure(root, out):
          "- **超限**：超过它那类的上限 —— `name` >64 字符 · `description` >1024 字符（agentskills.io，错误）；"
          "正文 >5000 tok / >500 行 · `references/` 单文件 >300 行（Anthropic 建议，警告）。"
          "**脚本与资源不计**：Agent 不整份读脚本/二进制资源，字节数不是披露缺陷（口径见 `docs/contract.md` §4）。",
-         "- **悬空**：写了像本 pack 内的路径，但那个文件不存在。",
+         "- **悬空**：写了像本 pack 内的路径，但那个文件不存在（**脚本类文档不做这条检查** —— "
+         "脚本里的路径字面量不是披露意图；markdown 里的悬空照报）。",
          "- **external**：正文里提到的本 pack 之外的文件（不算披露、也不算错）。",
          "- **近重复**：同层两份文档太像，Agent 会选错。", "",
          "口径：**层 = 披露深度**（L1 = 根文档 `SKILL.md`；L2 = L1 正文直接点到的文档；Ln+1 由 Ln 披露）。"
@@ -452,7 +464,7 @@ def cmd_disclosure(root, out):
                    "nodes": {p: {k: v for k, v in n.items()} for p, n in nodes.items()},
                    "edges": {p: ts for p, ts in edges.items()}, "broken": broken, "external": external,
                    "over": over_all, "orphans": orphan_all, "auto_waived": auto_waived_all,
-                   "root_near_dup": dup,
+                   "root_near_dup": dup, "issues": issues,
                    "depth_histogram": {str(k): v for k, v in depth_histogram.items()}},
                   f, ensure_ascii=False, indent=1, sort_keys=True)
     assert rows == len(nodes), f"对账失败：表行数 {rows} != 节点数 {len(nodes)}"

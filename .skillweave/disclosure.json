@@ -1,134 +1,304 @@
 {
  "auto_waived": [],
- "broken": [
-  [
-   "skills/skillweave/scripts/weavelib/graph.py",
-   "references/x.md",
-   162
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/model.py",
-   "templates/README.md",
-   79
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "references/guide.md",
-   36
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "references/gone.md",
-   36
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "templates/README.md",
-   37
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "references/中文说明.md",
-   137
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "references/x.md",
-   143
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "references/leaf.md",
-   147
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "references/ref1.md",
-   166
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "references/moved2.md",
-   334
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "references/p1.md",
-   383
-  ],
-  [
-   "skills/skillweave/scripts/weavelib/selftest.py",
-   "references/nope.md",
-   438
-  ]
- ],
+ "broken": [],
  "depth_histogram": {
   "1": 1,
-  "2": 9
+  "2": 22
  },
  "edges": {
   "skills/skillweave/SKILL.md": {
    "skills/skillweave/SKILL.md": 23,
-   "skills/skillweave/references/commands.md": 47,
-   "skills/skillweave/references/concepts.md": 32,
-   "skills/skillweave/references/group.md": 86,
-   "skills/skillweave/references/merge.md": 87,
-   "skills/skillweave/references/pitfalls.md": 84,
-   "skills/skillweave/references/rewrite.md": 88,
-   "skills/skillweave/references/split.md": 85,
-   "skills/skillweave/references/workflow.md": 61,
-   "skills/skillweave/scripts/weave.py": 36
+   "skills/skillweave/references/commands.md": 30,
+   "skills/skillweave/references/concepts.md": 30,
+   "skills/skillweave/references/group.md": 30,
+   "skills/skillweave/references/merge.md": 30,
+   "skills/skillweave/references/pitfalls.md": 30,
+   "skills/skillweave/references/rewrite.md": 30,
+   "skills/skillweave/references/split.md": 30,
+   "skills/skillweave/references/workflow.md": 30,
+   "skills/skillweave/scripts/weave.py": 36,
+   "skills/skillweave/scripts/weavelib/__init__.py": 37,
+   "skills/skillweave/scripts/weavelib/analysis.py": 37,
+   "skills/skillweave/scripts/weavelib/cli.py": 37,
+   "skills/skillweave/scripts/weavelib/common.py": 37,
+   "skills/skillweave/scripts/weavelib/deliver.py": 37,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 37,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 37,
+   "skills/skillweave/scripts/weavelib/graph.py": 37,
+   "skills/skillweave/scripts/weavelib/model.py": 37,
+   "skills/skillweave/scripts/weavelib/pack.py": 37,
+   "skills/skillweave/scripts/weavelib/render.py": 37,
+   "skills/skillweave/scripts/weavelib/selftest.py": 37,
+   "skills/skillweave/scripts/weavelib/transform.py": 37
   },
   "skills/skillweave/references/commands.md": {
-   "skills/skillweave/SKILL.md": 3
+   "docs/contract.md": 234,
+   "skills/skillweave/SKILL.md": 3,
+   "skills/skillweave/references/commands.md": 36,
+   "skills/skillweave/references/concepts.md": 36,
+   "skills/skillweave/references/group.md": 36,
+   "skills/skillweave/references/merge.md": 36,
+   "skills/skillweave/references/pitfalls.md": 36,
+   "skills/skillweave/references/rewrite.md": 36,
+   "skills/skillweave/references/split.md": 36,
+   "skills/skillweave/references/workflow.md": 36,
+   "skills/skillweave/scripts/weave.py": 36,
+   "skills/skillweave/scripts/weavelib/__init__.py": 36,
+   "skills/skillweave/scripts/weavelib/analysis.py": 36,
+   "skills/skillweave/scripts/weavelib/cli.py": 36,
+   "skills/skillweave/scripts/weavelib/common.py": 36,
+   "skills/skillweave/scripts/weavelib/deliver.py": 36,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 36,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 36,
+   "skills/skillweave/scripts/weavelib/graph.py": 36,
+   "skills/skillweave/scripts/weavelib/model.py": 36,
+   "skills/skillweave/scripts/weavelib/pack.py": 36,
+   "skills/skillweave/scripts/weavelib/render.py": 36,
+   "skills/skillweave/scripts/weavelib/selftest.py": 36,
+   "skills/skillweave/scripts/weavelib/transform.py": 36
   },
   "skills/skillweave/references/concepts.md": {
    "docs/contract.md": 3,
-   "docs/prior-art.md": 79,
-   "docs/similar-work.md": 79,
-   "skills/skillweave/SKILL.md": 6
+   "docs/prior-art.md": 83,
+   "docs/similar-work.md": 83,
+   "skills/skillweave/SKILL.md": 6,
+   "skills/skillweave/references/commands.md": 9,
+   "skills/skillweave/references/concepts.md": 9,
+   "skills/skillweave/references/group.md": 9,
+   "skills/skillweave/references/merge.md": 9,
+   "skills/skillweave/references/pitfalls.md": 9,
+   "skills/skillweave/references/rewrite.md": 9,
+   "skills/skillweave/references/split.md": 9,
+   "skills/skillweave/references/workflow.md": 9,
+   "skills/skillweave/scripts/weave.py": 9,
+   "skills/skillweave/scripts/weavelib/__init__.py": 88,
+   "skills/skillweave/scripts/weavelib/analysis.py": 88,
+   "skills/skillweave/scripts/weavelib/cli.py": 88,
+   "skills/skillweave/scripts/weavelib/common.py": 88,
+   "skills/skillweave/scripts/weavelib/deliver.py": 88,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 88,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 88,
+   "skills/skillweave/scripts/weavelib/graph.py": 88,
+   "skills/skillweave/scripts/weavelib/model.py": 88,
+   "skills/skillweave/scripts/weavelib/pack.py": 88,
+   "skills/skillweave/scripts/weavelib/render.py": 88,
+   "skills/skillweave/scripts/weavelib/selftest.py": 88,
+   "skills/skillweave/scripts/weavelib/transform.py": 88
   },
   "skills/skillweave/references/group.md": {
-   "skills/skillweave/SKILL.md": 52
+   "skills/skillweave/SKILL.md": 52,
+   "skills/skillweave/references/commands.md": 52,
+   "skills/skillweave/references/concepts.md": 52,
+   "skills/skillweave/references/group.md": 52,
+   "skills/skillweave/references/merge.md": 52,
+   "skills/skillweave/references/pitfalls.md": 52,
+   "skills/skillweave/references/rewrite.md": 52,
+   "skills/skillweave/references/split.md": 52,
+   "skills/skillweave/references/workflow.md": 52
   },
   "skills/skillweave/references/merge.md": {
-   "skills/skillweave/references/rewrite.md": 29
+   "skills/skillweave/references/commands.md": 21,
+   "skills/skillweave/references/concepts.md": 21,
+   "skills/skillweave/references/group.md": 21,
+   "skills/skillweave/references/merge.md": 21,
+   "skills/skillweave/references/pitfalls.md": 21,
+   "skills/skillweave/references/rewrite.md": 21,
+   "skills/skillweave/references/split.md": 21,
+   "skills/skillweave/references/workflow.md": 21
   },
   "skills/skillweave/references/pitfalls.md": {
    "skills/skillweave/SKILL.md": 46
   },
   "skills/skillweave/references/split.md": {
    "skills/skillweave/SKILL.md": 3,
-   "skills/skillweave/references/concepts.md": 13
+   "skills/skillweave/references/commands.md": 1,
+   "skills/skillweave/references/concepts.md": 1,
+   "skills/skillweave/references/group.md": 1,
+   "skills/skillweave/references/merge.md": 1,
+   "skills/skillweave/references/pitfalls.md": 1,
+   "skills/skillweave/references/rewrite.md": 1,
+   "skills/skillweave/references/split.md": 1,
+   "skills/skillweave/references/workflow.md": 1,
+   "skills/skillweave/scripts/weave.py": 18,
+   "skills/skillweave/scripts/weavelib/__init__.py": 18,
+   "skills/skillweave/scripts/weavelib/analysis.py": 18,
+   "skills/skillweave/scripts/weavelib/cli.py": 18,
+   "skills/skillweave/scripts/weavelib/common.py": 18,
+   "skills/skillweave/scripts/weavelib/deliver.py": 18,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 18,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 18,
+   "skills/skillweave/scripts/weavelib/graph.py": 18,
+   "skills/skillweave/scripts/weavelib/model.py": 18,
+   "skills/skillweave/scripts/weavelib/pack.py": 18,
+   "skills/skillweave/scripts/weavelib/render.py": 18,
+   "skills/skillweave/scripts/weavelib/selftest.py": 18,
+   "skills/skillweave/scripts/weavelib/transform.py": 18
   },
   "skills/skillweave/references/workflow.md": {
    "docs/flow.md": 3,
-   "skills/skillweave/SKILL.md": 47
+   "skills/skillweave/SKILL.md": 47,
+   "skills/skillweave/references/commands.md": 83,
+   "skills/skillweave/references/concepts.md": 83,
+   "skills/skillweave/references/group.md": 83,
+   "skills/skillweave/references/merge.md": 83,
+   "skills/skillweave/references/pitfalls.md": 83,
+   "skills/skillweave/references/rewrite.md": 83,
+   "skills/skillweave/references/split.md": 83,
+   "skills/skillweave/references/workflow.md": 83
+  },
+  "skills/skillweave/scripts/weave.py": {
+   "skills/skillweave/scripts/weavelib/__init__.py": 2,
+   "skills/skillweave/scripts/weavelib/analysis.py": 2,
+   "skills/skillweave/scripts/weavelib/cli.py": 2,
+   "skills/skillweave/scripts/weavelib/common.py": 2,
+   "skills/skillweave/scripts/weavelib/deliver.py": 2,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 2,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 2,
+   "skills/skillweave/scripts/weavelib/graph.py": 2,
+   "skills/skillweave/scripts/weavelib/model.py": 2,
+   "skills/skillweave/scripts/weavelib/pack.py": 2,
+   "skills/skillweave/scripts/weavelib/render.py": 2,
+   "skills/skillweave/scripts/weavelib/selftest.py": 2,
+   "skills/skillweave/scripts/weavelib/transform.py": 2
   },
   "skills/skillweave/scripts/weavelib/__init__.py": {
    "skills/skillweave/scripts/weave.py": 3
   },
   "skills/skillweave/scripts/weavelib/analysis.py": {
    "docs/compare-tools.md": 126,
-   "skills/skillweave/SKILL.md": 86
+   "skills/skillweave/SKILL.md": 86,
+   "skills/skillweave/references/commands.md": 78,
+   "skills/skillweave/references/concepts.md": 78,
+   "skills/skillweave/references/group.md": 78,
+   "skills/skillweave/references/merge.md": 78,
+   "skills/skillweave/references/pitfalls.md": 78,
+   "skills/skillweave/references/rewrite.md": 78,
+   "skills/skillweave/references/split.md": 78,
+   "skills/skillweave/references/workflow.md": 78
   },
   "skills/skillweave/scripts/weavelib/common.py": {
-   "docs/contract.md": 25
+   "docs/contract.md": 19,
+   "skills/skillweave/references/commands.md": 19,
+   "skills/skillweave/references/concepts.md": 19,
+   "skills/skillweave/references/group.md": 19,
+   "skills/skillweave/references/merge.md": 19,
+   "skills/skillweave/references/pitfalls.md": 19,
+   "skills/skillweave/references/rewrite.md": 19,
+   "skills/skillweave/references/split.md": 19,
+   "skills/skillweave/references/workflow.md": 19,
+   "skills/skillweave/scripts/weavelib/__init__.py": 17,
+   "skills/skillweave/scripts/weavelib/analysis.py": 17,
+   "skills/skillweave/scripts/weavelib/cli.py": 17,
+   "skills/skillweave/scripts/weavelib/common.py": 17,
+   "skills/skillweave/scripts/weavelib/deliver.py": 17,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 17,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 17,
+   "skills/skillweave/scripts/weavelib/graph.py": 17,
+   "skills/skillweave/scripts/weavelib/model.py": 17,
+   "skills/skillweave/scripts/weavelib/pack.py": 17,
+   "skills/skillweave/scripts/weavelib/render.py": 17,
+   "skills/skillweave/scripts/weavelib/selftest.py": 17,
+   "skills/skillweave/scripts/weavelib/transform.py": 17
   },
   "skills/skillweave/scripts/weavelib/disclosure.py": {
    "docs/contract.md": 271,
-   "skills/skillweave/SKILL.md": 380
+   "skills/skillweave/SKILL.md": 391,
+   "skills/skillweave/references/commands.md": 319,
+   "skills/skillweave/references/concepts.md": 319,
+   "skills/skillweave/references/group.md": 319,
+   "skills/skillweave/references/merge.md": 319,
+   "skills/skillweave/references/pitfalls.md": 319,
+   "skills/skillweave/references/rewrite.md": 319,
+   "skills/skillweave/references/split.md": 319,
+   "skills/skillweave/references/workflow.md": 319
   },
   "skills/skillweave/scripts/weavelib/graph.py": {
-   "skills/skillweave/SKILL.md": 161
+   "skills/skillweave/SKILL.md": 599,
+   "skills/skillweave/references/commands.md": 599,
+   "skills/skillweave/references/concepts.md": 599,
+   "skills/skillweave/references/group.md": 599,
+   "skills/skillweave/references/merge.md": 599,
+   "skills/skillweave/references/pitfalls.md": 599,
+   "skills/skillweave/references/rewrite.md": 599,
+   "skills/skillweave/references/split.md": 599,
+   "skills/skillweave/references/workflow.md": 599,
+   "skills/skillweave/scripts/weave.py": 599,
+   "skills/skillweave/scripts/weavelib/__init__.py": 599,
+   "skills/skillweave/scripts/weavelib/analysis.py": 599,
+   "skills/skillweave/scripts/weavelib/cli.py": 599,
+   "skills/skillweave/scripts/weavelib/common.py": 599,
+   "skills/skillweave/scripts/weavelib/deliver.py": 599,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 599,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 599,
+   "skills/skillweave/scripts/weavelib/graph.py": 599,
+   "skills/skillweave/scripts/weavelib/model.py": 599,
+   "skills/skillweave/scripts/weavelib/pack.py": 599,
+   "skills/skillweave/scripts/weavelib/render.py": 599,
+   "skills/skillweave/scripts/weavelib/selftest.py": 599,
+   "skills/skillweave/scripts/weavelib/transform.py": 599
   },
   "skills/skillweave/scripts/weavelib/model.py": {
    "docs/contract.md": 12,
-   "skills/skillweave/SKILL.md": 155
+   "skills/skillweave/SKILL.md": 294,
+   "skills/skillweave/references/commands.md": 294,
+   "skills/skillweave/references/concepts.md": 294,
+   "skills/skillweave/references/group.md": 294,
+   "skills/skillweave/references/merge.md": 294,
+   "skills/skillweave/references/pitfalls.md": 294,
+   "skills/skillweave/references/rewrite.md": 294,
+   "skills/skillweave/references/split.md": 294,
+   "skills/skillweave/references/workflow.md": 294,
+   "skills/skillweave/scripts/weave.py": 294,
+   "skills/skillweave/scripts/weavelib/__init__.py": 294,
+   "skills/skillweave/scripts/weavelib/analysis.py": 294,
+   "skills/skillweave/scripts/weavelib/cli.py": 294,
+   "skills/skillweave/scripts/weavelib/common.py": 294,
+   "skills/skillweave/scripts/weavelib/deliver.py": 294,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 294,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 294,
+   "skills/skillweave/scripts/weavelib/graph.py": 294,
+   "skills/skillweave/scripts/weavelib/model.py": 294,
+   "skills/skillweave/scripts/weavelib/pack.py": 294,
+   "skills/skillweave/scripts/weavelib/render.py": 294,
+   "skills/skillweave/scripts/weavelib/selftest.py": 294,
+   "skills/skillweave/scripts/weavelib/transform.py": 294
   },
   "skills/skillweave/scripts/weavelib/render.py": {
    "docs/contract.md": 306,
-   "skills/skillweave/SKILL.md": 81
+   "skills/skillweave/SKILL.md": 81,
+   "skills/skillweave/references/commands.md": 308,
+   "skills/skillweave/references/concepts.md": 308,
+   "skills/skillweave/references/group.md": 308,
+   "skills/skillweave/references/merge.md": 308,
+   "skills/skillweave/references/pitfalls.md": 308,
+   "skills/skillweave/references/rewrite.md": 308,
+   "skills/skillweave/references/split.md": 308,
+   "skills/skillweave/references/workflow.md": 308
+  },
+  "skills/skillweave/scripts/weavelib/selftest.py": {
+   "skills/skillweave/scripts/weavelib/__init__.py": 614,
+   "skills/skillweave/scripts/weavelib/analysis.py": 614,
+   "skills/skillweave/scripts/weavelib/cli.py": 614,
+   "skills/skillweave/scripts/weavelib/common.py": 614,
+   "skills/skillweave/scripts/weavelib/deliver.py": 614,
+   "skills/skillweave/scripts/weavelib/disclosure.py": 614,
+   "skills/skillweave/scripts/weavelib/frontmatter.py": 614,
+   "skills/skillweave/scripts/weavelib/graph.py": 614,
+   "skills/skillweave/scripts/weavelib/model.py": 614,
+   "skills/skillweave/scripts/weavelib/pack.py": 614,
+   "skills/skillweave/scripts/weavelib/render.py": 614,
+   "skills/skillweave/scripts/weavelib/selftest.py": 614,
+   "skills/skillweave/scripts/weavelib/transform.py": 614
+  },
+  "skills/skillweave/scripts/weavelib/transform.py": {
+   "skills/skillweave/references/commands.md": 642,
+   "skills/skillweave/references/concepts.md": 642,
+   "skills/skillweave/references/group.md": 642,
+   "skills/skillweave/references/merge.md": 642,
+   "skills/skillweave/references/pitfalls.md": 642,
+   "skills/skillweave/references/rewrite.md": 642,
+   "skills/skillweave/references/split.md": 642,
+   "skills/skillweave/references/workflow.md": 642
   }
  },
  "external": [
@@ -145,12 +315,12 @@
   [
    "skills/skillweave/references/concepts.md",
    "weavelib/common.py",
-   63
+   67
   ],
   [
    "skills/skillweave/references/concepts.md",
    "/.skillweave/waivers.txt",
-   112
+   117
   ],
   [
    "skills/skillweave/references/pitfalls.md",
@@ -170,12 +340,12 @@
   [
    "skills/skillweave/scripts/weavelib/disclosure.py",
    ".skillweave/waivers.txt",
-   401
+   413
   ],
   [
    "skills/skillweave/scripts/weavelib/graph.py",
    "/.skillweave/waivers.txt",
-   221
+   241
   ],
   [
    "skills/skillweave/scripts/weavelib/render.py",
@@ -190,12 +360,12 @@
   [
    "skills/skillweave/scripts/weavelib/render.py",
    ".skillweave/waivers.txt",
-   418
+   459
   ],
   [
    "skills/skillweave/scripts/weavelib/render.py",
    "/.skillweave/waivers.txt",
-   478
+   489
   ],
   [
    "skills/skillweave/scripts/weavelib/selftest.py",
@@ -213,6 +383,7 @@
    471
   ]
  ],
+ "issues": [],
  "levels": {
   "1": [
    "skills/skillweave/SKILL.md"
@@ -226,9 +397,7 @@
    "skills/skillweave/references/rewrite.md",
    "skills/skillweave/references/split.md",
    "skills/skillweave/references/workflow.md",
-   "skills/skillweave/scripts/weave.py"
-  ],
-  "None": [
+   "skills/skillweave/scripts/weave.py",
    "skills/skillweave/scripts/weavelib/__init__.py",
    "skills/skillweave/scripts/weavelib/analysis.py",
    "skills/skillweave/scripts/weavelib/cli.py",
@@ -246,50 +415,50 @@
  },
  "nodes": {
   "skills/skillweave/SKILL.md": {
-   "bytes": 6044,
+   "bytes": 6134,
    "depth": 1,
    "desc_chars": 180,
    "kind": "instructions",
-   "lines": 84,
+   "lines": 85,
    "name": "skillweave",
    "orphan": false,
    "over": [],
    "path": "skills/skillweave/SKILL.md",
    "root": true,
    "skill": "skills/skillweave/",
-   "tok": 1810,
+   "tok": 1838,
    "waive_reason": null,
    "waived": false
   },
   "skills/skillweave/references/commands.md": {
-   "bytes": 10911,
+   "bytes": 11525,
    "depth": 2,
    "desc_chars": null,
    "kind": "reference",
-   "lines": 224,
+   "lines": 235,
    "name": "commands.md",
    "orphan": false,
    "over": [],
    "path": "skills/skillweave/references/commands.md",
    "root": false,
    "skill": "skills/skillweave/",
-   "tok": 3236,
+   "tok": 3421,
    "waive_reason": null,
    "waived": false
   },
   "skills/skillweave/references/concepts.md": {
-   "bytes": 8023,
+   "bytes": 8725,
    "depth": 2,
    "desc_chars": null,
    "kind": "reference",
-   "lines": 120,
+   "lines": 125,
    "name": "concepts.md",
    "orphan": false,
    "over": [],
    "path": "skills/skillweave/references/concepts.md",
    "root": false,
    "skill": "skills/skillweave/",
-   "tok": 2424,
+   "tok": 2646,
    "waive_reason": null,
    "waived": false
   },
@@ -407,12 +576,12 @@
   },
   "skills/skillweave/scripts/weavelib/__init__.py": {
    "bytes": 974,
-   "depth": null,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "__init__.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/__init__.py",
    "root": false,
@@ -422,13 +591,13 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/analysis.py": {
-   "bytes": 19835,
-   "depth": null,
+   "bytes": 21637,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "analysis.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/analysis.py",
    "root": false,
@@ -438,13 +607,13 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/cli.py": {
-   "bytes": 14089,
-   "depth": null,
+   "bytes": 14808,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "cli.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/cli.py",
    "root": false,
@@ -454,13 +623,13 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/common.py": {
-   "bytes": 8347,
-   "depth": null,
+   "bytes": 9589,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "common.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/common.py",
    "root": false,
@@ -471,12 +640,12 @@
   },
   "skills/skillweave/scripts/weavelib/deliver.py": {
    "bytes": 11423,
-   "depth": null,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "deliver.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/deliver.py",
    "root": false,
@@ -486,13 +655,13 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/disclosure.py": {
-   "bytes": 27761,
-   "depth": null,
+   "bytes": 28910,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "disclosure.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/disclosure.py",
    "root": false,
@@ -503,12 +672,12 @@
   },
   "skills/skillweave/scripts/weavelib/frontmatter.py": {
    "bytes": 6927,
-   "depth": null,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "frontmatter.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/frontmatter.py",
    "root": false,
@@ -518,13 +687,13 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/graph.py": {
-   "bytes": 27032,
-   "depth": null,
+   "bytes": 28576,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "graph.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/graph.py",
    "root": false,
@@ -535,12 +704,12 @@
   },
   "skills/skillweave/scripts/weavelib/model.py": {
    "bytes": 14540,
-   "depth": null,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "model.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/model.py",
    "root": false,
@@ -551,12 +720,12 @@
   },
   "skills/skillweave/scripts/weavelib/pack.py": {
    "bytes": 4184,
-   "depth": null,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "pack.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/pack.py",
    "root": false,
@@ -566,13 +735,13 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/render.py": {
-   "bytes": 23980,
-   "depth": null,
+   "bytes": 24587,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "render.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/render.py",
    "root": false,
@@ -582,13 +751,13 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/selftest.py": {
-   "bytes": 50873,
-   "depth": null,
+   "bytes": 54546,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "selftest.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/selftest.py",
    "root": false,
@@ -599,12 +768,12 @@
   },
   "skills/skillweave/scripts/weavelib/transform.py": {
    "bytes": 40494,
-   "depth": null,
+   "depth": 2,
    "desc_chars": null,
    "kind": "script",
    "lines": null,
    "name": "transform.py",
-   "orphan": true,
+   "orphan": false,
    "over": [],
    "path": "skills/skillweave/scripts/weavelib/transform.py",
    "root": false,
@@ -614,21 +783,7 @@
    "waived": false
   }
  },
- "orphans": [
-  "skills/skillweave/scripts/weavelib/__init__.py",
-  "skills/skillweave/scripts/weavelib/analysis.py",
-  "skills/skillweave/scripts/weavelib/cli.py",
-  "skills/skillweave/scripts/weavelib/common.py",
-  "skills/skillweave/scripts/weavelib/deliver.py",
-  "skills/skillweave/scripts/weavelib/disclosure.py",
-  "skills/skillweave/scripts/weavelib/frontmatter.py",
-  "skills/skillweave/scripts/weavelib/graph.py",
-  "skills/skillweave/scripts/weavelib/model.py",
-  "skills/skillweave/scripts/weavelib/pack.py",
-  "skills/skillweave/scripts/weavelib/render.py",
-  "skills/skillweave/scripts/weavelib/selftest.py",
-  "skills/skillweave/scripts/weavelib/transform.py"
- ],
+ "orphans": [],
  "over": [],
  "root_near_dup": [],
  "roots": [

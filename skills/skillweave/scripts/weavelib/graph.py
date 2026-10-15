@@ -2,7 +2,8 @@
 
 从 weave.py 拆出，逻辑未改。"""
 import collections, difflib, fnmatch, hashlib, json, os, re, subprocess
-from .common import extract_declared_refs, fence_lines, headings, kind_of_file, read_text
+from .common import (extract_declared_refs, extract_named_dirs, fence_lines, headings, kind_of_file,
+                     read_text)
 from .model import SKIP_DIRS, SKIP_FILES, git, skills_root
 
 
@@ -209,8 +210,27 @@ def _doc_edges(root, nodes, broken, external):
                 if raw.startswith(("../", "/")) or not t.startswith(("references/", "scripts/",
                                                                      "assets/", "templates/")):
                     external.append((p, raw, line))
-                else:
+                elif n["kind"] != "script":
+                    # **脚本类文档不做悬空检查**（契约 §3 / §4）：Agent 不整份读脚本，脚本里的路径
+                    # 字面量多是 fixture 与注释里的举例，不是披露意图 —— 与「脚本不计字节」同源。
+                    # 判据复用既有的 `kind_of_file`（`scripts/**` 或脚本后缀 → kind == "script"）。
                     broken.append((p, raw, line))
+        # 目录级点名（契约 §3）：正文点名了一个目录（如 `scripts/weavelib/`）→ 该目录下的所有文档
+        # 都算被它披露到。目录自身不是文档节点，所以要展开成子节点；只认**存在**的目录，目录不存在
+        # 不算悬空（悬空只针对文件路径）。
+        skill_dir = os.path.join(root, n["skill"])
+        for d, dline in extract_named_dirs(text):
+            for cand in (os.path.normpath(os.path.join(root, os.path.dirname(p), d)),
+                         os.path.normpath(os.path.join(skill_dir, d)),
+                         os.path.normpath(os.path.join(nearest_skill_dir(root, p) or "\0none", d)),
+                         os.path.normpath(os.path.join(root, d))):
+                if not cand.startswith(root) or not os.path.isdir(cand):
+                    continue
+                drel = os.path.relpath(cand, root).replace(os.sep, "/")
+                for q in sorted(nodes):
+                    if q.startswith(drel + "/"):
+                        out.setdefault(p, {})[q] = dline
+                break
     return out
 
 

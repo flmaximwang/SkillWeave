@@ -14,6 +14,12 @@ PATH_RE = re.compile(
     r"(?:[A-Za-z0-9_./-]|[\u0080-\uffff])+\.(?:md|markdown|py|sh|bash|js|ts|json|ya?ml|txt|csv|tsv|toml|ini|cfg|png|jpe?g|svg|gif|html|pdf)\b")
 
 
+# 目录级点名的路径：**整段**恰好是一个相对目录（尾 `/`），如 `scripts/weavelib/`。
+# 与 PATH_RE 分开：目录天生没有扩展名，PATH_RE 不认；而且只有整段就是目录时才算一次点名
+# （`references/x.md` 里的 `references/` 不算独立点名）。口径见 `docs/contract.md` §3。
+DIR_PATH_RE = re.compile(r"(?!\.)[\w./-]+/")
+
+
 SCRIPT_EXT = {".py", ".sh", ".bash", ".js", ".ts", ".rb", ".pl"}
 
 
@@ -220,6 +226,26 @@ def extract_declared_refs(body, skill_rel):
             seen.add(target)
             line = body[:off + mm.start()].count("\n") + 1
             out.append((target, line))
+    return out
+
+
+
+
+def extract_named_dirs(body):
+    """正文里**整段就是一个相对目录路径**（尾 `/`）的点名 —— 例如 `scripts/weavelib/`。
+
+    与 `extract_declared_refs` 分开：目录天生没有扩展名（`PATH_RE` 不认），且只有**整段**恰好是
+    目录路径时才算一次点名（`references/x.md` 里的 `references/` 不算独立点名）。
+    口径：契约 §3「点名含**目录级**」—— 一份文档点名了目录，则该目录下的文档都算被它点到。"""
+    out, seen = [], set()
+    for m in re.finditer(r"`([^`\n]{1,200})`", body):
+        c = m.group(1).strip()
+        if c in seen or not c.endswith("/") or "://" in c:
+            continue
+        if not DIR_PATH_RE.fullmatch(c):
+            continue
+        seen.add(c)
+        out.append((c, body[:m.start()].count("\n") + 1))
     return out
 
 

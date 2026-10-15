@@ -199,6 +199,42 @@ def cmd_checks(root, out):
 
 
 
+def cmd_self_check(root):
+    """对 SkillWeave 自己跑一遭 `disclosure`，要求**待办清单为空（豁免除外）** → 退 0，否则退 1。
+
+    这是「工具自己符合规范」的可验证证据：读 `disclosure.json.issues`（机器可读、与 `TODO.md`
+    同源），未豁免条目为空才算通过。产物落临时目录，不碰仓库（不改包内 `.skillweave/`）。"""
+    import contextlib, io, tempfile
+    from .disclosure import cmd_disclosure                                  # 就近导入，避免模块级环
+    root = os.path.abspath(root)
+    print("[self-check] 对 SkillWeave 自己运行 disclosure...")
+    tmp = tempfile.mkdtemp(prefix="skillweave-self-")
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):                                   # disclosure 的输出只在失败时回放
+        ret = cmd_disclosure(root, tmp)
+    if ret != 0:
+        print(buf.getvalue().rstrip())
+        print(f"[self-check] FAIL disclosure 返回 {ret}")
+        return 1
+    todo_json = os.path.join(tmp, "disclosure.json")
+    if not os.path.exists(todo_json):
+        print(f"[self-check] FAIL 未找到 {todo_json}")
+        return 1
+    with open(todo_json, encoding="utf-8") as f:
+        dj = json.load(f)
+    issues = [it for it in dj.get("issues", []) if not it.get("waived")]
+    if issues:
+        print(f"[self-check] FAIL 发现 {len(issues)} 个未解决问题：")
+        for it in issues[:10]:                                              # 只列前 10 条
+            print(f"  - {it.get('path', '?')}: {it.get('kind', '?')} — {it.get('detail', '')}")
+        print(f"[self-check] 查看完整清单: {os.path.join(tmp, 'TODO.md')}")
+        return 1
+    print(f"[self-check] PASS 自举检查通过（{tmp}）")
+    return 0
+
+
+
+
 def cmd_audit(root, out, top=20):
     """审计四段：size（体积对照）· orphan（孤儿/悬空）· dup（同层近重复抢题）· cost（两组成本）。"""
     pack = Pack.load(root)
