@@ -157,6 +157,30 @@ def self_test():
             "嵌套 skill 的披露边该连到它自己目录下的文件"
         _d8 = json.load(open(os.path.join(out8, "disclosure.json"), encoding="utf-8"))
         assert _d8["external"], "fixture 里放了一条包外引用，external 不该是空的"
+        # 披露过深（issue #4 的姊妹项）：SKILL.md → ref1 → ref2 → ref3（四层链）
+        # —— L3+ **只警告不退出**，且每个深层文档在 TODO.md 里有一条「披露过深」待办。
+        _deep = os.path.join(tmp, "deep-pack")
+        _ddir = os.path.join(_deep, "skills", "deep")
+        os.makedirs(os.path.join(_ddir, "references"), exist_ok=True)
+        with open(os.path.join(_ddir, "SKILL.md"), "w", encoding="utf-8") as f:
+            f.write("---\nname: deep\ndescription: 深链样例。\n---\n\n见 `references/ref1.md`。\n")
+        for _i in (1, 2, 3):
+            with open(os.path.join(_ddir, "references", f"ref{_i}.md"), "w", encoding="utf-8") as f:
+                f.write(f"ref{_i}\n\n见 `references/ref{_i + 1}.md`。\n" if _i < 3 else f"ref{_i}\n")
+        _odp = os.path.join(tmp, "o-deep")
+        _buf = io.StringIO()
+        with contextlib.redirect_stdout(_buf):
+            _drc = cmd_disclosure(_deep, _odp)
+        assert _drc == 0, "L4 只警告不退出（不许因为披露过深就拒绝分析）"
+        _dout = _buf.getvalue()
+        assert "⚠️ 检测到 L4 层" in _dout, _dout
+        assert "披露深度：L1=1 → L2=1 → L3=1 → L4=1" in _dout, _dout
+        _ddj = json.load(open(os.path.join(_odp, "disclosure.json"), encoding="utf-8"))
+        assert _ddj["depth_histogram"] == {"1": 1, "2": 1, "3": 1, "4": 1}, _ddj["depth_histogram"]
+        assert _ddj["nodes"]["skills/deep/references/ref3.md"]["depth"] == 4, _ddj["nodes"]
+        _dt = open(os.path.join(_odp, "TODO.md"), encoding="utf-8").read()
+        assert "披露过深" in _dt and "`skills/deep/references/ref3.md`" in _dt, _dt
+        assert "L4（被 L3 的 skills/deep/references/ref2.md 引用）" in _dt, _dt
         todo_md = os.path.join(out8, "TODO.md")
         assert os.path.isfile(todo_md), "缺 TODO.md"
         t0 = open(todo_md, encoding="utf-8").read()
