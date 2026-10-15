@@ -29,6 +29,8 @@ def main(argv=None):
     ap.add_argument("--entry-dir", default=None)
     ap.add_argument("--dest", default=None)
     ap.add_argument("--shape", default=None)
+    ap.add_argument("--executor", default=None, choices=["opencode", "claude-code", "subagent", "manual"],
+                    help="prepare 阶段的执行者（非交互指定；不填则在交互终端询问）")
     ap.add_argument("--state", default=None)
     ap.add_argument("--expect-fixed", nargs="*", default=[])
     ap.add_argument("--splits", default=None)
@@ -103,7 +105,8 @@ def main(argv=None):
     if a.cmd == "prepare":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(root, ".skillweave")
-        return cmd_prepare(root, out, dest=a.dest, shape=a.shape, description=a.description)
+        return cmd_prepare(root, out, dest=a.dest, shape=a.shape, description=a.description,
+                           executor=a.executor)
     if a.cmd == "collapse":
         root = os.path.abspath(a.pack.rstrip("/"))
         out = a.out or os.path.join(root, ".skillweave")

@@ -1,7 +1,7 @@
 """改写命令：propose / apply / collapse / prepare。
 
 从 weave.py 拆出，逻辑未改。"""
-import collections, difflib, json, os, re, shutil, subprocess, tempfile, time, unicodedata
+import collections, difflib, json, os, re, shutil, subprocess, sys, tempfile, time, unicodedata
 from .common import description_health, est_tokens, read_text, sha256_file
 from .deliver import _ensure_git_copy, _worktree_copy
 from .frontmatter import frontmatter_selfcheck, parse_frontmatter, yaml_scalar
@@ -468,7 +468,60 @@ def _revert_item(root, pfile, item_id):
 
 
 
-def cmd_prepare(pack, out, dest=None, shape=None, description=None):
+# 执行者配置（ticket 06）：在 `prepare` 建副本时问一次并存进 `<dest>/dispatch/executor.json`，
+# 让 D 阶段（`dispatch`，ticket 07）直接读配置生成执行说明，而不是跑到一半再问用户。
+# `command_template` 里的 `{model}` / `{input}` / `{output}` 由 `cmd_dispatch()` 填充。
+EXECUTORS = {
+    "opencode": {
+        "type": "opencode",
+        "model": "deepseek-v4.1-flash",
+        "command_template": "opencode --model {model} --prompt {input} --output {output}",
+    },
+    "claude-code": {
+        "type": "claude-code",
+        "command_template": "claude-code --file {input}",
+    },
+    "subagent": {
+        "type": "subagent",
+        "command_template": "delegate_task(goal='执行批次提案', context='{input}')",
+    },
+    "manual": {
+        "type": "manual",
+        "command_template": "请手动执行 {input} 并将提案写入 {output}",
+    },
+}
+
+# 交互菜单编号 → `--executor` 取值（同一套 key，两条入口殊途同归）
+EXECUTOR_MENU = {"1": "opencode", "2": "claude-code", "3": "subagent", "4": "manual"}
+
+
+def _pick_executor(executor=None):
+    """定执行者：显式给了就用它；否则在交互终端里问一次；**非交互（CI/管道）默认 manual，绝不阻塞**。
+
+    返回 `EXECUTORS` 的 key；非法输入或 EOF 返回 None（调用方按 FAIL 处理）。"""
+    if executor is not None:
+        if executor not in EXECUTORS:
+            print(f"[prepare] FAIL --executor 只能是 {'/'.join(EXECUTORS)}，实得 {executor!r}")
+            return None
+        return executor
+    if not sys.stdin.isatty():
+        print("[prepare] 非交互环境：默认执行者 manual（用 --executor 显式指定）")
+        return "manual"
+    print("\n选择执行者（用于 dispatch 阶段的批次执行）：")
+    print("  1) opencode + deepseek-v4.1-flash")
+    print("  2) claude-code")
+    print("  3) 子代理（delegate_task）")
+    print("  4) 手动执行")
+    choice = input("输入编号 [1-4, 默认 4]: ").strip() or "4"
+    return EXECUTOR_MENU.get(choice, "manual")
+
+
+def _executor_label(cfg):
+    """`BASELINE.md` 里那一行执行者记录：`opencode (deepseek-v4.1-flash)` / `manual`。"""
+    return cfg.get("type", "?") + (f" ({cfg['model']})" if cfg.get("model") else "")
+
+
+def cmd_prepare(pack, out, dest=None, shape=None, description=None, executor=None):
     """第一步：把「一整个目录的 skill」变成一份**可回滚、可对账**的工作副本。
 
     ① clonefile 拷贝（原目录只读，不碰）；② 副本里确保由 git 管（自带 git 就摘 remote + 记起点，
@@ -477,6 +530,9 @@ def cmd_prepare(pack, out, dest=None, shape=None, description=None):
     待用户选定的形状。
 
     形状必须用户定：`--shape single|multi` 用来记下选择；不填就留 ⏳ 待选。
+
+    执行者（ticket 06）：首次建副本时问一次执行者（或 `--executor` 非交互指定），存进
+    `<dest>/dispatch/executor.json` 并记进 `BASELINE.md`，供 D 阶段读取。已有配置就沿用，不再问。
     """
     pack = os.path.abspath(pack.rstrip("/"))
     if not os.path.isdir(pack):
@@ -506,6 +562,24 @@ def cmd_prepare(pack, out, dest=None, shape=None, description=None):
         rev = _ensure_git_copy(work, log)
     log.append(f"工作区：`{work}`")
     dest = work
+
+    # 执行者配置：首次 prepare 问一次并存进副本（已有就沿用，绝不打断后续流程）。存进副本的
+    # `dispatch/`，与 D 阶段产物同处，`dispatch` 直接读得到。
+    executor_path = os.path.join(dest, "dispatch", "executor.json")
+    if os.path.exists(executor_path):
+        with open(executor_path, encoding="utf-8") as f:
+            executor_cfg = json.load(f)
+        print(f"[prepare] 执行者配置已存在，沿用: {executor_path}")
+    else:
+        kind = _pick_executor(executor)
+        if kind is None:
+            return 2
+        executor_cfg = EXECUTORS[kind]
+        os.makedirs(os.path.dirname(executor_path), exist_ok=True)
+        with open(executor_path, "w", encoding="utf-8") as f:
+            json.dump(executor_cfg, f, indent=2, ensure_ascii=False)
+        print(f"[prepare] 执行者配置已保存: {executor_path}")
+    log.append(f"执行者：{_executor_label(executor_cfg)}")
 
     pack_obj = Pack.load(dest)
     if pack_obj is None:
@@ -552,6 +626,7 @@ def cmd_prepare(pack, out, dest=None, shape=None, description=None):
     print(f"[prepare] 副本 {dest} · rev {rev} · skill {len(skills)} · 入口层 {len(first_layer_entries(tree))} 项 "
           f"· 推导的 L1 = {len(dirs)} 个岛 · 常驻 {resident} tok")
     print(f"[prepare] 形状：{'A 单入口' if shape == 'single' else ('B 多入口' if shape == 'multi' else '⏳ 待用户选')}")
+    print(f"[prepare] 执行者：{_executor_label(executor_cfg)} → {executor_path}")
     print(f"[prepare] 出: {md}")
     return 0
 

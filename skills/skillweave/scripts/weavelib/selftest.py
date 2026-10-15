@@ -200,7 +200,8 @@ def self_test():
         git(_repo, "-c", "user.name=t", "-c", "user.email=t@t", "add", "-A")
         git(_repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "init")
         _wt = os.path.join(tmp, "repo-wt")
-        assert cmd_prepare(_repo, os.path.join(tmp, "o-prep-wt"), dest=_wt, shape="multi") == 0, \
+        assert cmd_prepare(_repo, os.path.join(tmp, "o-prep-wt"), dest=_wt, shape="multi",
+                           executor="manual") == 0, \
             "git 仓库输入该走 worktree"
         assert os.path.isfile(os.path.join(_wt, ".git")), "worktree 的 .git 该是个文件，不是目录"
         wl = git(_repo, "worktree", "list")
@@ -212,7 +213,8 @@ def self_test():
         with open(os.path.join(_plain, "skills", "demo", "SKILL.md"), "w") as f:
             f.write("---\nname: demo\ndescription: 做一件事时用。\n---\n\n见 `references/x.md`。\n")
         _cp = os.path.join(tmp, "plain-copy")
-        assert cmd_prepare(_plain, os.path.join(tmp, "o-prep-cp"), dest=_cp, shape="multi") == 0, \
+        assert cmd_prepare(_plain, os.path.join(tmp, "o-prep-cp"), dest=_cp, shape="multi",
+                           executor="manual") == 0, \
             "非 git 输入该走拷贝"
         assert git(_cp, "rev-parse", "--git-dir") is not None, "副本该被 git 管起来"
         assert not os.path.exists(os.path.join(_plain, ".git")), "原目录不该被 git init"
@@ -412,13 +414,21 @@ def self_test():
         # 第一步 prepare：非 git 的输入 → 副本由 git 管、原目录不被碰、BASELINE.md 出两种形状的账
         out7 = os.path.join(tmp, "o7")
         dest7 = os.path.join(tmp, "ws", "pack")
-        assert cmd_prepare(pack, out7, dest=dest7) == 0
+        assert cmd_prepare(pack, out7, dest=dest7, executor="opencode") == 0
         assert os.path.isdir(os.path.join(dest7, ".git")), "副本没有被 git 管"
         assert git(dest7, "log", "--oneline").stdout.strip(), "副本没有起点 commit"
         assert not os.path.exists(os.path.join(pack, ".git")), "原目录被动了"
+        # ticket 06：执行者配置写进副本、内容正确、并记进 BASELINE.md
+        _ej = os.path.join(dest7, "dispatch", "executor.json")
+        assert os.path.isfile(_ej), "prepare 该写出 dispatch/executor.json"
+        _ec = json.load(open(_ej, encoding="utf-8"))
+        assert _ec["type"] == "opencode" and _ec.get("model") == "deepseek-v4.1-flash", _ec
+        assert "{model}" in _ec["command_template"] and "{input}" in _ec["command_template"], _ec
         base = open(os.path.join(out7, "BASELINE.md"), encoding="utf-8").read()
+        assert "执行者：opencode (deepseek-v4.1-flash)" in base, base[:400]
+        # 已有配置 → 沿用（不再问、不改内容）；非交互默认 manual 也不阻塞
+        assert cmd_prepare(pack, out7, dest=dest7, executor="manual") == 2, "副本已存在时必须拒绝覆盖"
         assert "A 单入口" in base and "B 多入口" in base and "待用户选" in base, base[:200]
-        assert cmd_prepare(pack, out7, dest=dest7) == 2, "副本已存在时必须拒绝覆盖"
         # 单入口方案：干跑必须算出 L1=1；--apply 不给 description 必须拒绝（不许生成半成品）
         out6 = os.path.join(tmp, "o6")
         assert cmd_collapse(pack, out6) == 0
@@ -562,7 +572,7 @@ def self_test():
         git(_dp, "push", "-q", "origin", "main")
         _wt = os.path.join(tmp, "deliver-ws")
         _od = os.path.join(tmp, "o-deliver")
-        assert cmd_prepare(_dp, _od, dest=_wt, shape="single") == 0
+        assert cmd_prepare(_dp, _od, dest=_wt, shape="single", executor="manual") == 0
         _dp_before = _rev(_dp)
         with open(os.path.join(_wt, "skills", "d", "SKILL.md"), "a") as f:
             f.write("\n改一行。\n")
