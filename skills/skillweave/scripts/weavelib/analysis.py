@@ -78,13 +78,15 @@ def cmd_layers(root, out):
         L.append(f"  ↳ 其中 {len(nested)} 个是**岛内嵌套 skill**（住在入口的 `references/` 里）："
                  f"单入口形状下它们不进常驻菜单，常驻只有 {len(top)} 条 = {top_tok} token；"
                  f"上行的 {est_tokens(l1_text)} token 是**多入口**口径（= 契约 §7 的 L1 对比列）。")
-    if len(entries) > MAX_FIRST_LAYER:
-        L.append(f"  ❌ 第一层条目 {len(entries)} > 上限 {MAX_FIRST_LAYER}（口径见 docs/contract.md §4）")
+    # 入口层条目数：工程参考线（`FIRST_LAYER_REFERENCE`），**不是规范要求** —— 超了只提示、供分组决策，不拦。
+    if len(entries) > FIRST_LAYER_REFERENCE:
+        L.append(f"  ⚠️ 第一层条目 {len(entries)} > 参考线 {FIRST_LAYER_REFERENCE}"
+                 f"（非规范要求；来源：工具的分组启发式，不是 agentskills.io / Anthropic 的 cap）")
     if rep["L1"]["over_1024_chars"]:
-        L.append(f"  ❌ description 超 1024 字符: {rep['L1']['over_1024_chars']}")
+        L.append(f"  ❌ description 超 {CAP_DESC_CHARS} 字符: {rep['L1']['over_1024_chars']}")
     L.append("")
     L.append(f"**L2（第二级 · 触发后载入 `SKILL.md` 正文）** 超限 {len(over_l2)} 个"
-             f"（>5000 est_token 或 >500 行）")
+             f"（>{CAP_BODY_TOKENS} est_token 或 >{CAP_BODY_LINES} 行）")
     for r in rep["L2"]["max_many"]:
         L.append(f"  {r['est_tokens']:>6} tok {r['lines']:>4} 行  {r['id']}")
     ct = rep["L2"]["counts_totals"]
@@ -106,7 +108,7 @@ def cmd_layers(root, out):
           f"（未跟踪 skill 形目录 {len(skipped)} 个{': ' + ', '.join(skipped[:3]) if skipped else ''}）")
     print(f"[layers] L1 技能={len(skills)} · 入口层 `{sr['id'] or '<pack>/'}` 摆出 {len(entries)} 项"
           f"（散技能 {len(loose)} + 类目 {len(cats)}）· 常驻 {l1_chars} 字符 ≈ {est_tokens(l1_text)} token"
-          f" · {'❌ 超上限 ' + str(MAX_FIRST_LAYER) if len(entries) > MAX_FIRST_LAYER else '✅ 在上限内'}")
+          f" · {'⚠️ 超参考线 ' + str(FIRST_LAYER_REFERENCE) + '（非规范，仅提示分组）' if len(entries) > FIRST_LAYER_REFERENCE else '✅ 在参考线内'}")
     print(f"[layers] L2 正文超限={len(over_l2)} 个 · 最大: "
           + "; ".join(f"{r['id']}={r['est_tokens']}tok/{r['lines']}行" for r in rep['L2']['max_many'][:3]))
     print(f"[layers] L3 文件={len(l3_files)} 孤儿={len(orphans)} 悬空={len(broken)}")
@@ -119,9 +121,8 @@ def cmd_layers(root, out):
 
 
 
-MAX_FIRST_LAYER = 20   # 出处：Dream 的 check-disclosure.py `MAX_FIRST_LAYER_SKILLS`；口径见 docs/contract.md §4
-
-
+# 入口层条目数的参考线来自 `common.FIRST_LAYER_REFERENCE`（非规范要求，见 docs/contract.md §4）；
+# 此处不再保留 Dream `MAX_FIRST_LAYER_SKILLS` 的本地副本。
 
 # 内化自 skill-tools 的检查（`docs/compare-tools.md` §3）：安全/可移植闸 + spec 检查
 SECRET_PATTERNS = [
