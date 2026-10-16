@@ -89,3 +89,51 @@ markdown SKILL.md:7 写 `references/nope.md`   → 仍报悬空 ✅
    push 后首次 workflow 运行才算真验证。
 4. **`.skillweave/` 快照已随包提交**（契约 §9）：`DISCLOSURE.md` / `disclosure.json` / `TODO.md`。
 5. **spec 中未做的**：CLI 的 `help <command>` 子命令（ticket 08 只做了错误消息统一与简要帮助）。
+
+---
+
+## 五、清理阶段的新发现（2026-10-16 补充）
+
+### 5.1 一个「迟到提交」造成的真缺口（已修复）
+
+清理分支时发现 `ticket-01` 的 tip 不是我提交的 `3eb3bc1`，而是 `5265afd`「（补全）」——
+最早那批 opencode 进程在我提交之后、**仍在后台运行时**又自己提交的一个。
+
+逐文件核对后确认：它对 `transform.py` / `split.md` / `contract.md` 的改动已被
+ticket-06 / 03 / 10 超越，**唯一真缺口在 `analysis.py`**：
+
+| 位置 | 声称 | 实际（修复前） |
+|---|---|---|
+| `CHANGELOG.md:31` | 硬闸「已收敛为参考线」 | — |
+| `references/concepts.md:78` | 列入「已删除的旧口径」 | — |
+| `common.py:35` | 「已删除 `MAX_FIRST_LAYER=20` 硬闸」 | — |
+| `docs/contract.md:221` | 「收敛为参考线」 | — |
+| `analysis.py:81/122` | —— | 仍 `len(entries) > MAX_FIRST_LAYER` 判 ❌，且本地重定义该常量，注释仍指 Dream |
+
+**4 处文档与代码自相矛盾**，已修复（commit `b643479`）：改用 `common.FIRST_LAYER_REFERENCE`，
+措辞由「❌ 超上限」改「⚠️ 超参考线（非规范要求）」，阈值改引 `CAP_*` 常量，删除本地副本。
+实测：`layers .` 现输出「✅ 在参考线内」。
+
+### 5.2 self-check 的边界（重要）
+
+`self-check` **没有**发现 5.1 这条缺陷。它校验的是**披露结构**
+（超限 / 到不了根 / 悬空 / 披露过深），**不校验「文档声称」与「代码实现」是否一致**。
+这类不一致目前只能靠人工比对发现 —— 记在此处，避免误以为 self-check 是万能的。
+
+### 5.3 分支清理前的内容核验（不靠分支状态，靠特征标记）
+
+`git merge-base --is-ancestor` 会因分支被重放而误报「未合入」。改用**内容标记**逐项核验
+main 是否含 10 个 ticket 的成果，10 项全 ✅ 后才清理。核验方法：
+
+| ticket | 核验标记 |
+|---|---|
+| 01 | `common.py` 含 `SRC_AGENTSKILLS` |
+| 02 | `disclosure.py` 含 `AUTO_WAIVED_DIRS` |
+| 03 | `SKILL.md` 89 行 + `references/` 8 个文件 |
+| 04 | `disclosure.py` 含 `depth_histogram` |
+| 05 | `cli.py` 含 `self-check` |
+| 06 | `transform.py` 含 `executor` |
+| 07 | `disclosure.py` 含 `执行方式` |
+| 08 | `cli.py` 含 `print_main_help` |
+| 09 | `.github/workflows/test.yml` 存在 |
+| 10 | `README.md` 含「两层披露」+ `CHANGELOG.md` |
