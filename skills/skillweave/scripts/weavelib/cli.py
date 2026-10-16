@@ -50,11 +50,20 @@ COMMANDS = {
                    "合并改动回真包并推送"),
     "self-check": ("self-check",
                    "对 SkillWeave 仓库自身跑 disclosure，要求待办清单为空（豁免除外）"),
+    "help":       ("help [<command>]",
+                   "列出全部子命令；带 <command> 时给该命令的详细说明（用法 / 参数 / 产物 / 示例）"),
 }
 
+# argparse 的 `choices`（唯一来源）。COMMANDS 的键集必须与它一致 —— `--self-test` 会断言，
+# 防止「加了命令忘更新帮助」或反过来（issue #11）。
+SUBCOMMANDS = ("tree", "layers", "checks", "audit", "propose", "judge", "score",
+               "visualize", "collapse", "prepare", "disclosure", "dispatch", "verify",
+               "apply", "deliver", "self-check", "help")
+
 # `<pack>` 可省略的子命令（默认当前目录）：judge / score 吃的参数本身已定位了包或输入；
-# self-check 检查的是**工具自己**（仓库根从 `weavelib` 反推），不需要 `<pack>`。
-_PACK_OPTIONAL = {"judge", "score", "self-check"}
+# self-check 检查的是**工具自己**（仓库根从 `weavelib` 反推），不需要 `<pack>`；
+# help 吃的是子命令名（放在 pack 位置），也不做包分析。
+_PACK_OPTIONAL = {"judge", "score", "self-check", "help"}
 
 
 def print_usage_error(cmd, error, usage, description):
@@ -74,28 +83,81 @@ def print_main_help():
     print("  prepare     创建工作副本并初始化流程")
     print("  deliver     合并改动回真包并推送")
     print()
+    print("运行 'weave.py help' 查看全部命令；'weave.py help <command>' 看单个命令的详细说明")
     print("运行 'weave.py <command> --help' 查看具体命令的选项")
     print("运行 'weave.py --self-test' 验证工具自身")
     print("运行 'weave.py self-check' 检查工具合规性")
 
 
+def _commands_md_path():
+    """`references/commands.md` 的绝对路径（本文件在 `<skill>/scripts/weavelib/`）。"""
+    here = os.path.dirname(os.path.abspath(__file__))          # …/scripts/weavelib
+    return os.path.join(os.path.dirname(os.path.dirname(here)), "references", "commands.md")
+
+
+def _commands_md_section(cmd):
+    """从 `references/commands.md` 切出 `## <cmd>` 小节正文（到下一个 `## ` 或 EOF）。
+
+    帮助文本的**唯一来源**就是这份文档，不手抄第二份 —— 见 issue #11。找不到返回 None
+    （调用方回退到 COMMANDS 里的用法 + 一句话说明）。"""
+    try:
+        with open(_commands_md_path(), encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return None
+    head = f"## {cmd}"
+    out, on, fence = [], False, False
+    for ln in lines:
+        if ln.startswith("```"):
+            fence = not fence
+        if not fence and ln.startswith("## "):
+            if ln.rstrip() == head:
+                on = True
+                continue
+            if on:
+                break
+        if on:
+            out.append(ln)
+    while out and not out[0].strip():
+        out.pop(0)
+    while out and not out[-1].strip():
+        out.pop()
+    return "\n".join(out) if out else None
+
+
+def print_help_list():
+    """`weave.py help`（无参）：列出**全部**子命令 + 一句话说明。"""
+    print(f"SkillWeave 子命令（共 {len(COMMANDS)} 个）:")
+    for cmd in sorted(COMMANDS):
+        print(f"  {cmd}  {COMMANDS[cmd][1]}")
+    print()
+    print("用法: weave.py help <command>   查看该命令的详细说明（用法 / 参数 / 产物 / 示例）")
+    print("      weave.py <command> --help 同效")
+
+
 def print_command_help(cmd):
-    """`weave.py <command> --help` 的详细帮助：用法 + 说明 + 例子提示。"""
+    """`weave.py help <cmd>` / `weave.py <cmd> --help` 的详细帮助。
+
+    结构：结构化表里的 用法 + 说明（与错误消息同源），再接 `references/commands.md` 里
+    `## <cmd>` 的完整小节（用法示例 / 参数 / 产物 / 说明）—— 文档是唯一来源，不会漂移。"""
     usage, description = COMMANDS[cmd]
     print(f"[{cmd}]")
     print(f"用法: weave.py {usage}")
     print(f"说明: {description}")
-    print("提示: 运行 'weave.py --help' 查看全部命令；参数错误会显示这一条用法")
+    section = _commands_md_section(cmd)
+    if section:
+        print()
+        print(section)
+    print()
+    print("提示: 运行 'weave.py help' 查看全部命令；参数错误会显示这一条用法")
 
 
-def main(argv=None):
+def build_parser():
+    """构造 argparse 解析器。拆成函数便于 `--self-test` 直接读 `choices` 与帮助对账（issue #11）。"""
     ap = argparse.ArgumentParser(description="SkillWeave·skill pack 文档树与三级披露",
                                  add_help=False)
     ap.add_argument("-h", "--help", action="store_true", help="显示帮助")
-    ap.add_argument("cmd", nargs="?",
-                    choices=["tree", "layers", "checks", "audit", "propose", "judge", "score", "visualize",
-                             "collapse", "prepare", "disclosure", "dispatch", "verify", "apply", "deliver",
-                             "self-check"])
+    ap.add_argument("cmd", nargs="?", choices=SUBCOMMANDS)
     ap.add_argument("--prompts", default=None)
     ap.add_argument("--key", default=None)
     ap.add_argument("--judge", nargs="*", default=[])
@@ -121,6 +183,11 @@ def main(argv=None):
     ap.add_argument("pack", nargs="?")
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-test", action="store_true")
+    return ap
+
+
+def main(argv=None):
+    ap = build_parser()
     a = ap.parse_args(argv)
     if a.self_test:
         from .selftest import self_test
@@ -131,6 +198,19 @@ def main(argv=None):
             print_command_help(a.cmd)
         else:
             print_main_help()
+        return 0
+    if a.cmd == "help":
+        # `weave.py help` 列出全部子命令；`weave.py help <command>` 给详细说明（issue #11）。
+        target = a.pack
+        if not target:
+            print_help_list()
+            return 0
+        if target not in COMMANDS:
+            print(f"[help] 未知命令: {target}")
+            print(f"可用命令: {', '.join(sorted(COMMANDS))}")
+            print("运行 'weave.py help' 查看全部命令")
+            return 2
+        print_command_help(target)
         return 0
     if not a.cmd:
         print_main_help()

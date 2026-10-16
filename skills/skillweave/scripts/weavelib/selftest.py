@@ -3,7 +3,7 @@
 从 weave.py 拆出，逻辑未改。"""
 import contextlib, difflib, io, json, os, re, shutil, tempfile
 from .analysis import cmd_audit, cmd_checks, cmd_judge, cmd_layers, cmd_score, cmd_self_check
-from .cli import main
+from .cli import COMMANDS, _commands_md_section, build_parser, main
 from .common import read_text
 from .deliver import cmd_deliver
 from .disclosure import cmd_disclosure, cmd_dispatch, cmd_verify
@@ -744,6 +744,23 @@ def self_test():
         assert rc == 0 and "常用命令" in o, o
         rc, o = _cli("disclosure", "--help")
         assert rc == 0 and "用法: weave.py disclosure" in o, o
+        # ticket 11：`help <command>` —— 帮助文本切自 references/commands.md（唯一来源），
+        # 命令集合必须与 argparse 的 choices 完全一致（加了命令忘更新帮助即失败）。
+        _choices = set(next(act for act in build_parser()._actions if act.dest == "cmd").choices)
+        assert set(COMMANDS) == _choices, (sorted(set(COMMANDS)), sorted(_choices))
+        for _c in _choices:
+            assert _commands_md_section(_c), f"references/commands.md 缺 `## {_c}` 小节"
+        rc, o = _cli("help")
+        assert rc == 0, o
+        _listed = set(re.findall(r"^  (\S+)  ", o, re.M))
+        assert _listed == _choices, (sorted(_listed), sorted(_choices))
+        rc, o = _cli("help", "disclosure")
+        assert rc == 0 and "[disclosure]" in o and "用法: weave.py disclosure" in o, o
+        assert "产物" in o and "python3" in o, o
+        rc, o = _cli("help", "help")
+        assert rc == 0 and "[help]" in o and "python3" in o, o
+        rc, o = _cli("help", "nosuch")
+        assert rc == 2 and "未知命令" in o and "nosuch" in o and "disclosure" in o, o
         print("[self-test] ✅ 层（pack→类目→skill）/ 折叠 description / 孤儿 / 悬空 / "
               "围栏内标题 / 两次一致 / 硬编码路径 / 内嵌密钥 / 提案器四类动作 / "
               "layers↔audit 口径对拍 / 派发划批 / 验收（集合级回归拦截 + 梯子）/ "
@@ -757,6 +774,7 @@ def self_test():
               "ticket 06（执行者配置：prepare 询问并持久化） / "
               "ticket 07（dispatch 读执行者配置 → prompt 末尾输出执行说明） / "
               "issue #08（子命令参数错误统一格式 + 简要帮助）/ "
+              "ticket 11（help 子命令：切自 commands.md + 集合对账 argparse choices）/ "
               "工具目录 .skillweave/ 非成员（免检表读得到、档案不进度量）"
               "—— 全过")
         return 0

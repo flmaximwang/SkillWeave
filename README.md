@@ -77,6 +77,10 @@ python3 scripts/weave.py collapse  <pack 目录> --out DIR --apply --entry-dir <
 
 # 自检（自带 fixture，不碰真实数据）
 python3 scripts/weave.py --self-test
+
+# 帮助：列出全部子命令，或看单个命令的详细说明（用法 / 参数 / 产物 / 示例）
+python3 scripts/weave.py help                # 全部子命令 + 一句话说明
+python3 scripts/weave.py help disclosure     # 单个命令的详细说明（内容切自 references/commands.md，不会漂移）
 ```
 
 ## 验证工具自身合规

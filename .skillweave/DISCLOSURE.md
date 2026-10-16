@@ -31,7 +31,7 @@
 
 | 文档 | fanout（披露几项） | 体积 | 判定 |
 |---|---|---|---|
-| `skills/skillweave/references/commands.md` | 24 | 3421 tok / 235 行 | ✅ |
+| `skills/skillweave/references/commands.md` | 24 | 3640 tok / 250 行 | ✅ |
 | `skills/skillweave/references/concepts.md` | 26 | 2691 tok / 126 行 | ✅ |
 | `skills/skillweave/references/group.md` | 9 | 802 tok / 59 行 | ✅ |
 | `skills/skillweave/references/merge.md` | 8 | 836 tok / 51 行 | ✅ |
@@ -41,8 +41,8 @@
 | `skills/skillweave/references/workflow.md` | 10 | 3053 tok / 148 行 | ✅ |
 | `skills/skillweave/scripts/weave.py` | 13 | 549 B | ✅ |
 | `skills/skillweave/scripts/weavelib/__init__.py` | 1 | 974 B | ✅ |
-| `skills/skillweave/scripts/weavelib/analysis.py` | 10 | 21637 B | ✅ |
-| `skills/skillweave/scripts/weavelib/cli.py` | 0 | 14808 B | ✅ |
+| `skills/skillweave/scripts/weavelib/analysis.py` | 10 | 22056 B | ✅ |
+| `skills/skillweave/scripts/weavelib/cli.py` | 1 | 18132 B | ✅ |
 | `skills/skillweave/scripts/weavelib/common.py` | 22 | 9576 B | ✅ |
 | `skills/skillweave/scripts/weavelib/deliver.py` | 0 | 11423 B | ✅ |
 | `skills/skillweave/scripts/weavelib/disclosure.py` | 10 | 28910 B | ✅ |
@@ -51,7 +51,7 @@
 | `skills/skillweave/scripts/weavelib/model.py` | 24 | 14540 B | ✅ |
 | `skills/skillweave/scripts/weavelib/pack.py` | 0 | 4184 B | ✅ |
 | `skills/skillweave/scripts/weavelib/render.py` | 10 | 24587 B | ✅ |
-| `skills/skillweave/scripts/weavelib/selftest.py` | 13 | 54546 B | ✅ |
+| `skills/skillweave/scripts/weavelib/selftest.py` | 13 | 55812 B | ✅ |
 | `skills/skillweave/scripts/weavelib/transform.py` | 8 | 40494 B | ✅ |
 
 ## 根选择层（L0）

@@ -232,3 +232,18 @@ python3 "$SW" self-check          # 不需要 <pack>：检查的是工具自己�
 读 `disclosure.json.issues`，**未豁免条目为空**才 PASS（退 0），否则列出前 10 条并退 1。用户和 CI
 可用它确认「工具自己符合规范」。两条支撑口径：脚本类文档不做悬空检查、markdown 里悬空照报；
 `SKILL.md` 按**目录**点名覆盖整目录（见 `docs/contract.md` §3/§4）。
+
+## help
+
+```bash
+python3 "$SW" help                    # 列出全部子命令 + 一句话说明
+python3 "$SW" help disclosure         # 单个命令的详细说明（= 本节正文）
+```
+
+`help` 不带参数时列出**全部**子命令；带一个命令名时打印该命令的详细说明 —— 内容**直接切自
+本文档**（`references/commands.md` 的 `## <command>` 小节），所以不会和这里漂移。未知命令名
+退 2 并列出可用命令。
+
+`weave.py <command> --help` 与 `weave.py help <command>` 同效。`--self-test` 断言
+「帮助列出的命令集合 == argparse 的 `choices`」，并断言每个命令在本文档里都有 `## <command>`
+小节 —— 加了命令忘更新帮助会当场失败。

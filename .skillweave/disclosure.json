@@ -165,8 +165,8 @@
    "skills/skillweave/scripts/weave.py": 3
   },
   "skills/skillweave/scripts/weavelib/analysis.py": {
-   "docs/compare-tools.md": 126,
-   "skills/skillweave/SKILL.md": 86,
+   "docs/compare-tools.md": 127,
+   "skills/skillweave/SKILL.md": 88,
    "skills/skillweave/references/commands.md": 78,
    "skills/skillweave/references/concepts.md": 78,
    "skills/skillweave/references/group.md": 78,
@@ -175,6 +175,9 @@
    "skills/skillweave/references/rewrite.md": 78,
    "skills/skillweave/references/split.md": 78,
    "skills/skillweave/references/workflow.md": 78
+  },
+  "skills/skillweave/scripts/weavelib/cli.py": {
+   "skills/skillweave/references/commands.md": 93
   },
   "skills/skillweave/scripts/weavelib/common.py": {
    "docs/contract.md": 19,
@@ -431,18 +434,18 @@
    "waived": false
   },
   "skills/skillweave/references/commands.md": {
-   "bytes": 11525,
+   "bytes": 12262,
    "depth": 2,
    "desc_chars": null,
    "kind": "reference",
-   "lines": 235,
+   "lines": 250,
    "name": "commands.md",
    "orphan": false,
    "over": [],
    "path": "skills/skillweave/references/commands.md",
    "root": false,
    "skill": "skills/skillweave/",
-   "tok": 3421,
+   "tok": 3640,
    "waive_reason": null,
    "waived": false
   },
@@ -591,7 +594,7 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/analysis.py": {
-   "bytes": 21637,
+   "bytes": 22056,
    "depth": 2,
    "desc_chars": null,
    "kind": "script",
@@ -607,7 +610,7 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/cli.py": {
-   "bytes": 14808,
+   "bytes": 18132,
    "depth": 2,
    "desc_chars": null,
    "kind": "script",
@@ -751,7 +754,7 @@
    "waived": false
   },
   "skills/skillweave/scripts/weavelib/selftest.py": {
-   "bytes": 54546,
+   "bytes": 55812,
    "depth": 2,
    "desc_chars": null,
    "kind": "script",
