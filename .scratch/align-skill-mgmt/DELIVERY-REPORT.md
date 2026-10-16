@@ -137,3 +137,17 @@ main 是否含 10 个 ticket 的成果，10 项全 ✅ 后才清理。核验方�
 | 08 | `cli.py` 含 `print_main_help` |
 | 09 | `.github/workflows/test.yml` 存在 |
 | 10 | `README.md` 含「两层披露」+ `CHANGELOG.md` |
+
+---
+
+## 六、分支清理记录（2026-10-16）
+
+11 个 `ticket-*` 分支已删除。以下 4 个分支的提交**内容已核验在 main**（以「按路径重放」方式落地），
+但提交对象本身非 main 祖先 —— 记下 SHA 以备查：
+
+| 分支 | tip SHA | 说明 |
+|---|---|---|
+| ticket-01 | `5265afdfeb9c` | 含迟到提交 5265afd；其 analysis.py 部分由 b643479 修复 |
+| ticket-03 | `587a226fa614` | SKILL.md 重构；由 f7c1d5c 重放 |
+| ticket-10 | `21cda1eed1a5` | 文档/CHANGELOG；由 5a7ac25 重放（逐字节一致） |
+| ticket-11 | `6cfdd16f2010` | help 子命令；由 87bbd41 重放 |
